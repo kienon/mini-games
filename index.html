@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Tiny World — Ultimate Living Planet Pro</title>
+    <title>Tiny World — Ultimate Living Planet (Fixed Clouds & Camera)</title>
     <style>
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
         html, body { margin: 0; width: 100%; height: 100%; overflow: hidden; background: #02030a; font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif; touch-action: none; user-select: none; }
@@ -14,8 +14,7 @@
             position: fixed; top: max(16px, env(safe-area-inset-top)); left: max(16px, env(safe-area-inset-left)); z-index: 50;
             color: #ffffff; text-shadow: 0 2px 5px rgba(0, 0, 0, 0.9); pointer-events: none;
             background: rgba(0, 0, 0, 0.30); padding: 13px 17px; border-radius: 14px;
-            backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.13);
+            backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.13);
         }
         #ui-container h1 { margin: 0 0 4px 0; font-size: 17px; font-weight: 700; letter-spacing: 0.3px; }
         #ui-container p { margin: 2px 0; font-size: 11px; color: rgba(255, 255, 255, 0.82); }
@@ -111,13 +110,13 @@
 <body>
 
     <div id="loading-screen">
-        <div id="loading-title">🌍 Tiny World Pro</div>
-        <div id="loading-subtitle">Loading Living Planet & Enhancements...</div>
+        <div id="loading-title">🌍 Tiny World</div>
+        <div id="loading-subtitle">Optimizing sky and camera rig...</div>
         <div id="loading-bar"><div id="loading-progress"></div></div>
     </div>
 
     <div id="ui-container">
-        <h1>🌍 Tiny World + Pro</h1>
+        <h1>🌍 Tiny World</h1>
         <p><b>PC:</b> W/S Move · A/D Turn · SPACE Jump · E Interact · C Camera</p>
         <p id="status-text">Status: Exploring</p>
     </div>
@@ -125,7 +124,6 @@
     <div id="telemetry-panel">
         <div id="fps-counter">FPS: --</div>
         <div id="speed-meter">Speed: 0.0 m/s</div>
-        <div id="gem-counter" style="color: #ffd700; font-weight: bold; margin-top: 2px;">Crystals: 0 / 15</div>
     </div>
 
     <div id="time-display">☀️ 12:00 · Day</div>
@@ -168,10 +166,10 @@
             cameraMinDistance: 4.2,
             cameraMaxDistance: 23.0,
             cameraHeight: 4.8,
-            cameraLag: 9.0,
+            cameraLag: 12.0, // Diperhalus untuk gerakan kamera lebih smooth
             cameraLookHeight: 2.0,
             cameraLookAhead: 3.0,
-            cameraSensitivity: 0.005,
+            cameraSensitivity: 0.0035, // Dikurangkan sedikit supaya tidak terlalu laju/pusing
             cameraPitchMin: -0.72,
             cameraPitchMax: 1.0,
             jumpVelocity: 10.5,
@@ -181,8 +179,7 @@
             buildingCount: 30,
             treeCount: 145,
             rockCount: 85,
-            cloudCount: 24,
-            gemCount: 15,
+            cloudCount: 22,
             dayLengthSec: 180,
             riverSegments: 80,
             shadowMapSize: 1536
@@ -250,24 +247,26 @@
         const stars = new THREE.Points(starGeo, new THREE.PointsMaterial({ color: 0xffffff, size: 1.25, transparent: true, opacity: 0, depthWrite: false }));
         scene.add(stars);
 
-        // Fireflies (Night Particles)
-        const fireflyCount = 60;
-        const fireflyGeo = new THREE.BufferGeometry();
-        const fireflyPos = new Float32Array(fireflyCount * 3);
-        const fireflyData = [];
-        for (let i = 0; i < fireflyCount; i++) {
-            const normal = new THREE.Vector3(Math.random()-0.5, Math.random()-0.5, Math.random()-0.5).normalize();
-            const alt = 2 + Math.random() * 6;
-            const worldPos = normal.clone().multiplyScalar(CONFIG.planetRadius + alt);
-            fireflyPos[i*3] = worldPos.x; fireflyPos[i*3+1] = worldPos.y; fireflyPos[i*3+2] = worldPos.z;
-            fireflyData.push({ normal, alt, speed: 0.5 + Math.random()*1.5, offset: Math.random() * Math.PI * 2 });
-        }
-        fireflyGeo.setAttribute("position", new THREE.BufferAttribute(fireflyPos, 3));
-        const fireflyMat = new THREE.PointsMaterial({ color: 0xffeb3b, size: 2.2, transparent: true, opacity: 0, depthWrite: false });
-        const fireflies = new THREE.Points(fireflyGeo, fireflyMat);
-        scene.add(fireflies);
+        // Optimized & Sized-Down Cloud System
+        const cloudGroup = new THREE.Group();
+        scene.add(cloudGroup);
 
-        // Helper functions
+        const cloudMaterial = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 1, transparent: true, opacity: 0.72, depthWrite: false });
+
+        function createOptimizedCloud() {
+            const cloud = new THREE.Group();
+            const puffs = 3 + Math.floor(Math.random() * 3);
+            for (let i = 0; i < puffs; i++) {
+                // Awan dikecilkan saiznya supaya tidak terlalu besar merelit skrin
+                const radius = 1.2 + Math.random() * 1.5;
+                const puff = new THREE.Mesh(new THREE.SphereGeometry(radius, 10, 8), cloudMaterial);
+                puff.position.set(i * 2.2, Math.random() * 0.8, (Math.random() - 0.5) * 2.0);
+                puff.scale.y = 0.55 + Math.random() * 0.25;
+                cloud.add(puff);
+            }
+            return cloud;
+        }
+
         function randomDirection() { return new THREE.Vector3(Math.random()-0.5, Math.random()-0.5, Math.random()-0.5).normalize(); }
         function tangentDirection(n) {
             let ref = new THREE.Vector3(0, 1, 0);
@@ -285,25 +284,21 @@
             orientToSurface(obj, n);
         }
 
-        // Collectible Gems System
-        const gems = [];
-        let collectedGemsCount = 0;
-        const gemGeometry = new THREE.OctahedronGeometry(0.6);
-        const gemMaterial = new THREE.MeshStandardMaterial({ color: 0xffd700, emissive: 0xffa000, emissiveIntensity: 0.8, roughness: 0.2 });
-
-        for (let i = 0; i < CONFIG.gemCount; i++) {
+        for (let i = 0; i < CONFIG.cloudCount; i++) {
+            const cloud = createOptimizedCloud();
             const normal = randomDirection();
-            const gem = new THREE.Mesh(gemGeometry, gemMaterial);
-            placeOnSurface(gem, normal, 0.8);
-            scene.add(gem);
-            gems.push({ mesh: gem, normal, collected: false });
+            const altitude = 18 + Math.random() * 8;
+            cloud.userData.normal = normal.clone();
+            cloud.userData.altitude = altitude;
+            cloud.userData.speed = 0.003 + Math.random() * 0.003;
+            cloud.scale.setScalar(0.8 + Math.random() * 0.8);
+            placeOnSurface(cloud, normal, altitude);
+            cloudGroup.add(cloud);
         }
 
         // Environment & Obstacles
         const obstacleList = [];
         const houses = [];
-        const cloudGroup = new THREE.Group();
-        scene.add(cloudGroup);
         const environmentGroup = new THREE.Group();
         scene.add(environmentGroup);
 
@@ -458,7 +453,7 @@
             joystickX = dx / max; joystickY = dy / max;
         }
 
-        // Camera POV
+        // Camera POV (Smoothed)
         const cameraTouchZone = document.getElementById("camera-touch-zone");
         let cameraDragging = false, cameraPtrId = null, lastCamX = 0, lastCamY = 0;
         let cameraYaw = 0, cameraPitch = 0.22, cameraDistance = CONFIG.cameraDistance, cameraMode = 0;
@@ -535,16 +530,6 @@
                 }
             }
 
-            // Check Gem Collection
-            for (const g of gems) {
-                if (!g.collected && player.position.distanceTo(g.mesh.position) < 2.5) {
-                    g.collected = true;
-                    scene.remove(g.mesh);
-                    collectedGemsCount++;
-                    document.getElementById("gem-counter").textContent = `Crystals: ${collectedGemsCount} / ${CONFIG.gemCount}`;
-                }
-            }
-
             if (Math.abs(currentSpeed) > 0.08 && isGrounded) walkTime += dt * Math.abs(currentSpeed) * 1.55;
             const legSwing = Math.sin(walkTime * 8.5) * 0.42 * Math.min(1, Math.abs(currentSpeed) / CONFIG.playerWalkSpeed);
             playerMesh.userData.leftLeg.rotation.x = legSwing;
@@ -589,7 +574,7 @@
             }
         }
 
-        // Camera Rig
+        // Camera Rig (Smoothed Damping)
         const desiredCamPos = new THREE.Vector3(), desiredLookAt = new THREE.Vector3();
         function updateCamera(dt) {
             const up = playerNormal.clone(), forward = projectOntoTangent(playerForward, up);
@@ -618,7 +603,7 @@
             camera.lookAt(desiredLookAt);
         }
 
-        // Day / Night & Fireflies
+        // Day / Night System
         let elapsedTime = 0;
         const skyColors = { night: new THREE.Color(0x02040e), deepBlue: new THREE.Color(0x101f4b), purple: new THREE.Color(0x513a78), pink: new THREE.Color(0xd36d7f), peach: new THREE.Color(0xf39b72), golden: new THREE.Color(0xf6c878), day: new THREE.Color(0x78caff) };
         const skyStops = [{ position: 0.00, color: skyColors.night }, { position: 0.18, color: skyColors.deepBlue }, { position: 0.32, color: skyColors.purple }, { position: 0.42, color: skyColors.pink }, { position: 0.49, color: skyColors.peach }, { position: 0.55, color: skyColors.golden }, { position: 0.64, color: skyColors.day }, { position: 1.00, color: skyColors.day }];
@@ -639,8 +624,7 @@
             const daylight = THREE.MathUtils.smoothstep(elevation, -0.18, 0.25);
             const nightFactor = 1 - daylight;
 
-            // Sky gradient
-            let norm = clamp((elevation + 1)/2, 0, 1);
+            let norm = THREE.MathUtils.clamp((elevation + 1)/2, 0, 1);
             let targetSky = skyStops[0].color.clone();
             for (let i = 0; i < skyStops.length - 1; i++) {
                 if (norm >= skyStops[i].position && norm <= skyStops[i+1].position) {
@@ -657,23 +641,8 @@
             moonLight.intensity = THREE.MathUtils.damp(moonLight.intensity, 0.025 + nightFactor * 0.38, 4, dt);
             hemisphereLight.intensity = THREE.MathUtils.damp(hemisphereLight.intensity, 0.28 + daylight * 1.22, 4, dt);
 
-            // Stars & Fireflies fade in at night
             const nightAlpha = THREE.MathUtils.smoothstep(-0.10, -0.32, elevation);
             stars.material.opacity = THREE.MathUtils.damp(stars.material.opacity, nightAlpha * 0.95, 3.5, dt);
-            fireflyMat.opacity = THREE.MathUtils.damp(fireflyMat.opacity, nightAlpha * 0.85, 3.5, dt);
-
-            // Update fireflies positions slightly
-            if (nightAlpha > 0.05) {
-                const posArr = fireflyGeo.attributes.position.array;
-                for (let i = 0; i < fireflyCount; i++) {
-                    let f = fireflyData[i];
-                    f.offset += dt * f.speed;
-                    let altVar = f.alt + Math.sin(f.offset) * 0.6;
-                    let p = f.normal.clone().multiplyScalar(CONFIG.planetRadius + altVar);
-                    posArr[i*3] = p.x; posArr[i*3+1] = p.y; posArr[i*3+2] = p.z;
-                }
-                fireflyGeo.attributes.position.needsUpdate = true;
-            }
 
             const totalMins = progress * 24 * 60;
             const hrs = Math.floor(totalMins / 60), mins = Math.floor(totalMins % 60);
@@ -698,11 +667,6 @@
 
             stars.rotation.y += dt * 0.001;
 
-            // Rotate Gems slightly
-            for (const g of gems) {
-                if (!g.collected) g.mesh.rotation.y += dt * 1.5;
-            }
-
             frameCount++;
             const now = performance.now();
             if (now - fpsTimer >= 500) {
@@ -719,10 +683,9 @@
             renderer.setSize(window.innerWidth, window.innerHeight);
         });
 
-        // Loading simulation
         let fakeProgress = 0;
         const loadIntv = setInterval(() => {
-            fakeProgress += 10 + Math.random() * 15;
+            fakeProgress += 12 + Math.random() * 15;
             if (fakeProgress >= 100) {
                 clearInterval(loadIntv);
                 setTimeout(() => document.getElementById("loading-screen").classList.add("hidden"), 300);
