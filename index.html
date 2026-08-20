@@ -1,264 +1,2144 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>Tiny World - Massive Update</title>
-    <style>
-        body { margin: 0; overflow: hidden; background: #000; touch-action: none; font-family: sans-serif; }
-        #ui { position: absolute; top: 10px; left: 20px; color: white; text-shadow: 2px 2px 2px #000; pointer-events: none; z-index: 10; }
-        #ui p { margin: 5px 0; font-size: 14px; color: #ddd; }
-        #joystick-zone { position: absolute; bottom: 40px; left: 40px; width: 120px; height: 120px; background: rgba(255,255,255,0.15); border-radius: 50%; border: 2px solid rgba(255,255,255,0.4); z-index: 5; }
-        #joystick-knob { position: absolute; top: 35px; left: 35px; width: 50px; height: 50px; background: rgba(255,255,255,0.8); border-radius: 50%; pointer-events: none; box-shadow: 0 4px 8px rgba(0,0,0,0.5); }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Tiny Planet — Living World</title>
+
+<style>
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#050914;font-family:Arial,sans-serif;touch-action:none}
+canvas{display:block}
+
+#ui{
+ position:fixed;top:14px;left:18px;z-index:20;color:white;
+ text-shadow:0 2px 5px #000;pointer-events:none
+}
+#ui h2{margin:0 0 6px;font-size:20px}
+#ui p{margin:3px 0;font-size:13px;color:#e2e8ef}
+#status{font-weight:bold;margin-top:8px!important}
+
+#stats{
+ position:fixed;right:18px;top:14px;z-index:20;
+ color:white;text-align:right;font-size:12px;
+ line-height:18px;text-shadow:0 2px 5px #000;
+ pointer-events:none
+}
+
+#time{
+ position:fixed;top:72px;left:50%;transform:translateX(-50%);
+ z-index:20;color:white;font-size:13px;
+ padding:7px 15px;border-radius:20px;
+ background:rgba(0,0,0,.25);
+ border:1px solid rgba(255,255,255,.2);
+ backdrop-filter:blur(7px);
+ pointer-events:none
+}
+
+#joystick-zone{
+ position:fixed;left:25px;bottom:28px;
+ width:145px;height:145px;z-index:30;
+ border-radius:50%;
+ background:rgba(255,255,255,.09);
+ border:2px solid rgba(255,255,255,.3);
+ box-shadow:inset 0 0 25px rgba(255,255,255,.05),0 10px 30px rgba(0,0,0,.35)
+}
+
+#joystick-knob{
+ position:absolute;left:42px;top:42px;
+ width:58px;height:58px;border-radius:50%;
+ background:rgba(255,255,255,.85);
+ box-shadow:0 5px 15px rgba(0,0,0,.45);
+ pointer-events:none;
+ will-change:transform
+}
+
+#help{
+ position:fixed;right:18px;bottom:18px;z-index:20;
+ color:white;font-size:12px;padding:8px 12px;
+ background:rgba(0,0,0,.25);border-radius:8px;
+ border:1px solid rgba(255,255,255,.15);
+ pointer-events:none
+}
+
+@media(max-width:700px){
+ #ui h2{font-size:16px}
+ #ui p{font-size:11px}
+ #help{display:none}
+}
+</style>
 </head>
+
 <body>
-    <div id="ui">
-        <h2>Dunia 3D: Player Moves!</h2>
-        <p>PC: W (Jalan Depan), S (Undur), A/D (Pusing Kiri/Kanan) | HP: Joystick</p>
-        <p id="status">Status: Sedia Berjalan!</p>
-    </div>
-    <div id="joystick-zone"><div id="joystick-knob"></div></div>
 
-    <script type="importmap">
-        { "imports": { "three": "https://unpkg.com/three@0.160.0/build/three.module.js" } }
-    </script>
+<div id="ui">
+    <h2>🌍 Tiny Planet</h2>
+    <p>PC: W/S Jalan · A/D Pusing</p>
+    <p>Mobile: Joystick</p>
+    <p id="status">Status: Ready</p>
+</div>
 
-    <script type="module">
-        import * as THREE from 'three';
+<div id="stats">
+    <div id="fps">FPS: --</div>
+    <div id="speed">Speed: 0</div>
+    <div id="npc">NPC: 0</div>
+</div>
 
-        // 1. SETUP SCENE BERSKALA BESAR
-        const scene = new THREE.Scene();
-        scene.background = new THREE.Color(0x0a0a1a);
-        scene.fog = new THREE.FogExp2(0x0a0a1a, 0.003); // Kabus nipis sebab map besar
+<div id="time">☀️ 12:00 · Day</div>
 
-        const camera = new THREE.PerspectiveCamera(60, window.innerWidth/window.innerHeight, 0.1, 1000);
-        const renderer = new THREE.WebGLRenderer({ antialias: true });
-        renderer.setSize(window.innerWidth, window.innerHeight);
-        renderer.shadowMap.enabled = true;
-        renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-        document.body.appendChild(renderer.domElement);
+<div id="joystick-zone">
+    <div id="joystick-knob"></div>
+</div>
 
-        const ambient = new THREE.AmbientLight(0xffffff, 0.6);
-        scene.add(ambient);
-        const sun = new THREE.DirectionalLight(0xffffff, 1.2);
-        sun.position.set(100, 200, 50);
-        sun.castShadow = true;
-        sun.shadow.camera.near = 50;
-        sun.shadow.camera.far = 400;
-        sun.shadow.camera.left = -150;
-        sun.shadow.camera.right = 150;
-        sun.shadow.camera.top = 150;
-        sun.shadow.camera.bottom = -150;
-        scene.add(sun);
+<div id="help">Explore the planet 🌎</div>
 
-        // Saiz Glob (Besar Gila)
-        const radius = 150; 
+<script type="importmap">
+{
+    "imports":{
+        "three":"https://unpkg.com/three@0.160.0/build/three.module.js"
+    }
+}
+</script>
 
-        // Bintang kaku (Background)
-        const starGeo = new THREE.BufferGeometry();
-        const starCount = 5000;
-        const starPos = new Float32Array(starCount * 3);
-        for(let i=0; i<starCount*3; i++) starPos[i] = (Math.random() - 0.5) * 1000;
-        starGeo.setAttribute('position', new THREE.BufferAttribute(starPos, 3));
-        scene.add(new THREE.Points(starGeo, new THREE.PointsMaterial({color: 0xffffff, size: 1.5})));
+<script type="module">
 
-        // Glob / Tanah Kaku
-        const earth = new THREE.Mesh(new THREE.SphereGeometry(radius, 128, 128), new THREE.MeshLambertMaterial({color: 0x2e8b57}));
-        earth.receiveShadow = true;
-        scene.add(earth);
+import * as THREE from "three";
 
-        // 2. SISTEM LETAK OBJEK (Rigging System)
-        // Cara paling selamat untuk benda lekat di bola. Kita pusingkan "Paksi Tengah" (Rig).
-        const collisionPositions = []; // Simpan koordinat dunia untuk detect langgar dinding
+/* =========================================================
+   CONFIG
+========================================================= */
 
-        function placeObject(mesh, r, isCollidable = false) {
-            const rig = new THREE.Group();
-            // Random rotasi dari pusat bumi
-            rig.rotation.set(Math.random() * Math.PI*2, Math.random() * Math.PI*2, Math.random() * Math.PI*2);
-            
-            // Tolak objek ke permukaan bola
-            mesh.position.set(0, r, 0);
-            
-            // Random pusingan objek supaya tak pandang satu arah je
-            mesh.rotation.y = Math.random() * Math.PI * 2; 
+const CFG = {
+    radius:220,
 
-            rig.add(mesh);
-            scene.add(rig);
+    playerSpeed:10,
+    reverseSpeed:5,
+    acceleration:8,
+    deceleration:10,
+    turnSpeed:2.3,
 
-            // Dapatkan posisi sebenar (World Position) untuk Collision
-            if(isCollidable) {
-                rig.updateMatrixWorld(true);
-                const wPos = new THREE.Vector3();
-                mesh.getWorldPosition(wPos);
-                collisionPositions.push(wPos);
-            }
-            return rig;
+    cameraDistance:16,
+    cameraHeight:6.5,
+    cameraLook:2.6,
+    cameraSmooth:8,
+
+    npcCount:28,
+    buildings:65,
+    trees:330,
+    rocks:160,
+    grass:220,
+
+    dayLength:240, // seconds for one full day
+
+    cloudHeight:12
+};
+
+
+/* =========================================================
+   SCENE
+========================================================= */
+
+const scene = new THREE.Scene();
+
+scene.background = new THREE.Color(0x75c4ff);
+
+scene.fog = new THREE.FogExp2(
+    0x75c4ff,
+    0.0018
+);
+
+
+/* =========================================================
+   CAMERA
+========================================================= */
+
+const camera = new THREE.PerspectiveCamera(
+    62,
+    innerWidth/innerHeight,
+    0.1,
+    1800
+);
+
+
+/* =========================================================
+   RENDERER
+========================================================= */
+
+const renderer = new THREE.WebGLRenderer({
+    antialias:true,
+    powerPreference:"high-performance"
+});
+
+renderer.setPixelRatio(
+    Math.min(devicePixelRatio,1.6)
+);
+
+renderer.setSize(
+    innerWidth,
+    innerHeight
+);
+
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+
+renderer.outputColorSpace =
+    THREE.SRGBColorSpace;
+
+document.body.appendChild(renderer.domElement);
+
+
+/* =========================================================
+   LIGHTS
+========================================================= */
+
+const ambient = new THREE.HemisphereLight(
+    0xbfe9ff,
+    0x29442a,
+    1.5
+);
+
+scene.add(ambient);
+
+
+const sun = new THREE.DirectionalLight(
+    0xffffff,
+    2.2
+);
+
+sun.castShadow = true;
+
+sun.shadow.mapSize.width = 2048;
+sun.shadow.mapSize.height = 2048;
+
+sun.shadow.camera.near = 10;
+sun.shadow.camera.far = 700;
+
+sun.shadow.camera.left = -280;
+sun.shadow.camera.right = 280;
+sun.shadow.camera.top = 280;
+sun.shadow.camera.bottom = -280;
+
+sun.shadow.bias = -0.0004;
+
+scene.add(sun);
+
+
+/* =========================================================
+   MOON LIGHT
+========================================================= */
+
+const moonLight = new THREE.DirectionalLight(
+    0x8da9ff,
+    0.25
+);
+
+scene.add(moonLight);
+
+
+/* =========================================================
+   PLANET
+========================================================= */
+
+const planet = new THREE.Mesh(
+    new THREE.SphereGeometry(
+        CFG.radius,
+        128,
+        128
+    ),
+    new THREE.MeshStandardMaterial({
+        color:0x3e9850,
+        roughness:1,
+        metalness:0
+    })
+);
+
+planet.receiveShadow = true;
+
+scene.add(planet);
+
+
+/* =========================================================
+   ATMOSPHERE
+========================================================= */
+
+const atmosphere = new THREE.Mesh(
+    new THREE.SphereGeometry(
+        CFG.radius+4,
+        64,
+        64
+    ),
+    new THREE.MeshBasicMaterial({
+        color:0x79cfff,
+        transparent:true,
+        opacity:.075,
+        side:THREE.BackSide
+    })
+);
+
+scene.add(atmosphere);
+
+
+/* =========================================================
+   STARS
+========================================================= */
+
+const starGeometry =
+    new THREE.BufferGeometry();
+
+const starCount = 4500;
+
+const starPositions =
+    new Float32Array(starCount*3);
+
+for(let i=0;i<starCount;i++){
+
+    const d = randomDirection();
+    const r = 750 + Math.random()*300;
+
+    starPositions[i*3] = d.x*r;
+    starPositions[i*3+1] = d.y*r;
+    starPositions[i*3+2] = d.z*r;
+}
+
+starGeometry.setAttribute(
+    "position",
+    new THREE.BufferAttribute(
+        starPositions,
+        3
+    )
+);
+
+const stars = new THREE.Points(
+    starGeometry,
+    new THREE.PointsMaterial({
+        color:0xffffff,
+        size:1.4,
+        sizeAttenuation:true,
+        transparent:true,
+        opacity:0
+    })
+);
+
+scene.add(stars);
+
+
+/* =========================================================
+   MOON
+========================================================= */
+
+const moon = new THREE.Mesh(
+    new THREE.SphereGeometry(7,32,32),
+    new THREE.MeshStandardMaterial({
+        color:0xd9e1ec,
+        roughness:1
+    })
+);
+
+scene.add(moon);
+
+
+/* =========================================================
+   HELPERS
+========================================================= */
+
+function randomDirection(){
+
+    return new THREE.Vector3(
+        Math.random()-.5,
+        Math.random()-.5,
+        Math.random()-.5
+    ).normalize();
+
+}
+
+
+function tangent(normal,direction){
+
+    const result =
+        direction.clone();
+
+    result.sub(
+        normal.clone().multiplyScalar(
+            direction.dot(normal)
+        )
+    );
+
+    if(result.lengthSq()<0.000001){
+
+        result.set(1,0,0);
+
+        result.sub(
+            normal.clone().multiplyScalar(
+                result.dot(normal)
+            )
+        );
+    }
+
+    return result.normalize();
+}
+
+
+function surfacePosition(normal,height=0){
+
+    return normal.clone().multiplyScalar(
+        CFG.radius+height
+    );
+}
+
+
+function placeOnPlanet(
+    object,
+    normal,
+    height=0
+){
+
+    object.position.copy(
+        surfacePosition(
+            normal,
+            height
+        )
+    );
+
+    object.quaternion.setFromUnitVectors(
+        new THREE.Vector3(0,1,0),
+        normal
+    );
+
+    scene.add(object);
+}
+
+
+/* =========================================================
+   COLLISION
+========================================================= */
+
+const colliders=[];
+
+function addCollider(object,radius){
+
+    colliders.push({
+        object,
+        radius
+    });
+}
+
+
+function collision(position,radius){
+
+    for(const c of colliders){
+
+        if(
+            position.distanceTo(
+                c.object.position
+            )
+            <
+            radius+c.radius
+        ){
+            return true;
         }
+    }
 
-        // Bina Bangunan
-        for(let i=0; i<80; i++) { // Lebih banyak bangunan sebab map besar
-            const bldgGroup = new THREE.Group();
-            const w = Math.random() * 4 + 2; const h = Math.random() * 8 + 4; const d = Math.random() * 4 + 2;
-            const body = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), new THREE.MeshLambertMaterial({color: 0x8899aa}));
-            body.position.y = h/2; body.castShadow = true; body.receiveShadow = true;
-            bldgGroup.add(body);
-            placeObject(bldgGroup, radius, true);
-        }
+    return false;
+}
 
-        // Bina Pokok
-        for(let i=0; i<150; i++) {
-            const tree = new THREE.Group();
-            const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.5, 0.8, 3), new THREE.MeshLambertMaterial({color: 0x5c4033}));
-            trunk.position.y = 1.5; trunk.castShadow = true;
-            const leaves = new THREE.Mesh(new THREE.DodecahedronGeometry(2.5), new THREE.MeshLambertMaterial({color: 0x228b22}));
-            leaves.position.y = 4; leaves.castShadow = true;
-            tree.add(trunk); tree.add(leaves);
-            placeObject(tree, radius, true);
-        }
 
-        // 3. WATAK (PLAYER & NPC)
-        function createCharacter(color) {
-            const group = new THREE.Group();
-            const body = new THREE.Mesh(new THREE.BoxGeometry(1.2, 1.8, 0.8), new THREE.MeshLambertMaterial({color: color}));
-            body.position.y = 0.9; body.castShadow = true; // Jejak tanah
-            const head = new THREE.Mesh(new THREE.SphereGeometry(0.6, 16, 16), new THREE.MeshLambertMaterial({color: 0xffe4c4}));
-            head.position.y = 2.4; head.castShadow = true;
-            group.add(body); group.add(head);
-            return group;
-        }
+/* =========================================================
+   BUILDINGS
+========================================================= */
 
-        // Player Rig
-        const playerRig = new THREE.Group();
-        scene.add(playerRig);
-        const playerMesh = createCharacter(0xFF0000); // Merah
-        playerMesh.position.set(0, radius, 0); // Atas permukaan bumi
-        playerRig.add(playerMesh);
+const buildingColors=[
+    0x7e8d99,
+    0x9b9fa3,
+    0x788c9b,
+    0xb39f83,
+    0x657887
+];
 
-        // Camera Rig (Ikut Player)
-        const cameraRig = new THREE.Group();
-        scene.add(cameraRig);
-        cameraRig.add(camera);
-        camera.position.set(0, radius + 8, 25); // Tinggi & belakang sikit dari player
-        camera.lookAt(new THREE.Vector3(0, radius + 2, 0));
 
-        // Letak NPC yang boleh bergerak
-        const npcs = [];
-        for(let i=0; i<40; i++) {
-            const npcMesh = createCharacter(Math.random() * 0xffffff);
-            const npcRig = placeObject(npcMesh, radius, true); // NPC pun keras
-            npcs.push({ rig: npcRig, mesh: npcMesh, turnSpeed: 0, walkSpeed: Math.random() * 0.01 + 0.005 });
-        }
+function createBuilding(){
 
-        // 4. KAWALAN PLAYER (Joystick / Keyboard)
-        let moveTurn = 0, moveWalk = 0;
-        const keys = {};
-        window.addEventListener('keydown', e => keys[e.key.toLowerCase()] = true);
-        window.addEventListener('keyup', e => keys[e.key.toLowerCase()] = false);
+    const group =
+        new THREE.Group();
 
-        const zone = document.getElementById('joystick-zone');
-        const knob = document.getElementById('joystick-knob');
-        let isDragging = false, center = {x:0, y:0};
+    const w =
+        3+Math.random()*4;
 
-        zone.addEventListener('touchstart', e => {
-            isDragging = true; center = { x: zone.getBoundingClientRect().left + 60, y: zone.getBoundingClientRect().top + 60 };
-            updateJoystick(e.touches[0]);
+    const d =
+        3+Math.random()*4;
+
+    const h =
+        5+Math.random()*10;
+
+    const body =
+        new THREE.Mesh(
+            new THREE.BoxGeometry(
+                w,h,d
+            ),
+            new THREE.MeshStandardMaterial({
+                color:
+                    buildingColors[
+                        Math.floor(
+                            Math.random()*
+                            buildingColors.length
+                        )
+                    ],
+                roughness:.9
+            })
+        );
+
+    body.position.y=h/2;
+    body.castShadow=true;
+    body.receiveShadow=true;
+
+    group.add(body);
+
+
+    const roof =
+        new THREE.Mesh(
+            new THREE.ConeGeometry(
+                Math.max(w,d)*.72,
+                2.2,
+                4
+            ),
+            new THREE.MeshStandardMaterial({
+                color:0x554139,
+                roughness:1
+            })
+        );
+
+    roof.position.y=h+1;
+    roof.rotation.y=Math.PI/4;
+    roof.castShadow=true;
+
+    group.add(roof);
+
+
+    const windowMaterial =
+        new THREE.MeshStandardMaterial({
+            color:0xbdefff,
+            emissive:0x16445a,
+            emissiveIntensity:.35
         });
-        zone.addEventListener('touchmove', e => { if(isDragging) updateJoystick(e.touches[0]); });
-        zone.addEventListener('touchend', () => {
-            isDragging = false; knob.style.transform = `translate(0px, 0px)`;
-            moveTurn = 0; moveWalk = 0;
+
+
+    const floors =
+        Math.max(1,Math.floor(h/3));
+
+
+    for(let f=0;f<floors;f++){
+
+        const win =
+            new THREE.Mesh(
+                new THREE.BoxGeometry(
+                    .65,.8,.08
+                ),
+                windowMaterial
+            );
+
+        win.position.set(
+            0,
+            1.5+f*3,
+            d/2+.05
+        );
+
+        group.add(win);
+
+        const win2=win.clone();
+
+        win2.position.z=-d/2-.05;
+
+        group.add(win2);
+    }
+
+    return group;
+}
+
+
+for(let i=0;i<CFG.buildings;i++){
+
+    const n=randomDirection();
+
+    const b=createBuilding();
+
+    b.rotation.y=Math.random()*Math.PI*2;
+
+    placeOnPlanet(b,n,.1);
+
+    addCollider(b,3);
+}
+
+
+/* =========================================================
+   TREES
+========================================================= */
+
+function createTree(){
+
+    const tree=new THREE.Group();
+
+    const trunk=new THREE.Mesh(
+        new THREE.CylinderGeometry(
+            .35,.65,4,8
+        ),
+        new THREE.MeshStandardMaterial({
+            color:0x62432b,
+            roughness:1
+        })
+    );
+
+    trunk.position.y=2;
+    trunk.castShadow=true;
+
+    tree.add(trunk);
+
+
+    const leafMaterial=
+        new THREE.MeshStandardMaterial({
+            color:0x21863c,
+            roughness:1
         });
 
-        function updateJoystick(touch) {
-            let dx = touch.clientX - center.x; let dy = touch.clientY - center.y;
-            const maxDist = 35; const dist = Math.sqrt(dx*dx + dy*dy);
-            if(dist > maxDist) { dx = (dx/dist)*maxDist; dy = (dy/dist)*maxDist; }
-            knob.style.transform = `translate(${dx}px, ${dy}px)`;
-            moveTurn = dx / maxDist; moveWalk = dy / maxDist;
-        }
 
-        // 5. GAME LOOP
-        const uiStatus = document.getElementById('status');
+    const crown=new THREE.Mesh(
+        new THREE.DodecahedronGeometry(
+            2.4,1
+        ),
+        leafMaterial
+    );
 
-        function animate() {
-            requestAnimationFrame(animate);
+    crown.position.y=4.5;
+    crown.castShadow=true;
 
-            // A. UPDATE NPC (Bagi diorang merayau)
-            npcs.forEach(npc => {
-                if (Math.random() < 0.02) npc.turnSpeed = (Math.random() - 0.5) * 0.1; // Kadang2 tukar arah
-                npc.mesh.rotation.y += npc.turnSpeed;
-                // NPC jalan depan
-                const rightAxis = new THREE.Vector3(1,0,0).applyQuaternion(npc.mesh.quaternion);
-                npc.rig.rotateOnAxis(rightAxis, npc.walkSpeed);
-            });
+    tree.add(crown);
 
-            // B. UPDATE PLAYER KAWALAN
-            let intentTurn = 0;
-            let intentWalk = 0;
 
-            if (keys['a']) intentTurn = 1;
-            if (keys['d']) intentTurn = -1;
-            if (keys['w']) intentWalk = 1;
-            if (keys['s']) intentWalk = -1;
+    const crown2=new THREE.Mesh(
+        new THREE.DodecahedronGeometry(
+            1.5,1
+        ),
+        new THREE.MeshStandardMaterial({
+            color:0x2e9945,
+            roughness:1
+        })
+    );
 
-            if (isDragging) {
-                intentTurn = -moveTurn;
-                intentWalk = -moveWalk; // Atas joystick = negatif Y
-            }
+    crown2.position.set(
+        .5,5.7,.2
+    );
 
-            // C. PERGERAKAN PLAYER
-            if (intentTurn !== 0) {
-                playerMesh.rotation.y += intentTurn * 0.05; // Pusing badan
-            }
+    crown2.castShadow=true;
 
-            if (intentWalk !== 0) {
-                // Cari paksi X lokal watak (sebab dia pandang Z lokal)
-                const rightAxis = new THREE.Vector3(1,0,0).applyQuaternion(playerMesh.quaternion);
-                
-                // Cuba gerak ke depan/belakang
-                const walkSpeed = 0.03;
-                playerRig.rotateOnAxis(rightAxis, intentWalk * walkSpeed);
+    tree.add(crown2);
 
-                // D. COLLISION CHECK (Check Tembus Dinding)
-                playerRig.updateMatrixWorld(true);
-                const pPos = new THREE.Vector3();
-                playerMesh.getWorldPosition(pPos); // Dapatkan koordinat player sekarang
-                
-                let isHit = false;
-                for(let bPos of collisionPositions) {
-                    if (pPos.distanceTo(bPos) < 2.8) { // Radius langgar (sesuaikan kalau sangkut)
-                        isHit = true; break;
-                    }
-                }
 
-                if (isHit) {
-                    // Kalau langgar, batalkan pergerakan (undur balik)
-                    playerRig.rotateOnAxis(rightAxis, -intentWalk * walkSpeed);
-                    uiStatus.innerText = "Status: Terlanggar Dinding!";
-                    uiStatus.style.color = "#ff4444";
-                } else {
-                    uiStatus.innerText = "Status: Sedia Berjalan!";
-                    uiStatus.style.color = "#ddd";
-                }
-            } else {
-                uiStatus.innerText = "Status: Berhenti";
-                uiStatus.style.color = "#ddd";
-            }
+    return tree;
+}
 
-            // E. KAMERA FOLLOW PLAYER DENGAN SMOOTH
-            cameraRig.quaternion.slerp(playerRig.quaternion, 0.1);
 
-            renderer.render(scene, camera);
-        }
+for(let i=0;i<CFG.trees;i++){
 
-        window.addEventListener('resize', () => {
-            camera.aspect = window.innerWidth / window.innerHeight;
-            camera.updateProjectionMatrix();
-            renderer.setSize(window.innerWidth, window.innerHeight);
+    const n=randomDirection();
+
+    const tree=createTree();
+
+    const scale=.65+Math.random()*.7;
+
+    tree.scale.setScalar(scale);
+
+    tree.rotation.y=
+        Math.random()*Math.PI*2;
+
+    placeOnPlanet(tree,n,.1);
+
+    addCollider(tree,2);
+}
+
+
+/* =========================================================
+   ROCKS
+========================================================= */
+
+for(let i=0;i<CFG.rocks;i++){
+
+    const rock=new THREE.Mesh(
+        new THREE.DodecahedronGeometry(
+            1+Math.random()*1.4,
+            0
+        ),
+        new THREE.MeshStandardMaterial({
+            color:0x73756f,
+            roughness:1
+        })
+    );
+
+    rock.scale.y=.45+Math.random()*.5;
+
+    rock.rotation.set(
+        Math.random(),
+        Math.random(),
+        Math.random()
+    );
+
+    rock.castShadow=true;
+
+    const n=randomDirection();
+
+    placeOnPlanet(rock,n,.3);
+
+    addCollider(rock,1.3);
+}
+
+
+/* =========================================================
+   GRASS
+========================================================= */
+
+const grassMaterial=
+    new THREE.MeshStandardMaterial({
+        color:0x65ad45,
+        roughness:1
+    });
+
+
+for(let i=0;i<CFG.grass;i++){
+
+    const g=new THREE.Group();
+
+    for(let j=0;j<5;j++){
+
+        const blade=new THREE.Mesh(
+            new THREE.ConeGeometry(
+                .1,
+                .7+Math.random()*.8,
+                4
+            ),
+            grassMaterial
+        );
+
+        blade.position.set(
+            (Math.random()-.5)*1.8,
+            .45,
+            (Math.random()-.5)*1.8
+        );
+
+        g.add(blade);
+    }
+
+    const n=randomDirection();
+
+    placeOnPlanet(g,n,.1);
+}
+
+
+/* =========================================================
+   CHARACTER
+========================================================= */
+
+function createCharacter(color){
+
+    const group=new THREE.Group();
+
+
+    const body=new THREE.Mesh(
+        new THREE.BoxGeometry(
+            1.2,1.8,.8
+        ),
+        new THREE.MeshStandardMaterial({
+            color,
+            roughness:.8
+        })
+    );
+
+    body.position.y=1.1;
+    body.castShadow=true;
+
+    group.add(body);
+
+
+    const head=new THREE.Mesh(
+        new THREE.SphereGeometry(
+            .6,20,20
+        ),
+        new THREE.MeshStandardMaterial({
+            color:0xffd2b5,
+            roughness:.9
+        })
+    );
+
+    head.position.y=2.55;
+    head.castShadow=true;
+
+    group.add(head);
+
+
+    const eyeMaterial=
+        new THREE.MeshStandardMaterial({
+            color:0x111111
         });
 
-        animate();
-    </script>
+
+    const eye=new THREE.Mesh(
+        new THREE.SphereGeometry(
+            .075,8,8
+        ),
+        eyeMaterial
+    );
+
+    eye.position.set(
+        -.2,2.6,.54
+    );
+
+    group.add(eye);
+
+
+    const eye2=eye.clone();
+
+    eye2.position.x=.2;
+
+    group.add(eye2);
+
+
+    const legMaterial=
+        new THREE.MeshStandardMaterial({
+            color:0x303844,
+            roughness:.9
+        });
+
+
+    const leg=new THREE.Mesh(
+        new THREE.BoxGeometry(
+            .38,.9,.45
+        ),
+        legMaterial
+    );
+
+    leg.position.set(
+        -.3,.45,0
+    );
+
+    leg.castShadow=true;
+
+    group.add(leg);
+
+
+    const leg2=leg.clone();
+
+    leg2.position.x=.3;
+
+    group.add(leg2);
+
+
+    group.userData.leftLeg=leg;
+    group.userData.rightLeg=leg2;
+
+    return group;
+}
+
+
+/* =========================================================
+   PLAYER
+========================================================= */
+
+const player=new THREE.Group();
+
+scene.add(player);
+
+const playerMesh=
+    createCharacter(0xe53935);
+
+player.add(playerMesh);
+
+
+let playerNormal=
+    new THREE.Vector3(0,1,0);
+
+let playerForward=
+    new THREE.Vector3(0,0,1);
+
+player.position.copy(
+    surfacePosition(
+        playerNormal,
+        .1
+    )
+);
+
+
+function orientActor(
+    object,
+    normal,
+    forward
+){
+
+    const f=
+        tangent(
+            normal,
+            forward
+        );
+
+    const right=
+        new THREE.Vector3()
+            .crossVectors(
+                normal,
+                f
+            )
+            .normalize();
+
+    const matrix=
+        new THREE.Matrix4();
+
+    matrix.makeBasis(
+        right,
+        normal,
+        f
+    );
+
+    object.quaternion
+        .setFromRotationMatrix(
+            matrix
+        );
+}
+
+
+orientActor(
+    player,
+    playerNormal,
+    playerForward
+);
+
+
+let playerSpeed=0;
+let walkTime=0;
+
+
+/* =========================================================
+   NPC
+========================================================= */
+
+const npcs=[];
+
+for(let i=0;i<CFG.npcCount;i++){
+
+    const npc=new THREE.Group();
+
+    const colors=[
+        0x2196f3,
+        0xffc107,
+        0x9c27b0,
+        0x00acc1,
+        0xff7043,
+        0x66bb6a
+    ];
+
+    const mesh=
+        createCharacter(
+            colors[
+                Math.floor(
+                    Math.random()*colors.length
+                )
+            ]
+        );
+
+    npc.add(mesh);
+
+
+    let normal;
+
+    do{
+        normal=randomDirection();
+    }
+    while(
+        normal.distanceTo(
+            playerNormal
+        )<.15
+    );
+
+
+    let forward=
+        tangent(
+            normal,
+            randomDirection()
+        );
+
+
+    npc.position.copy(
+        surfacePosition(
+            normal,
+            .1
+        )
+    );
+
+
+    orientActor(
+        npc,
+        normal,
+        forward
+    );
+
+
+    scene.add(npc);
+
+
+    npcs.push({
+        object:npc,
+        mesh,
+        normal,
+        forward,
+        speed:
+            1.4+
+            Math.random()*1.5,
+        timer:
+            1+
+            Math.random()*4,
+        targetTurn:0,
+        turn:0,
+        walk:Math.random()*10
+    });
+}
+
+
+/* =========================================================
+   INPUT
+========================================================= */
+
+const keys={};
+
+addEventListener(
+    "keydown",
+    e=>{
+        keys[e.key.toLowerCase()]=true;
+    }
+);
+
+addEventListener(
+    "keyup",
+    e=>{
+        keys[e.key.toLowerCase()]=false;
+    }
+);
+
+
+/* =========================================================
+   JOYSTICK
+========================================================= */
+
+const zone=
+    document.getElementById(
+        "joystick-zone"
+    );
+
+const knob=
+    document.getElementById(
+        "joystick-knob"
+    );
+
+let joystickActive=false;
+let joyX=0;
+let joyY=0;
+let joyPointer=null;
+
+
+function resetJoystick(){
+
+    joystickActive=false;
+    joyPointer=null;
+    joyX=0;
+    joyY=0;
+
+    knob.style.transform=
+        "translate(0px,0px)";
+}
+
+
+function updateJoystick(x,y){
+
+    const rect=
+        zone.getBoundingClientRect();
+
+    const cx=
+        rect.left+rect.width/2;
+
+    const cy=
+        rect.top+rect.height/2;
+
+    let dx=x-cx;
+    let dy=y-cy;
+
+    const max=43;
+
+    const dist=
+        Math.hypot(dx,dy);
+
+    if(dist>max){
+
+        dx=dx/dist*max;
+        dy=dy/dist*max;
+    }
+
+    joyX=dx/max;
+    joyY=dy/max;
+
+    knob.style.transform=
+        `translate(${dx}px,${dy}px)`;
+}
+
+
+zone.addEventListener(
+    "pointerdown",
+    e=>{
+        joystickActive=true;
+        joyPointer=e.pointerId;
+
+        zone.setPointerCapture(
+            e.pointerId
+        );
+
+        updateJoystick(
+            e.clientX,
+            e.clientY
+        );
+    }
+);
+
+
+zone.addEventListener(
+    "pointermove",
+    e=>{
+        if(
+            !joystickActive ||
+            e.pointerId!==joyPointer
+        )return;
+
+        updateJoystick(
+            e.clientX,
+            e.clientY
+        );
+    }
+);
+
+
+zone.addEventListener(
+    "pointerup",
+    resetJoystick
+);
+
+zone.addEventListener(
+    "pointercancel",
+    resetJoystick
+);
+
+
+/* =========================================================
+   INPUT STATE
+========================================================= */
+
+function getInput(){
+
+    let turn=0;
+    let walk=0;
+
+
+    if(
+        keys["a"]||
+        keys["arrowleft"]
+    )turn=-1;
+
+
+    if(
+        keys["d"]||
+        keys["arrowright"]
+    )turn=1;
+
+
+    if(
+        keys["w"]||
+        keys["arrowup"]
+    )walk=1;
+
+
+    if(
+        keys["s"]||
+        keys["arrowdown"]
+    )walk=-1;
+
+
+    if(joystickActive){
+
+        /*
+            FIX:
+            Left joystick = left turn.
+            Right joystick = right turn.
+        */
+
+        turn=-joyX;
+
+        walk=-joyY;
+    }
+
+
+    return {
+        turn,
+        walk
+    };
+}
+
+
+/* =========================================================
+   TANGENT ROTATION
+========================================================= */
+
+function rotateTangent(
+    vector,
+    normal,
+    angle
+){
+
+    const q=
+        new THREE.Quaternion();
+
+    q.setFromAxisAngle(
+        normal,
+        angle
+    );
+
+    return tangent(
+        normal,
+        vector
+            .clone()
+            .applyQuaternion(q)
+    );
+}
+
+
+/* =========================================================
+   SPHERICAL MOVEMENT
+========================================================= */
+
+function moveOnPlanet(
+    position,
+    normal,
+    forward,
+    distance
+){
+
+    const p=
+        position.clone();
+
+    p.add(
+        forward
+            .clone()
+            .multiplyScalar(distance)
+    );
+
+
+    const newNormal=
+        p.normalize();
+
+
+    const newForward=
+        tangent(
+            newNormal,
+            forward
+        );
+
+
+    return {
+        position:
+            surfacePosition(
+                newNormal,
+                .1
+            ),
+        normal:newNormal,
+        forward:newForward
+    };
+}
+
+
+/* =========================================================
+   PLAYER UPDATE
+========================================================= */
+
+function updatePlayer(dt){
+
+    const input=getInput();
+
+
+    if(
+        Math.abs(input.turn)>.02
+    ){
+
+        playerForward=
+            rotateTangent(
+                playerForward,
+                playerNormal,
+                input.turn*
+                CFG.turnSpeed*
+                dt
+            );
+    }
+
+
+    let targetSpeed=0;
+
+
+    if(input.walk>0){
+
+        targetSpeed=
+            CFG.playerSpeed*
+            input.walk;
+
+    }
+    else if(input.walk<0){
+
+        targetSpeed=
+            CFG.reverseSpeed*
+            input.walk;
+    }
+
+
+    const rate=
+        Math.abs(targetSpeed)>
+        Math.abs(playerSpeed)
+        ?CFG.acceleration
+        :CFG.deceleration;
+
+
+    playerSpeed=
+        THREE.MathUtils.damp(
+            playerSpeed,
+            targetSpeed,
+            rate,
+            dt
+        );
+
+
+    if(
+        Math.abs(playerSpeed)>.01
+    ){
+
+        const movement=
+            moveOnPlanet(
+                player.position,
+                playerNormal,
+                playerForward,
+                playerSpeed*dt
+            );
+
+
+        if(
+            !collision(
+                movement.position,
+                1.8
+            )
+        ){
+
+            player.position.copy(
+                movement.position
+            );
+
+            playerNormal.copy(
+                movement.normal
+            );
+
+            playerForward.copy(
+                movement.forward
+            );
+
+        }else{
+
+            playerSpeed*=.15;
+        }
+    }
+
+
+    orientActor(
+        player,
+        playerNormal,
+        playerForward
+    );
+
+
+    if(
+        Math.abs(playerSpeed)>.2
+    ){
+
+        walkTime+=
+            dt*
+            Math.abs(playerSpeed)*
+            1.5;
+    }
+
+
+    const strength=
+        Math.min(
+            1,
+            Math.abs(playerSpeed)/
+            CFG.playerSpeed
+        );
+
+
+    const swing=
+        Math.sin(
+            walkTime*7
+        )*
+        .42*
+        strength;
+
+
+    playerMesh.userData
+        .leftLeg.rotation.x=swing;
+
+    playerMesh.userData
+        .rightLeg.rotation.x=-swing;
+
+
+    const status=
+        document.getElementById(
+            "status"
+        );
+
+
+    if(
+        Math.abs(playerSpeed)<.05
+    ){
+
+        status.textContent=
+            "Status: Berhenti";
+
+        status.style.color="#ddd";
+
+    }else{
+
+        status.textContent=
+            "Status: Menjelajah 🌍";
+
+        status.style.color="#8cff9a";
+    }
+}
+
+
+/* =========================================================
+   NPC UPDATE
+========================================================= */
+
+function updateNPC(npc,dt){
+
+    npc.timer-=dt;
+
+
+    if(npc.timer<=0){
+
+        npc.timer=
+            1.5+
+            Math.random()*4;
+
+        npc.targetTurn=
+            (Math.random()-.5)*1.1;
+    }
+
+
+    npc.turn=
+        THREE.MathUtils.damp(
+            npc.turn,
+            npc.targetTurn,
+            2.5,
+            dt
+        );
+
+
+    npc.forward=
+        rotateTangent(
+            npc.forward,
+            npc.normal,
+            npc.turn*dt
+        );
+
+
+    const movement=
+        moveOnPlanet(
+            npc.object.position,
+            npc.normal,
+            npc.forward,
+            npc.speed*dt
+        );
+
+
+    npc.object.position.copy(
+        movement.position
+    );
+
+    npc.normal.copy(
+        movement.normal
+    );
+
+    npc.forward.copy(
+        movement.forward
+    );
+
+
+    orientActor(
+        npc.object,
+        npc.normal,
+        npc.forward
+    );
+
+
+    npc.walk+=
+        dt*npc.speed*1.5;
+
+
+    const swing=
+        Math.sin(
+            npc.walk*6
+        )*.32;
+
+
+    npc.mesh.userData
+        .leftLeg.rotation.x=swing;
+
+    npc.mesh.userData
+        .rightLeg.rotation.x=-swing;
+}
+
+
+/* =========================================================
+   CLOUDS
+========================================================= */
+
+const cloudGroup=
+    new THREE.Group();
+
+scene.add(cloudGroup);
+
+
+function createCloud(){
+
+    const group=
+        new THREE.Group();
+
+    const material=
+        new THREE.MeshStandardMaterial({
+            color:0xffffff,
+            roughness:1,
+            transparent:true,
+            opacity:.72
+        });
+
+
+    const count=
+        4+
+        Math.floor(
+            Math.random()*4
+        );
+
+
+    for(let i=0;i<count;i++){
+
+        const puff=
+            new THREE.Mesh(
+                new THREE.SphereGeometry(
+                    3+
+                    Math.random()*3,
+                    12,
+                    12
+                ),
+                material
+            );
+
+        puff.position.set(
+            i*4+
+            (Math.random()-.5)*2,
+            Math.random()*2,
+            (Math.random()-.5)*4
+        );
+
+        group.add(puff);
+    }
+
+    return group;
+}
+
+
+for(let i=0;i<18;i++){
+
+    const n=randomDirection();
+
+    const cloud=createCloud();
+
+    cloud.scale.setScalar(
+        .7+
+        Math.random()*1.4
+    );
+
+    placeOnPlanet(
+        cloud,
+        n,
+        CFG.cloudHeight+
+        Math.random()*10
+    );
+
+    cloudGroup.add(cloud);
+}
+
+
+/* =========================================================
+   DAY / NIGHT SYSTEM
+========================================================= */
+
+let dayTime=.25;
+
+
+/*
+    dayTime:
+    0.00 = midnight
+    0.25 = sunrise
+    0.50 = noon
+    0.75 = sunset
+    1.00 = midnight
+*/
+
+
+function updateDayNight(dt){
+
+    dayTime+=
+        dt/CFG.dayLength;
+
+    if(dayTime>=1)
+        dayTime-=1;
+
+
+    const angle=
+        dayTime*
+        Math.PI*2-
+        Math.PI/2;
+
+
+    const sunDistance=
+        520;
+
+
+    /*
+        Sun orbit.
+    */
+
+    sun.position.set(
+        Math.cos(angle)*
+        sunDistance,
+
+        Math.sin(angle)*
+        sunDistance,
+
+        140
+    );
+
+
+    /*
+        Moon opposite sun.
+    */
+
+    moon.position.set(
+        -sun.position.x*.85,
+        -sun.position.y*.85,
+        -sun.position.z*.85
+    );
+
+
+    moonLight.position.copy(
+        moon.position
+    );
+
+
+    /*
+        Sun elevation:
+        positive = daytime.
+    */
+
+    const elevation=
+        Math.sin(angle);
+
+
+    const daylight=
+        THREE.MathUtils.clamp(
+            elevation,
+            0,
+            1
+        );
+
+
+    /*
+        Smooth twilight.
+    */
+
+    const twilight=
+        THREE.MathUtils.smoothstep(
+            elevation,
+            -.22,
+            .22
+        );
+
+
+    /*
+        SUN LIGHT
+    */
+
+    sun.intensity=
+        .15+
+        daylight*2.15;
+
+
+    /*
+        MOON LIGHT
+    */
+
+    moonLight.intensity=
+        .04+
+        (1-daylight)*.45;
+
+
+    /*
+        HEMISPHERE
+    */
+
+    ambient.intensity=
+        .22+
+        twilight*1.3;
+
+
+    /*
+        SKY COLORS
+    */
+
+    const dayColor=
+        new THREE.Color(
+            0x75c8ff
+        );
+
+
+    const nightColor=
+        new THREE.Color(
+            0x050a20
+        );
+
+
+    const sunsetColor=
+        new THREE.Color(
+            0xf09a63
+        );
+
+
+    let sky;
+
+
+    /*
+        Sunrise / sunset.
+    */
+
+    if(
+        elevation>-.18 &&
+        elevation<.18
+    ){
+
+        const t=
+            (elevation+.18)/
+            .36;
+
+        sky=
+            sunsetColor.clone()
+                .lerp(
+                    dayColor,
+                    t
+                );
+
+    }
+    else if(
+        elevation>=.18
+    ){
+
+        sky=
+            nightColor.clone()
+                .lerp(
+                    dayColor,
+                    Math.min(
+                        1,
+                        daylight
+                    )
+                );
+
+    }
+    else{
+
+        sky=
+            nightColor.clone();
+
+    }
+
+
+    scene.background.copy(
+        sky
+    );
+
+
+    scene.fog.color.copy(
+        sky
+    );
+
+
+    /*
+        Stars.
+    */
+
+    stars.material.opacity=
+        THREE.MathUtils.clamp(
+            1-
+            twilight,
+            0,
+            1
+        );
+
+
+    /*
+        Atmosphere becomes slightly darker
+        at night.
+    */
+
+    atmosphere.material.opacity=
+        .035+
+        daylight*.05;
+
+
+    /*
+        Time UI.
+    */
+
+    const totalMinutes=
+        dayTime*24*60;
+
+
+    const hours=
+        Math.floor(
+            totalMinutes/60
+        );
+
+
+    const minutes=
+        Math.floor(
+            totalMinutes%60
+        );
+
+
+    let period;
+
+
+    if(
+        elevation>.08
+    ){
+
+        period="Day";
+
+    }
+    else if(
+        elevation>-.08
+    ){
+
+        period="Twilight";
+
+    }
+    else{
+
+        period="Night";
+
+    }
+
+
+    let icon=
+        period==="Day"
+        ?"☀️"
+        :period==="Night"
+        ?"🌙"
+        :"🌅";
+
+
+    document.getElementById(
+        "time"
+    ).textContent=
+        `${icon} ${
+            String(hours).padStart(2,"0")
+        }:${
+            String(minutes).padStart(2,"0")
+        } · ${period}`;
+}
+
+
+/* =========================================================
+   CLOUD MOTION
+========================================================= */
+
+function updateClouds(dt){
+
+    /*
+        Clouds slowly rotate around planet.
+        This gives the illusion of weather
+        moving over the world.
+    */
+
+    const angle=
+        dt*.0008;
+
+    for(
+        const cloud of cloudGroup.children
+    ){
+
+        cloud.position.applyAxisAngle(
+            new THREE.Vector3(0,1,0),
+            angle
+        );
+    }
+}
+
+
+/* =========================================================
+   STATS
+========================================================= */
+
+let fpsTimer=0;
+let frames=0;
+
+
+function updateStats(dt){
+
+    fpsTimer+=dt;
+    frames++;
+
+
+    if(fpsTimer>=.5){
+
+        const fps=
+            Math.round(
+                frames/fpsTimer
+            );
+
+        document.getElementById(
+            "fps"
+        ).textContent=
+            `FPS: ${fps}`;
+
+        frames=0;
+        fpsTimer=0;
+    }
+
+
+    document.getElementById(
+        "speed"
+    ).textContent=
+        `Speed: ${
+            Math.abs(playerSpeed).toFixed(1)
+        }`;
+
+
+    document.getElementById(
+        "npc"
+    ).textContent=
+        `NPC: ${npcs.length}`;
+}
+
+
+/* =========================================================
+   CAMERA
+========================================================= */
+
+const desiredCamera=
+    new THREE.Vector3();
+
+const cameraTarget=
+    new THREE.Vector3();
+
+
+function updateCamera(dt){
+
+    const up=
+        playerNormal.clone();
+
+
+    const forward=
+        playerForward.clone();
+
+
+    desiredCamera.copy(
+        player.position
+    );
+
+
+    desiredCamera.add(
+        forward.multiplyScalar(
+            -CFG.cameraDistance
+        )
+    );
+
+
+    desiredCamera.add(
+        up.multiplyScalar(
+            CFG.cameraHeight
+        )
+    );
+
+
+    const smooth=
+        1-
+        Math.exp(
+            -CFG.cameraSmooth*dt
+        );
+
+
+    camera.position.lerp(
+        desiredCamera,
+        smooth
+    );
+
+
+    /*
+        Critical spherical-camera fix.
+    */
+
+    camera.up.copy(
+        up
+    );
+
+
+    cameraTarget.copy(
+        player.position
+    );
+
+
+    cameraTarget.add(
+        up.multiplyScalar(
+            CFG.cameraLook
+        )
+    );
+
+
+    cameraTarget.add(
+        playerForward
+            .clone()
+            .multiplyScalar(3)
+    );
+
+
+    camera.lookAt(
+        cameraTarget
+    );
+}
+
+
+/* =========================================================
+   RESIZE
+========================================================= */
+
+addEventListener(
+    "resize",
+    ()=>{
+
+        camera.aspect=
+            innerWidth/innerHeight;
+
+        camera.updateProjectionMatrix();
+
+        renderer.setSize(
+            innerWidth,
+            innerHeight
+        );
+    }
+);
+
+
+/* =========================================================
+   GAME LOOP
+========================================================= */
+
+const clock=
+    new THREE.Clock();
+
+
+function animate(){
+
+    requestAnimationFrame(
+        animate
+    );
+
+
+    const dt=
+        Math.min(
+            clock.getDelta(),
+            .05
+        );
+
+
+    updatePlayer(dt);
+
+
+    for(
+        const npc of npcs
+    ){
+
+        updateNPC(
+            npc,
+            dt
+        );
+    }
+
+
+    updateDayNight(dt);
+
+
+    updateClouds(dt);
+
+
+    updateCamera(dt);
+
+
+    updateStats(dt);
+
+
+    stars.rotation.y+=
+        dt*.001;
+
+
+    renderer.render(
+        scene,
+        camera
+    );
+}
+
+
+animate();
+
+console.log(
+    "🌍 Tiny Planet — Living World loaded"
+);
+
+console.log(
+    "🎮 Spherical movement: ON"
+);
+
+console.log(
+    "☀️ Dynamic day/night: ON"
+);
+
+console.log(
+    "🌙 Moonlight: ON"
+);
+
+console.log(
+    "☁️ Clouds: ON"
+);
+
+console.log(
+    "🌳 Vegetation: ON"
+);
+
+console.log(
+    "👥 NPCs: ON"
+);
+
+</script>
+
 </body>
-</html>
+    </html>
