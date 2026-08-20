@@ -3,20 +3,21 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>Tiny World - Massive Update</title>
+    <title>Tiny World - True Player Movement</title>
     <style>
         body { margin: 0; overflow: hidden; background: #000; touch-action: none; font-family: sans-serif; }
-        #ui { position: absolute; top: 10px; left: 20px; color: white; text-shadow: 2px 2px 2px #000; pointer-events: none; z-index: 10; }
-        #ui p { margin: 5px 0; font-size: 14px; color: #ddd; }
-        #joystick-zone { position: absolute; bottom: 40px; left: 40px; width: 120px; height: 120px; background: rgba(255,255,255,0.15); border-radius: 50%; border: 2px solid rgba(255,255,255,0.4); z-index: 5; }
-        #joystick-knob { position: absolute; top: 35px; left: 35px; width: 50px; height: 50px; background: rgba(255,255,255,0.8); border-radius: 50%; pointer-events: none; box-shadow: 0 4px 8px rgba(0,0,0,0.5); }
+        #ui { position: absolute; top: 15px; left: 20px; color: white; text-shadow: 2px 2px 4px #000; pointer-events: none; z-index: 10; }
+        #ui h2 { margin: 0 0 5px 0; font-size: 20px; color: #ffeb3b; }
+        #ui p { margin: 3px 0; font-size: 13px; color: #e0e0e0; }
+        #joystick-zone { position: absolute; bottom: 40px; left: 40px; width: 130px; height: 130px; background: rgba(255,255,255,0.12); border-radius: 50%; border: 2px solid rgba(255,255,255,0.4); z-index: 5; }
+        #joystick-knob { position: absolute; top: 40px; left: 40px; width: 50px; height: 50px; background: rgba(255,255,255,0.85); border-radius: 50%; pointer-events: none; box-shadow: 0 4px 10px rgba(0,0,0,0.6); }
     </style>
 </head>
 <body>
     <div id="ui">
-        <h2>Dunia 3D: Player Moves!</h2>
-        <p>PC: W (Jalan Depan), S (Undur), A/D (Pusing Kiri/Kanan) | HP: Joystick</p>
-        <p id="status">Status: Sedia Berjalan!</p>
+        <h2>Tiny World: Perfect Controls</h2>
+        <p>PC: W (Depan) | S (Undur) | A/D (Pusing Kiri/Kanan)</p>
+        <p id="status">Status: Ready to Explore</p>
     </div>
     <div id="joystick-zone"><div id="joystick-knob"></div></div>
 
@@ -27,132 +28,165 @@
     <script type="module">
         import * as THREE from 'three';
 
-        // 1. SETUP SCENE BERSKALA BESAR
+        // 1. SETUP ASAS
         const scene = new THREE.Scene();
-        scene.background = new THREE.Color(0x0a0a1a);
-        scene.fog = new THREE.FogExp2(0x0a0a1a, 0.003); // Kabus nipis sebab map besar
+        scene.background = new THREE.Color(0x020208);
+        scene.fog = new THREE.FogExp2(0x020208, 0.002);
 
-        const camera = new THREE.PerspectiveCamera(60, window.innerWidth/window.innerHeight, 0.1, 1000);
+        const camera = new THREE.PerspectiveCamera(65, window.innerWidth/window.innerHeight, 0.1, 2000);
         const renderer = new THREE.WebGLRenderer({ antialias: true });
         renderer.setSize(window.innerWidth, window.innerHeight);
         renderer.shadowMap.enabled = true;
         renderer.shadowMap.type = THREE.PCFSoftShadowMap;
         document.body.appendChild(renderer.domElement);
 
-        const ambient = new THREE.AmbientLight(0xffffff, 0.6);
+        const ambient = new THREE.AmbientLight(0xffffff, 0.5);
         scene.add(ambient);
-        const sun = new THREE.DirectionalLight(0xffffff, 1.2);
-        sun.position.set(100, 200, 50);
+        
+        const sun = new THREE.DirectionalLight(0xffffff, 1.3);
+        sun.position.set(200, 300, 150);
         sun.castShadow = true;
+        sun.shadow.mapSize.width = 2048;
+        sun.shadow.mapSize.height = 2048;
         sun.shadow.camera.near = 50;
-        sun.shadow.camera.far = 400;
-        sun.shadow.camera.left = -150;
-        sun.shadow.camera.right = 150;
-        sun.shadow.camera.top = 150;
-        sun.shadow.camera.bottom = -150;
+        sun.shadow.camera.far = 800;
+        sun.shadow.camera.left = -200;
+        sun.shadow.camera.right = 200;
+        sun.shadow.camera.top = 200;
+        sun.shadow.camera.bottom = -200;
         scene.add(sun);
 
-        // Saiz Glob (Besar Gila)
-        const radius = 150; 
+        const PLANET_RADIUS = 120;
 
-        // Bintang kaku (Background)
+        // 2. BINTANG & BUMI (STATIK)
         const starGeo = new THREE.BufferGeometry();
-        const starCount = 5000;
-        const starPos = new Float32Array(starCount * 3);
-        for(let i=0; i<starCount*3; i++) starPos[i] = (Math.random() - 0.5) * 1000;
+        const starPos = new Float32Array(6000 * 3);
+        for(let i=0; i<18000; i++) starPos[i] = (Math.random() - 0.5) * 1200;
         starGeo.setAttribute('position', new THREE.BufferAttribute(starPos, 3));
-        scene.add(new THREE.Points(starGeo, new THREE.PointsMaterial({color: 0xffffff, size: 1.5})));
+        scene.add(new THREE.Points(starGeo, new THREE.PointsMaterial({color: 0xffffff, size: 1.2})));
 
-        // Glob / Tanah Kaku
-        const earth = new THREE.Mesh(new THREE.SphereGeometry(radius, 128, 128), new THREE.MeshLambertMaterial({color: 0x2e8b57}));
+        const earth = new THREE.Mesh(
+            new THREE.SphereGeometry(PLANET_RADIUS, 128, 128),
+            new THREE.MeshLambertMaterial({color: 0x2e8b57})
+        );
         earth.receiveShadow = true;
         scene.add(earth);
 
-        // 2. SISTEM LETAK OBJEK (Rigging System)
-        // Cara paling selamat untuk benda lekat di bola. Kita pusingkan "Paksi Tengah" (Rig).
-        const collisionPositions = []; // Simpan koordinat dunia untuk detect langgar dinding
+        // 3. SISTEM KOORDINAT SFERA & OBJEK (BANGUNAN & NPC)
+        const obstacles = []; // Simpan data kedudukan untuk halang player tembus
 
-        function placeObject(mesh, r, isCollidable = false) {
-            const rig = new THREE.Group();
-            // Random rotasi dari pusat bumi
-            rig.rotation.set(Math.random() * Math.PI*2, Math.random() * Math.PI*2, Math.random() * Math.PI*2);
-            
-            // Tolak objek ke permukaan bola
-            mesh.position.set(0, r, 0);
-            
-            // Random pusingan objek supaya tak pandang satu arah je
-            mesh.rotation.y = Math.random() * Math.PI * 2; 
+        // Fungsi bantu letak objek guna sudut latitud (lat) & longitud (lon)
+        function createObjectAtLatLon(mesh, lat, lon, isSolid = false) {
+            const phi = (90 - lat) * (Math.PI / 180);
+            const theta = (lon + 180) * (Math.PI / 180);
 
-            rig.add(mesh);
-            scene.add(rig);
+            // Cari kedudukan 3D atas permukaan sfera
+            mesh.position.x = -(PLANET_RADIUS * Math.sin(phi) * Math.cos(theta));
+            mesh.position.z = (PLANET_RADIUS * Math.sin(phi) * Math.sin(theta));
+            mesh.position.y = (PLANET_RADIUS * Math.cos(phi));
 
-            // Dapatkan posisi sebenar (World Position) untuk Collision
-            if(isCollidable) {
-                rig.updateMatrixWorld(true);
-                const wPos = new THREE.Vector3();
-                mesh.getWorldPosition(wPos);
-                collisionPositions.push(wPos);
+            // Tegakkan objek supaya selari dengan normal permukaan bumi
+            mesh.lookAt(0, 0, 0);
+            mesh.rotateX(Math.PI / 2);
+
+            scene.add(mesh);
+
+            if (isSolid) {
+                obstacles.push({ pos: mesh.position.clone(), radius: 3.5 });
             }
-            return rig;
+            return mesh;
         }
 
-        // Bina Bangunan
-        for(let i=0; i<80; i++) { // Lebih banyak bangunan sebab map besar
+        // Jana Bangunan Rawak
+        for (let i = 0; i < 50; i++) {
             const bldgGroup = new THREE.Group();
-            const w = Math.random() * 4 + 2; const h = Math.random() * 8 + 4; const d = Math.random() * 4 + 2;
-            const body = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), new THREE.MeshLambertMaterial({color: 0x8899aa}));
-            body.position.y = h/2; body.castShadow = true; body.receiveShadow = true;
+            const w = Math.random() * 3 + 2;
+            const h = Math.random() * 8 + 4;
+            const d = Math.random() * 3 + 2;
+            
+            const body = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), new THREE.MeshLambertMaterial({color: 0x90a4ae}));
+            body.position.y = h / 2;
+            body.castShadow = true; body.receiveShadow = true;
             bldgGroup.add(body);
-            placeObject(bldgGroup, radius, true);
+
+            const randomLat = (Math.random() - 0.5) * 140;
+            const randomLon = (Math.random() - 0.5) * 360;
+            createObjectAtLatLon(bldgGroup, randomLat, randomLon, true);
         }
 
-        // Bina Pokok
-        for(let i=0; i<150; i++) {
+        // Jana Pokok
+        for (let i = 0; i < 80; i++) {
             const tree = new THREE.Group();
-            const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.5, 0.8, 3), new THREE.MeshLambertMaterial({color: 0x5c4033}));
-            trunk.position.y = 1.5; trunk.castShadow = true;
-            const leaves = new THREE.Mesh(new THREE.DodecahedronGeometry(2.5), new THREE.MeshLambertMaterial({color: 0x228b22}));
-            leaves.position.y = 4; leaves.castShadow = true;
-            tree.add(trunk); tree.add(leaves);
-            placeObject(tree, radius, true);
+            const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.4, 0.6, 2.5), new THREE.MeshLambertMaterial({color: 0x5c4033}));
+            trunk.position.y = 1.25; trunk.castShadow = true;
+            const leaves = new THREE.Mesh(new THREE.DodecahedronGeometry(2), new THREE.MeshLambertMaterial({color: 0x228b22}));
+            leaves.position.y = 3.2; leaves.castShadow = true;
+            tree.add(trunk, leaves);
+
+            createObjectAtLatLon(tree, (Math.random() - 0.5) * 150, (Math.random() - 0.5) * 360, true);
         }
 
-        // 3. WATAK (PLAYER & NPC)
-        function createCharacter(color) {
+        // 4. WATAK PLAYER (KONTROL SEBENAR)
+        function createHuman(color) {
             const group = new THREE.Group();
-            const body = new THREE.Mesh(new THREE.BoxGeometry(1.2, 1.8, 0.8), new THREE.MeshLambertMaterial({color: color}));
-            body.position.y = 0.9; body.castShadow = true; // Jejak tanah
-            const head = new THREE.Mesh(new THREE.SphereGeometry(0.6, 16, 16), new THREE.MeshLambertMaterial({color: 0xffe4c4}));
-            head.position.y = 2.4; head.castShadow = true;
-            group.add(body); group.add(head);
+            const body = new THREE.Mesh(new THREE.BoxGeometry(1, 1.6, 0.6), new THREE.MeshLambertMaterial({color: color}));
+            body.position.y = 0.8; body.castShadow = true;
+            const head = new THREE.Mesh(new THREE.SphereGeometry(0.45, 16, 16), new THREE.MeshLambertMaterial({color: `#ffe0bd`}));
+            head.position.y = 2.1; head.castShadow = true;
+            group.add(body, head);
             return group;
         }
 
-        // Player Rig
-        const playerRig = new THREE.Group();
-        scene.add(playerRig);
-        const playerMesh = createCharacter(0xFF0000); // Merah
-        playerMesh.position.set(0, radius, 0); // Atas permukaan bumi
-        playerRig.add(playerMesh);
+        const player = createHuman(0xe91e63); // Pink/Merah terang
+        scene.add(player);
 
-        // Camera Rig (Ikut Player)
-        const cameraRig = new THREE.Group();
-        scene.add(cameraRig);
-        cameraRig.add(camera);
-        camera.position.set(0, radius + 8, 25); // Tinggi & belakang sikit dari player
-        camera.lookAt(new THREE.Vector3(0, radius + 2, 0));
+        // Data kedudukan player dalam Latitud & Longitud
+        let playerLat = 0;
+        let playerLon = 0;
+        let playerFacingAngle = 0; // Sudut pusingan badan player
 
-        // Letak NPC yang boleh bergerak
+        // Fungsi kemaskini posisi 3D player berdasarkan lat/lon
+        function updatePlayerPosition() {
+            const phi = (90 - playerLat) * (Math.PI / 180);
+            const theta = (playerLon + 180) * (Math.PI / 180);
+
+            player.position.x = -(PLANET_RADIUS * Math.sin(phi) * Math.cos(theta));
+            player.position.z = (PLANET_RADIUS * Math.sin(phi) * Math.sin(theta));
+            player.position.y = (PLANET_RADIUS * Math.cos(phi));
+
+            // Halakan player ke pusat bumi dulu, kemudian pusing ikut arah pandangan
+            player.lookAt(0, 0, 0);
+            player.rotateX(Math.PI / 2);
+            player.rotateY(playerFacingAngle);
+        }
+        updatePlayerPosition();
+
+        // 5. NPC MERAYAU
         const npcs = [];
-        for(let i=0; i<40; i++) {
-            const npcMesh = createCharacter(Math.random() * 0xffffff);
-            const npcRig = placeObject(npcMesh, radius, true); // NPC pun keras
-            npcs.push({ rig: npcRig, mesh: npcMesh, turnSpeed: 0, walkSpeed: Math.random() * 0.01 + 0.005 });
+        for (let i = 0; i < 20; i++) {
+            const npcMesh = createHuman(0x2196f3); // Biru
+            let nLat = (Math.random() - 0.5) * 130;
+            let nLon = (Math.random() - 0.5) * 360;
+            let nAngle = Math.random() * Math.PI * 2;
+            
+            // Letak dalam scene
+            const phi = (90 - nLat) * (Math.PI / 180);
+            const theta = (nLon + 180) * (Math.PI / 180);
+            npcMesh.position.set(
+                -(PLANET_RADIUS * Math.sin(phi) * Math.cos(theta)),
+                (PLANET_RADIUS * Math.cos(phi)),
+                (PLANET_RADIUS * Math.sin(phi) * Math.sin(theta))
+            );
+            scene.add(npcMesh);
+
+            npcs.push({ mesh: npcMesh, lat: nLat, lon: nLon, angle: nAngle, speed: 0.03 });
         }
 
-        // 4. KAWALAN PLAYER (Joystick / Keyboard)
-        let moveTurn = 0, moveWalk = 0;
+        // 6. KAWALAN (KEYBOARD & TOUCH JOYSTICK)
+        let inputTurn = 0; // A / D
+        let inputWalk = 0; // W / S
         const keys = {};
+
         window.addEventListener('keydown', e => keys[e.key.toLowerCase()] = true);
         window.addEventListener('keyup', e => keys[e.key.toLowerCase()] = false);
 
@@ -161,93 +195,127 @@
         let isDragging = false, center = {x:0, y:0};
 
         zone.addEventListener('touchstart', e => {
-            isDragging = true; center = { x: zone.getBoundingClientRect().left + 60, y: zone.getBoundingClientRect().top + 60 };
+            isDragging = true;
+            center = { x: zone.getBoundingClientRect().left + 65, y: zone.getBoundingClientRect().top + 65 };
             updateJoystick(e.touches[0]);
         });
         zone.addEventListener('touchmove', e => { if(isDragging) updateJoystick(e.touches[0]); });
         zone.addEventListener('touchend', () => {
             isDragging = false; knob.style.transform = `translate(0px, 0px)`;
-            moveTurn = 0; moveWalk = 0;
+            inputTurn = 0; inputWalk = 0;
         });
 
         function updateJoystick(touch) {
             let dx = touch.clientX - center.x; let dy = touch.clientY - center.y;
-            const maxDist = 35; const dist = Math.sqrt(dx*dx + dy*dy);
+            const maxDist = 40; const dist = Math.sqrt(dx*dx + dy*dy);
             if(dist > maxDist) { dx = (dx/dist)*maxDist; dy = (dy/dist)*maxDist; }
             knob.style.transform = `translate(${dx}px, ${dy}px)`;
-            moveTurn = dx / maxDist; moveWalk = dy / maxDist;
+            inputTurn = -dx / maxDist; // Kiri/Kanan
+            inputWalk = -dy / maxDist; // Depan/Belakang
         }
 
-        // 5. GAME LOOP
-        const uiStatus = document.getElementById('status');
+        // 7. GAME LOOP UTAMA
+        const statusEl = document.getElementById('status');
 
         function animate() {
             requestAnimationFrame(animate);
 
-            // A. UPDATE NPC (Bagi diorang merayau)
-            npcs.forEach(npc => {
-                if (Math.random() < 0.02) npc.turnSpeed = (Math.random() - 0.5) * 0.1; // Kadang2 tukar arah
-                npc.mesh.rotation.y += npc.turnSpeed;
-                // NPC jalan depan
-                const rightAxis = new THREE.Vector3(1,0,0).applyQuaternion(npc.mesh.quaternion);
-                npc.rig.rotateOnAxis(rightAxis, npc.walkSpeed);
-            });
+            // A. Kawalan Input PC (WASD)
+            let targetTurn = 0;
+            let targetWalk = 0;
 
-            // B. UPDATE PLAYER KAWALAN
-            let intentTurn = 0;
-            let intentWalk = 0;
-
-            if (keys['a']) intentTurn = 1;
-            if (keys['d']) intentTurn = -1;
-            if (keys['w']) intentWalk = 1;
-            if (keys['s']) intentWalk = -1;
+            if (keys['a']) targetTurn = 1;
+            if (keys['d']) targetTurn = -1;
+            if (keys['w']) targetWalk = 1;
+            if (keys['s']) targetWalk = -1;
 
             if (isDragging) {
-                intentTurn = -moveTurn;
-                intentWalk = -moveWalk; // Atas joystick = negatif Y
+                targetTurn = inputTurn;
+                targetWalk = inputWalk;
             }
 
-            // C. PERGERAKAN PLAYER
-            if (intentTurn !== 0) {
-                playerMesh.rotation.y += intentTurn * 0.05; // Pusing badan
+            // Pusing badan player
+            if (targetTurn !== 0) {
+                playerFacingAngle += targetTurn * 0.04;
             }
 
-            if (intentWalk !== 0) {
-                // Cari paksi X lokal watak (sebab dia pandang Z lokal)
-                const rightAxis = new THREE.Vector3(1,0,0).applyQuaternion(playerMesh.quaternion);
+            // Gerak player atas permukaan sfera jika ada input 'W' atau 'S'
+            if (targetWalk !== 0) {
+                const moveSpeed = 0.15 * targetWalk;
                 
-                // Cuba gerak ke depan/belakang
-                const walkSpeed = 0.03;
-                playerRig.rotateOnAxis(rightAxis, intentWalk * walkSpeed);
+                // Simpan posisi lama untuk rollback kalau langgar dinding
+                const oldLat = playerLat;
+                const oldLon = playerLon;
 
-                // D. COLLISION CHECK (Check Tembus Dinding)
-                playerRig.updateMatrixWorld(true);
-                const pPos = new THREE.Vector3();
-                playerMesh.getWorldPosition(pPos); // Dapatkan koordinat player sekarang
-                
-                let isHit = false;
-                for(let bPos of collisionPositions) {
-                    if (pPos.distanceTo(bPos) < 2.8) { // Radius langgar (sesuaikan kalau sangkut)
-                        isHit = true; break;
+                // Hitung arah gerak mengikut sudut pandangan player
+                playerLat += Math.cos(playerFacingAngle) * moveSpeed;
+                playerLon += Math.sin(playerFacingAngle) * moveSpeed;
+
+                updatePlayerPosition();
+
+                // Cek Pelanggaran (Collision dengan bangunan/pokok)
+                let collided = false;
+                for (let obs of obstacles) {
+                    if (player.position.distanceTo(obs.pos) < obs.radius) {
+                        collided = true;
+                        break;
                     }
                 }
 
-                if (isHit) {
-                    // Kalau langgar, batalkan pergerakan (undur balik)
-                    playerRig.rotateOnAxis(rightAxis, -intentWalk * walkSpeed);
-                    uiStatus.innerText = "Status: Terlanggar Dinding!";
-                    uiStatus.style.color = "#ff4444";
+                if (collided) {
+                    // Kalau langgar, pulangkan balik posisi asal
+                    playerLat = oldLat;
+                    playerLon = oldLon;
+                    updatePlayerPosition();
+                    statusEl.innerText = "Status: Terlanggar Dinding!";
+                    statusEl.style.color = "#ff5252";
                 } else {
-                    uiStatus.innerText = "Status: Sedia Berjalan!";
-                    uiStatus.style.color = "#ddd";
+                    statusEl.innerText = "Status: Berjalan Cergas";
+                    statusEl.style.color = "#69f0ae";
                 }
             } else {
-                uiStatus.innerText = "Status: Berhenti";
-                uiStatus.style.color = "#ddd";
+                statusEl.innerText = "Status: Berhenti";
+                statusEl.style.color = "#e0e0e0";
             }
 
-            // E. KAMERA FOLLOW PLAYER DENGAN SMOOTH
-            cameraRig.quaternion.slerp(playerRig.quaternion, 0.1);
+            // B. Update NPC Bergerak Rawak
+            npcs.forEach(n => {
+                if (Math.random() < 0.03) n.angle += (Math.random() - 0.5) * 1.5;
+                n.lat += Math.cos(n.angle) * n.speed;
+                n.lon += Math.sin(n.angle) * n.speed;
+
+                const phi = (90 - n.lat) * (Math.PI / 180);
+                const theta = (n.lon + 180) * (Math.PI / 180);
+                n.mesh.position.set(
+                    -(PLANET_RADIUS * Math.sin(phi) * Math.cos(theta)),
+                    (PLANET_RADIUS * Math.cos(phi)),
+                    (PLANET_RADIUS * Math.sin(phi) * Math.sin(theta))
+                );
+                n.mesh.lookAt(0, 0, 0);
+                n.mesh.rotateX(Math.PI / 2);
+            });
+
+            // C. Kamera Mengikut Belakang Player dengan Cantik & Smooth
+            // Cari vektor 'atas' dari pusat bumi ke player (Normal Vector)
+            const normal = player.position.clone().normalize();
+            
+            // Letak kamera di belakang player (ikut arah pandangan player)
+            const backwardOffset = new THREE.Vector3(
+                -Math.sin(playerFacingAngle),
+                0,
+                -Math.cos(playerFacingAngle)
+            ).applyAxisAngle(normal, 0); // Selari dengan lengkung permukaan
+
+            // Sasaran kedudukan kamera: Sedikit ke belakang dan di atas player
+            const targetCamPos = player.position.clone()
+                .add(normal.clone().multiplyScalar(6)) // Ketinggian kamera dari tanah
+                .add(backwardOffset.multiplyScalar(-12)); // Jarak ke belakang
+
+            camera.position.lerp(targetCamPos, 0.1); // Gerak smooth (lerp)
+            
+            // Kamera sentiasa pandang kepala player
+            const lookTarget = player.position.clone().add(normal.clone().multiplyScalar(2));
+            camera.lookAt(lookTarget);
 
             renderer.render(scene, camera);
         }
