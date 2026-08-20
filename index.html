@@ -3,165 +3,264 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>Complex Tiny World</title>
+    <title>Tiny World Explorer - Improved</title>
     <style>
-        body { margin: 0; overflow: hidden; background: #000; touch-action: none; font-family: sans-serif; }
-        #ui { position: absolute; top: 10px; left: 10px; color: white; text-shadow: 2px 2px 2px #000; pointer-events: none; z-index: 10; }
-        #joystick-zone { position: absolute; bottom: 30px; left: 30px; width: 120px; height: 120px; background: rgba(255,255,255,0.2); border-radius: 50%; border: 2px solid rgba(255,255,255,0.5); z-index: 5; }
-        #joystick-knob { position: absolute; top: 35px; left: 35px; width: 50px; height: 50px; background: rgba(255,255,255,0.8); border-radius: 50%; pointer-events: none; }
+        body { 
+            margin: 0; 
+            overflow: hidden; 
+            background: #000; 
+            touch-action: none; 
+            font-family: sans-serif; 
+        }
+        #ui { 
+            position: absolute; 
+            top: 10px; 
+            left: 20px; 
+            color: white; 
+            text-shadow: 2px 2px 2px #000; 
+            pointer-events: none; 
+            z-index: 10; 
+        }
+        #ui p { margin: 5px 0; font-size: 14px; color: #ddd; }
+        #joystick-zone { 
+            position: absolute; 
+            bottom: 40px; 
+            left: 40px; 
+            width: 120px; 
+            height: 120px; 
+            background: rgba(255,255,255,0.15); 
+            border-radius: 50%; 
+            border: 2px solid rgba(255,255,255,0.4); 
+            z-index: 5; 
+        }
+        #joystick-knob { 
+            position: absolute; 
+            top: 35px; 
+            left: 35px; 
+            width: 50px; 
+            height: 50px; 
+            background: rgba(255,255,255,0.8); 
+            border-radius: 50%; 
+            pointer-events: none; 
+            box-shadow: 0 4px 8px rgba(0,0,0,0.5);
+        }
     </style>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
 </head>
 <body>
-    <div id="ui"><h2>Tiny World Explorer</h2></div>
+    <div id="ui">
+        <h2>Tiny World: Better Physics</h2>
+        <p>PC: Guna WASD | HP: Guna Joystick</p>
+        <p id="status">Status: Sedia Berjalan!</p>
+    </div>
     <div id="joystick-zone"><div id="joystick-knob"></div></div>
 
-    <script>
-        const scene = new THREE.Scene();
-        scene.background = new THREE.Color(0x000000);
-        scene.fog = new THREE.FogExp2(0x87CEEB, 0.015);
+    <!-- Gunakan ES Modules untuk Three.js supaya stabil -->
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://unpkg.com/three@0.160.0/build/three.module.js"
+            }
+        }
+    </script>
 
+    <script type="module">
+        import * as THREE from 'three';
+
+        // 1. SETUP SCENE
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x050510); // Angkasa gelap sikit
+        scene.fog = new THREE.FogExp2(0x050510, 0.015);
+
+        // Kamera kita statik, sentiasa pandang player
         const camera = new THREE.PerspectiveCamera(60, window.innerWidth/window.innerHeight, 0.1, 1000);
+        
         const renderer = new THREE.WebGLRenderer({ antialias: true });
         renderer.setSize(window.innerWidth, window.innerHeight);
         renderer.shadowMap.enabled = true;
         renderer.shadowMap.type = THREE.PCFSoftShadowMap;
         document.body.appendChild(renderer.domElement);
 
-        const ambient = new THREE.AmbientLight(0xffffff, 0.4);
+        // 2. PENCAHAYAAN
+        const ambient = new THREE.AmbientLight(0xffffff, 0.5);
         scene.add(ambient);
-        const sun = new THREE.DirectionalLight(0xffffff, 0.8);
-        sun.position.set(20, 30, 20);
+        const sun = new THREE.DirectionalLight(0xffffff, 1);
+        sun.position.set(50, 50, 20);
         sun.castShadow = true;
         sun.shadow.mapSize.width = 2048;
         sun.shadow.mapSize.height = 2048;
+        sun.shadow.camera.near = 10;
+        sun.shadow.camera.far = 150;
+        sun.shadow.camera.left = -30;
+        sun.shadow.camera.right = 30;
+        sun.shadow.camera.top = 30;
+        sun.shadow.camera.bottom = -30;
         scene.add(sun);
 
+        // 3. PLANET & ALAM SEMESTA
         const planetGroup = new THREE.Group();
         scene.add(planetGroup);
 
-        const radius = 20;
+        const radius = 25; // Saiz bumi
 
-        // Bintang di alam semesta
+        // Bintang (Angkasa)
         const starGeo = new THREE.BufferGeometry();
-        const starCount = 2000;
+        const starCount = 3000;
         const starPos = new Float32Array(starCount * 3);
-        for(let i=0; i<starCount*3; i++) starPos[i] = (Math.random() - 0.5) * 500;
+        for(let i=0; i<starCount*3; i++) {
+            starPos[i] = (Math.random() - 0.5) * 600;
+        }
         starGeo.setAttribute('position', new THREE.BufferAttribute(starPos, 3));
-        const starMat = new THREE.PointsMaterial({color: 0xffffff, size: 0.5});
+        const starMat = new THREE.PointsMaterial({color: 0xffffff, size: 0.7});
         const stars = new THREE.Points(starGeo, starMat);
         scene.add(stars);
 
-        // Planet (Bumi dan Air)
-        const water = new THREE.Mesh(new THREE.SphereGeometry(radius * 0.98, 64, 64), new THREE.MeshPhongMaterial({color: 0x1E90FF, flatShading: true}));
-        planetGroup.add(water);
-        
-        const earth = new THREE.Mesh(new THREE.SphereGeometry(radius, 64, 64), new THREE.MeshLambertMaterial({color: 0x3CB371}));
+        // Tanah / Bumi
+        const earthGeo = new THREE.SphereGeometry(radius, 64, 64);
+        const earthMat = new THREE.MeshLambertMaterial({color: 0x3CB371}); // Hijau rumput
+        const earth = new THREE.Mesh(earthGeo, earthMat);
         earth.receiveShadow = true;
-        earth.castShadow = true;
         planetGroup.add(earth);
 
-        // Fungsi letak objek keliling globe
-        function placeObject(mesh, r, isRoad = false) {
+        // 4. SISTEM GENERATE OBJEK (Mesti pijak bumi)
+        const collisionMeshes = []; // Array untuk simpan benda dinding yang tak boleh tembus
+
+        // Fungsi letak objek di koordinat rawak atas glob
+        function placeObjectOnSphere(mesh, r, isCollidable = false) {
             const phi = Math.acos(2 * Math.random() - 1);
             const theta = Math.random() * Math.PI * 2;
-            mesh.position.set(r * Math.sin(phi) * Math.cos(theta), r * Math.cos(phi), r * Math.sin(phi) * Math.sin(theta));
-            mesh.lookAt(0,0,0);
-            if(!isRoad) mesh.rotateX(Math.PI/2);
-            planetGroup.add(mesh);
-        }
-
-        // Gunung
-        for(let i=0; i<15; i++) {
-            const mountain = new THREE.Mesh(new THREE.ConeGeometry(2, 4, 5), new THREE.MeshLambertMaterial({color: 0x808080}));
-            mountain.castShadow = true;
-            mountain.receiveShadow = true;
-            placeObject(mountain, radius);
-        }
-
-        // Pokok
-        for(let i=0; i<40; i++) {
-            const tree = new THREE.Group();
-            const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.2, 1), new THREE.MeshLambertMaterial({color: 0x8B4513}));
-            trunk.position.y = 0.5;
-            trunk.castShadow = true;
-            const leaves = new THREE.Mesh(new THREE.ConeGeometry(0.8, 2, 5), new THREE.MeshLambertMaterial({color: 0x228B22}));
-            leaves.position.y = 1.5;
-            leaves.castShadow = true;
-            tree.add(trunk, leaves);
-            placeObject(tree, radius);
-        }
-
-        // Bangunan dan Jalan
-        const cityMat = new THREE.MeshLambertMaterial({color: 0xFFFAF0});
-        const roofMat = new THREE.MeshLambertMaterial({color: 0xA52A2A});
-        for(let i=0; i<10; i++) {
-            const bldg = new THREE.Group();
-            const body = new THREE.Mesh(new THREE.BoxGeometry(2, 3, 2), cityMat);
-            body.position.y = 1.5;
-            body.castShadow = true;
-            body.receiveShadow = true;
-            const roof = new THREE.Mesh(new THREE.ConeGeometry(1.6, 1.5, 4), roofMat);
-            roof.position.y = 3.75;
-            roof.rotation.y = Math.PI/4;
-            roof.castShadow = true;
-            bldg.add(body, roof);
-            placeObject(bldg, radius);
             
-            const road = new THREE.Mesh(new THREE.PlaneGeometry(3, 8), new THREE.MeshBasicMaterial({color: 0x333333, side: THREE.DoubleSide}));
-            placeObject(road, radius + 0.05, true);
+            mesh.position.set(
+                r * Math.sin(phi) * Math.cos(theta), 
+                r * Math.cos(phi), 
+                r * Math.sin(phi) * Math.sin(theta)
+            );
+            
+            // Halakan objek supaya sentiasa pacak ke atas dari pusat bumi
+            mesh.lookAt(0, 0, 0);
+            mesh.rotateX(-Math.PI / 2); // Betulkan putaran lepas lookAt
+            
+            planetGroup.add(mesh);
+            if(isCollidable) collisionMeshes.push(mesh);
         }
 
-        // Fungsi cipta Manusia / NPC
-        function createPerson(color) {
-            const person = new THREE.Group();
-            const body = new THREE.Mesh(new THREE.BoxGeometry(0.6, 0.8, 0.4), new THREE.MeshLambertMaterial({color: color}));
-            body.position.y = 0.8;
+        // --- BINA BANGUNAN ---
+        for(let i=0; i<20; i++) {
+            const bldgGroup = new THREE.Group();
+            
+            // Randomize saiz bangunan
+            const w = Math.random() * 2 + 1.5;
+            const h = Math.random() * 4 + 2;
+            const d = Math.random() * 2 + 1.5;
+            
+            const bldgGeo = new THREE.BoxGeometry(w, h, d);
+            // PENTING: Alihkan pivot geometry ke tapak supaya kaki jejak bumi
+            bldgGeo.translate(0, h/2, 0); 
+            
+            const bldgMat = new THREE.MeshLambertMaterial({
+                color: Math.random() > 0.5 ? 0xaaaaaa : 0x8899aa
+            });
+            const building = new THREE.Mesh(bldgGeo, bldgMat);
+            building.castShadow = true;
+            building.receiveShadow = true;
+            
+            // Tambah bumbung
+            const roofGeo = new THREE.ConeGeometry(w*0.8, 1.5, 4);
+            roofGeo.translate(0, h + 0.75, 0);
+            const roofMat = new THREE.MeshLambertMaterial({color: 0xA52A2A});
+            const roof = new THREE.Mesh(roofGeo, roofMat);
+            roof.rotation.y = Math.PI / 4;
+            roof.castShadow = true;
+
+            bldgGroup.add(building);
+            bldgGroup.add(roof);
+            
+            placeObjectOnSphere(bldgGroup, radius, true); // True bermaksud ia keras/tak boleh tembus
+        }
+
+        // --- BINA POKOK ---
+        for(let i=0; i<40; i++) {
+            const treeGeo = new THREE.CylinderGeometry(0.2, 0.4, 2);
+            treeGeo.translate(0, 1, 0); // Kaki jejak bumi
+            const treeMat = new THREE.MeshLambertMaterial({color: 0x8B4513});
+            const trunk = new THREE.Mesh(treeGeo, treeMat);
+            trunk.castShadow = true;
+            
+            const leavesGeo = new THREE.DodecahedronGeometry(1.2);
+            leavesGeo.translate(0, 2.5, 0);
+            const leavesMat = new THREE.MeshLambertMaterial({color: 0x228B22});
+            const leaves = new THREE.Mesh(leavesGeo, leavesMat);
+            leaves.castShadow = true;
+            
+            const tree = new THREE.Group();
+            tree.add(trunk);
+            tree.add(leaves);
+            
+            placeObjectOnSphere(tree, radius, true); // Pokok pun tak boleh tembus
+        }
+
+        // 5. PLAYER UTAMA & NPC
+        function createCharacter(color) {
+            const group = new THREE.Group();
+            
+            // Badan
+            const bodyGeo = new THREE.BoxGeometry(0.8, 1.2, 0.6);
+            bodyGeo.translate(0, 0.6, 0); // Kaki bawah kotak tepat pada Y=0
+            const bodyMat = new THREE.MeshLambertMaterial({color: color});
+            const body = new THREE.Mesh(bodyGeo, bodyMat);
             body.castShadow = true;
-            const head = new THREE.Mesh(new THREE.SphereGeometry(0.3, 8, 8), new THREE.MeshLambertMaterial({color: 0xFFE4C4}));
-            head.position.y = 1.5;
+            
+            // Kepala
+            const headGeo = new THREE.SphereGeometry(0.4, 16, 16);
+            headGeo.translate(0, 1.6, 0); // Atas badan
+            const headMat = new THREE.MeshLambertMaterial({color: 0xFFE4C4});
+            const head = new THREE.Mesh(headGeo, headMat);
             head.castShadow = true;
-            person.add(body, head);
-            return person;
-        }
-        
-        // NPC lain bertaburan
-        for(let i=0; i<10; i++) {
-            const npc = createPerson(Math.random() * 0xffffff);
-            placeObject(npc, radius);
+            
+            group.add(body);
+            group.add(head);
+            return group;
         }
 
-        // Player (Watak Utama - Merah)
-        const player = createPerson(0xFF0000);
-        player.position.set(0, radius + 1, 0);
+        // Set Player (Kita tak masuk dalam planetGroup, dia sentiasa duk atas)
+        const player = createCharacter(0xFF0000); // Baju Merah
+        // Letak di Kutub Utara (Y = Radius). Mesti ngam-ngam jejak sebab kita dah translate geometry tadi!
+        player.position.set(0, radius, 0); 
         scene.add(player);
 
-        const controls = new THREE.OrbitControls(camera, renderer.domElement);
-        controls.enableDamping = true;
-        controls.maxPolarAngle = Math.PI/2 - 0.05;
+        // Letak NPC rawak
+        for(let i=0; i<15; i++) {
+            const npc = createCharacter(Math.random() * 0xffffff);
+            placeObjectOnSphere(npc, radius, true);
+        }
 
-        // --- KAWALAN ---
+        // Setup Kamera untuk Player
+        camera.position.set(0, radius + 10, 15);
+        camera.lookAt(player.position);
+
+        // 6. SISTEM KAWALAN & COLLISION
         let moveX = 0, moveY = 0;
         const keys = {};
+        
         window.addEventListener('keydown', e => keys[e.key.toLowerCase()] = true);
         window.addEventListener('keyup', e => keys[e.key.toLowerCase()] = false);
 
+        // Joystick untuk HP
         const zone = document.getElementById('joystick-zone');
         const knob = document.getElementById('joystick-knob');
         let isDragging = false;
         let center = {x:0, y:0};
 
-        // Kawalan Touch / Joystick untuk Handphone
         zone.addEventListener('touchstart', e => {
             isDragging = true;
             const rect = zone.getBoundingClientRect();
             center = { x: rect.left + 60, y: rect.top + 60 };
             updateJoystick(e.touches[0]);
         });
+        
         zone.addEventListener('touchmove', e => {
             if(isDragging) updateJoystick(e.touches[0]);
         });
+        
         zone.addEventListener('touchend', () => {
             isDragging = false;
             knob.style.transform = `translate(0px, 0px)`;
@@ -173,34 +272,84 @@
             let dy = touch.clientY - center.y;
             const maxDist = 35;
             const dist = Math.sqrt(dx*dx + dy*dy);
-            if(dist > maxDist) { dx = (dx/dist)*maxDist; dy = (dy/dist)*maxDist; }
+            if(dist > maxDist) { 
+                dx = (dx/dist) * maxDist; 
+                dy = (dy/dist) * maxDist; 
+            }
             knob.style.transform = `translate(${dx}px, ${dy}px)`;
-            moveX = dx / maxDist; moveY = dy / maxDist;
+            moveX = dx / maxDist; 
+            moveY = dy / maxDist;
         }
 
-        // --- GAME LOOP ---
+        // Raycaster untuk kesan dinding
+        const raycaster = new THREE.Raycaster();
+        const uiStatus = document.getElementById('status');
+
         function animate() {
             requestAnimationFrame(animate);
 
-            const speed = 0.02;
-            let currentRotX = 0, currentRotZ = 0;
+            // Bintang pusing perlahan gila
+            stars.rotation.y += 0.0005;
 
-            // Kawalan Keyboard (WASD) PC atau Joystick HP
-            if(keys['w'] || moveY < -0.1) currentRotX -= speed;
-            if(keys['s'] || moveY > 0.1) currentRotX += speed;
-            if(keys['a'] || moveX < -0.1) currentRotZ -= speed;
-            if(keys['d'] || moveX > 0.1) currentRotZ += speed;
+            // Kumpul input (PC dan Joystick)
+            let intentX = 0;
+            let intentZ = 0;
 
-            // Pusingkan globe seolah-olah player berjalan
-            planetGroup.rotation.x += currentRotX;
-            planetGroup.rotation.z += currentRotZ;
+            if (keys['w']) intentZ = -1;
+            if (keys['s']) intentZ = 1;
+            if (keys['a']) intentX = -1;
+            if (keys['d']) intentX = 1;
+            
+            if (isDragging) {
+                intentX = moveX;
+                intentZ = moveY;
+            }
 
-            stars.rotation.y += 0.001; // Bintang sentiasa bergerak perlahan
+            // Normalisasi input supaya jalan senget tak laju sangat
+            if(intentX !== 0 || intentZ !== 0) {
+                const moveLen = Math.sqrt(intentX*intentX + intentZ*intentZ);
+                intentX /= moveLen;
+                intentZ /= moveLen;
+                
+                // === COLLISION DETECTION (Mencegah tembus dinding) ===
+                // Kita cast 'laser' dari perut player ke arah yang dia nak pergi
+                const rayOrigin = new THREE.Vector3(0, radius + 0.6, 0); // Perut player
+                const rayDir = new THREE.Vector3(intentX, 0, intentZ).normalize();
+                
+                raycaster.set(rayOrigin, rayDir);
+                // Cek intersect dengan objek dalam planetGroup
+                const hits = raycaster.intersectObjects(collisionMeshes, true);
+                
+                let isBlocked = false;
+                if (hits.length > 0 && hits[0].distance < 1.2) { 
+                    isBlocked = true; // Kalau ada dinding bawah jarak 1.2, sekat gerak!
+                }
 
-            controls.target.copy(player.position);
-            camera.position.x = player.position.x + Math.sin(planetGroup.rotation.z) * 10;
-            camera.position.z = player.position.z + Math.cos(planetGroup.rotation.x) * 10;
-            controls.update();
+                if (isBlocked) {
+                    uiStatus.innerText = "Status: Terlanggar Dinding!";
+                    uiStatus.style.color = "#ff4444";
+                } else {
+                    uiStatus.innerText = "Status: Sedia Berjalan!";
+                    uiStatus.style.color = "#ddd";
+                    
+                    // Kalau tak langgar dinding, baru pusingkan dunia (bergerak)
+                    const speed = 0.04;
+                    // Putar pada paksi dunia supaya logik pusingan kekal betul macam bola
+                    if(intentZ !== 0) {
+                        planetGroup.rotateOnWorldAxis(new THREE.Vector3(1,0,0), intentZ * speed);
+                    }
+                    if(intentX !== 0) {
+                        planetGroup.rotateOnWorldAxis(new THREE.Vector3(0,0,1), -intentX * speed);
+                    }
+
+                    // Pusingkan badan watak mengikut arah dia berjalan
+                    const angle = Math.atan2(intentX, intentZ);
+                    player.rotation.y = angle;
+                }
+            } else {
+                uiStatus.innerText = "Status: Berhenti";
+                uiStatus.style.color = "#ddd";
+            }
 
             renderer.render(scene, camera);
         }
@@ -211,6 +360,7 @@
             renderer.setSize(window.innerWidth, window.innerHeight);
         });
 
+        // Mula jalan!
         animate();
     </script>
 </body>
