@@ -1,0 +1,2075 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Tiny World — Living Planet</title>
+
+    <style>
+        * {
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+        html,
+        body {
+            margin: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background: #02030a;
+            font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+            touch-action: none;
+            user-select: none;
+        }
+        body {
+            position: relative;
+        }
+        canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
+        /* ===== UI ===== */
+        #ui-container {
+            position: fixed;
+            top: max(16px, env(safe-area-inset-top));
+            left: max(16px, env(safe-area-inset-left));
+            z-index: 50;
+            color: #ffffff;
+            text-shadow: 0 2px 5px rgba(0, 0, 0, 0.9);
+            pointer-events: none;
+            background: rgba(0, 0, 0, 0.30);
+            padding: 13px 17px;
+            border-radius: 14px;
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.13);
+            min-width: 170px;
+        }
+        #ui-container h1 {
+            margin: 0 0 4px 0;
+            font-size: 17px;
+            font-weight: 700;
+            letter-spacing: 0.3px;
+        }
+        #ui-container p {
+            margin: 2px 0;
+            font-size: 11px;
+            color: rgba(255, 255, 255, 0.82);
+        }
+        #status-text {
+            margin-top: 6px !important;
+            font-weight: 700;
+            color: #69f0ae;
+        }
+        #score-display {
+            font-weight: 700;
+            color: #ffd54f;
+            font-size: 13px;
+            margin-top: 4px;
+        }
+        #player-hp-display {
+            font-weight: 700;
+            color: #ef5350;
+            font-size: 12px;
+            margin-top: 2px;
+        }
+        #telemetry-panel {
+            position: fixed;
+            top: max(16px, env(safe-area-inset-top));
+            right: max(16px, env(safe-area-inset-right));
+            z-index: 50;
+            color: #ffffff;
+            text-align: right;
+            font-size: 11px;
+            line-height: 1.55;
+            text-shadow: 0 2px 5px rgba(0, 0, 0, 0.9);
+            pointer-events: none;
+            background: rgba(0, 0, 0, 0.27);
+            padding: 10px 13px;
+            border-radius: 12px;
+            backdrop-filter: blur(9px);
+            -webkit-backdrop-filter: blur(9px);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+        }
+        #time-display {
+            position: fixed;
+            top: max(15px, env(safe-area-inset-top));
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 50;
+            color: #ffffff;
+            background: rgba(0, 0, 0, 0.27);
+            padding: 7px 15px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(9px);
+            -webkit-backdrop-filter: blur(9px);
+            pointer-events: none;
+            text-shadow: 0 2px 5px rgba(0, 0, 0, 0.9);
+            white-space: nowrap;
+        }
+        /* ===== JOYSTICK ===== */
+        #virtual-joystick {
+            position: fixed;
+            left: max(22px, env(safe-area-inset-left));
+            bottom: max(22px, env(safe-area-inset-bottom));
+            width: 138px;
+            height: 138px;
+            z-index: 100;
+            border-radius: 50%;
+            background: radial-gradient(circle at center, rgba(255, 255, 255, 0.07), rgba(255, 255, 255, 0.025));
+            border: 2px solid rgba(255, 255, 255, 0.22);
+            box-shadow: inset 0 0 25px rgba(255, 255, 255, 0.045), 0 10px 28px rgba(0, 0, 0, 0.38);
+            touch-action: none;
+        }
+        #joystick-thumb {
+            position: absolute;
+            left: 41px;
+            top: 41px;
+            width: 56px;
+            height: 56px;
+            border-radius: 50%;
+            background: radial-gradient(circle at 35% 30%, rgba(255, 255, 255, 0.98), rgba(220, 230, 235, 0.80));
+            box-shadow: 0 5px 16px rgba(0, 0, 0, 0.50), inset 0 1px 2px rgba(255, 255, 255, 0.7);
+            pointer-events: none;
+            will-change: transform;
+        }
+        /* ===== CAMERA TOUCH ===== */
+        #camera-touch-zone {
+            position: fixed;
+            right: 0;
+            top: 0;
+            width: 48%;
+            height: 100%;
+            z-index: 20;
+            pointer-events: auto;
+            touch-action: none;
+        }
+        /* ===== MOBILE BUTTONS ===== */
+        #mobile-controls {
+            position: fixed;
+            right: max(20px, env(safe-area-inset-right));
+            bottom: max(24px, env(safe-area-inset-bottom));
+            z-index: 110;
+            width: 170px;
+            height: 160px;
+            pointer-events: none;
+        }
+        .mobile-button {
+            position: absolute;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            color: #ffffff;
+            background: rgba(0, 0, 0, 0.34);
+            border: 1px solid rgba(255, 255, 255, 0.28);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            box-shadow: 0 6px 16px rgba(0, 0, 0, 0.30), inset 0 0 12px rgba(255, 255, 255, 0.04);
+            font-size: 11px;
+            font-weight: 700;
+            pointer-events: auto;
+            touch-action: none;
+            transition: transform 0.08s ease, background 0.15s ease, opacity 0.2s ease;
+        }
+        .mobile-button:active {
+            transform: scale(0.92);
+            background: rgba(255, 255, 255, 0.18);
+        }
+        #jump-button {
+            right: 0;
+            bottom: 35px;
+            width: 64px;
+            height: 64px;
+            font-size: 13px;
+        }
+        #attack-button {
+            right: 72px;
+            bottom: 80px;
+            width: 56px;
+            height: 56px;
+            background: rgba(180, 40, 40, 0.45);
+            border-color: rgba(255, 100, 100, 0.4);
+            font-size: 10px;
+        }
+        #interact-button {
+            right: 4px;
+            bottom: 0;
+            width: 48px;
+            height: 32px;
+            border-radius: 16px;
+            font-size: 9px;
+            opacity: 0;
+            pointer-events: none;
+        }
+        #interact-button.visible {
+            opacity: 1;
+            pointer-events: auto;
+        }
+        #camera-button {
+            right: 55px;
+            bottom: 2px;
+            width: 48px;
+            height: 32px;
+            border-radius: 16px;
+            font-size: 9px;
+        }
+        /* ===== PROMPT ===== */
+        #interaction-prompt {
+            position: fixed;
+            left: 50%;
+            bottom: 18%;
+            transform: translate(-50%, 10px);
+            z-index: 90;
+            min-width: 150px;
+            padding: 9px 16px;
+            border-radius: 22px;
+            background: rgba(0, 0, 0, 0.55);
+            border: 1px solid rgba(255, 255, 255, 0.22);
+            color: white;
+            text-align: center;
+            font-size: 12px;
+            font-weight: 700;
+            opacity: 0;
+            pointer-events: none;
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            transition: opacity 0.2s ease, transform 0.2s ease;
+        }
+        #interaction-prompt.visible {
+            opacity: 1;
+            transform: translate(-50%, 0);
+        }
+        #crosshair {
+            position: fixed;
+            left: 50%;
+            top: 50%;
+            width: 8px;
+            height: 8px;
+            margin-left: -4px;
+            margin-top: -4px;
+            z-index: 25;
+            border: 1px solid rgba(255, 255, 255, 0.75);
+            border-radius: 50%;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.2s ease;
+        }
+        #crosshair.visible {
+            opacity: 0.85;
+        }
+        #desktop-help {
+            position: fixed;
+            left: 50%;
+            bottom: 17px;
+            transform: translateX(-50%);
+            z-index: 45;
+            color: rgba(255, 255, 255, 0.68);
+            font-size: 10px;
+            padding: 5px 10px;
+            background: rgba(0, 0, 0, 0.20);
+            border-radius: 10px;
+            pointer-events: none;
+            text-align: center;
+            max-width: 90%;
+        }
+        /* ===== LOADING ===== */
+        #loading-screen {
+            position: fixed;
+            inset: 0;
+            z-index: 999;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+            background: radial-gradient(circle at center, #162b38 0%, #050b12 55%, #020308 100%);
+            color: white;
+            transition: opacity 0.7s ease, visibility 0.7s ease;
+        }
+        #loading-screen.hidden {
+            opacity: 0;
+            visibility: hidden;
+            pointer-events: none;
+        }
+        #loading-title {
+            font-size: 26px;
+            font-weight: 800;
+            margin-bottom: 8px;
+            letter-spacing: 0.4px;
+        }
+        #loading-subtitle {
+            font-size: 12px;
+            opacity: 0.65;
+            margin-bottom: 20px;
+        }
+        #loading-bar {
+            width: 220px;
+            height: 4px;
+            overflow: hidden;
+            border-radius: 5px;
+            background: rgba(255, 255, 255, 0.12);
+        }
+        #loading-progress {
+            width: 0%;
+            height: 100%;
+            border-radius: 5px;
+            background: rgba(255, 255, 255, 0.85);
+            transition: width 0.25s ease;
+        }
+        /* ===== RESPONSIVE ===== */
+        @media (max-width: 700px) {
+            #ui-container {
+                top: max(10px, env(safe-area-inset-top));
+                left: max(10px, env(safe-area-inset-left));
+                padding: 9px 11px;
+                min-width: 130px;
+            }
+            #ui-container h1 {
+                font-size: 13px;
+            }
+            #ui-container p {
+                display: none;
+            }
+            #status-text {
+                display: block !important;
+                font-size: 10px;
+            }
+            #score-display {
+                font-size: 11px;
+            }
+            #player-hp-display {
+                font-size: 10px;
+            }
+            #telemetry-panel {
+                top: max(10px, env(safe-area-inset-top));
+                right: max(10px, env(safe-area-inset-right));
+                padding: 7px 9px;
+                font-size: 10px;
+            }
+            #time-display {
+                top: max(10px, env(safe-area-inset-top));
+                font-size: 10px;
+                padding: 6px 11px;
+            }
+            #desktop-help {
+                display: none;
+            }
+            #crosshair {
+                display: none;
+            }
+            #mobile-controls {
+                width: 155px;
+                height: 150px;
+            }
+            #jump-button {
+                width: 56px;
+                height: 56px;
+                font-size: 11px;
+                bottom: 30px;
+            }
+            #attack-button {
+                width: 50px;
+                height: 50px;
+                font-size: 9px;
+                right: 64px;
+                bottom: 72px;
+            }
+            #interact-button {
+                width: 42px;
+                height: 28px;
+                font-size: 8px;
+            }
+            #camera-button {
+                width: 42px;
+                height: 28px;
+                font-size: 8px;
+                right: 50px;
+                bottom: 2px;
+            }
+        }
+        @media (min-width: 701px) {
+            #mobile-controls,
+            #virtual-joystick {
+                opacity: 0;
+                pointer-events: none;
+            }
+        }
+        /* Label renderer overlay */
+        .label-renderer {
+            position: fixed;
+            top: 0;
+            left: 0;
+            pointer-events: none;
+            z-index: 30;
+        }
+    </style>
+</head>
+<body>
+    <!-- LOADING -->
+    <div id="loading-screen">
+        <div id="loading-title">🌍 Tiny World</div>
+        <div id="loading-subtitle">Building a living planet...</div>
+        <div id="loading-bar"><div id="loading-progress"></div></div>
+    </div>
+
+    <!-- UI -->
+    <div id="ui-container">
+        <h1>🌍 Tiny World</h1>
+        <p><b>PC:</b> WASD · SPACE · E · C · J (attack)</p>
+        <p><b>Mobile:</b> Joystick · Drag right side · Tap buttons</p>
+        <div id="score-display">🏆 Score: 0</div>
+        <div id="player-hp-display">❤️ HP: 100 / 100</div>
+        <p id="status-text">Status: Exploring</p>
+    </div>
+
+    <div id="telemetry-panel">
+        <div id="fps-counter">FPS: --</div>
+        <div id="speed-meter">Speed: 0.0 m/s</div>
+    </div>
+
+    <div id="time-display">☀️ 12:00 · Day</div>
+
+    <!-- CAMERA TOUCH -->
+    <div id="camera-touch-zone"></div>
+
+    <!-- JOYSTICK -->
+    <div id="virtual-joystick">
+        <div id="joystick-thumb"></div>
+    </div>
+
+    <!-- MOBILE CONTROLS -->
+    <div id="mobile-controls">
+        <div id="attack-button" class="mobile-button">⚔️</div>
+        <div id="jump-button" class="mobile-button">⬆</div>
+        <div id="interact-button" class="mobile-button">USE</div>
+        <div id="camera-button" class="mobile-button">CAM</div>
+    </div>
+
+    <!-- PROMPT -->
+    <div id="interaction-prompt">E · Interact</div>
+    <div id="crosshair"></div>
+    <div id="desktop-help">WASD · SPACE · E · C · J · Click NPC</div>
+
+    <!-- THREE.JS -->
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+                "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+            }
+        }
+    </script>
+
+    <script type="module">
+        import * as THREE from "three";
+        import { CSS2DRenderer, CSS2DObject } from "three/addons/renderers/CSS2DRenderer.js";
+
+        // ============================================================
+        // CONFIG
+        // ============================================================
+        const CONFIG = {
+            planetRadius: 180,
+            playerHeight: 3.0,
+            playerRadius: 1.15,
+            playerWalkSpeed: 3.8,
+            playerReverseSpeed: 2.0,
+            playerTurnSpeed: 2.35,
+            acceleration: 8.0,
+            deceleration: 10.0,
+            cameraDistance: 13.5,
+            cameraMinDistance: 4.2,
+            cameraMaxDistance: 23.0,
+            cameraHeight: 4.8,
+            cameraLag: 9.0,
+            cameraLookHeight: 2.0,
+            cameraLookAhead: 3.0,
+            cameraSensitivity: 0.005,
+            cameraPitchMin: -0.72,
+            cameraPitchMax: 1.0,
+            jumpVelocity: 10.5,
+            gravity: 24.0,
+            maxStepHeight: 1.75,
+            npcCount: 18,
+            buildingCount: 28,
+            treeCount: 130,
+            rockCount: 75,
+            cloudCount: 20,
+            dayLengthSec: 180,
+            riverSegments: 80,
+            shadowMapSize: 1536,
+            playerMaxHP: 100,
+            npcMaxHP: 40,
+            attackDamage: 12,
+            attackRange: 5.5,
+            respawnDelay: 6.0,
+            doubleJumpCount: 2,
+            sleepHealRate: 25,
+            sleepSpeedMultiplier: 8,
+        };
+
+        // ============================================================
+        // HELPERS
+        // ============================================================
+        function clamp(v, min, max) { return Math.max(min, Math.min(max, v)); }
+
+        function damp(current, target, lambda, dt) {
+            return THREE.MathUtils.damp(current, target, lambda, dt);
+        }
+
+        function randomDirection() {
+            const v = new THREE.Vector3(Math.random() - 0.5, Math.random() - 0.5, Math.random() - 0.5);
+            return v.normalize();
+        }
+
+        function tangentDirection(normal) {
+            let ref = new THREE.Vector3(0, 1, 0);
+            if (Math.abs(ref.dot(normal)) > 0.92) ref.set(1, 0, 0);
+            return new THREE.Vector3().crossVectors(ref, normal).normalize();
+        }
+
+        function projectOntoTangent(vector, normal) {
+            return vector.clone().sub(normal.clone().multiplyScalar(vector.dot(normal))).normalize();
+        }
+
+        function orientToSurface(object, normal) {
+            const tangent = tangentDirection(normal);
+            const right = new THREE.Vector3().crossVectors(normal, tangent).normalize();
+            const matrix = new THREE.Matrix4();
+            matrix.makeBasis(right, normal, tangent);
+            object.quaternion.setFromRotationMatrix(matrix);
+        }
+
+        function placeOnSurface(object, normal, height = 0) {
+            object.position.copy(normal).multiplyScalar(CONFIG.planetRadius + height);
+            orientToSurface(object, normal);
+        }
+
+        function slerpDirection(a, b, t) {
+            const qa = new THREE.Quaternion(),
+                qb = new THREE.Quaternion(),
+                q = new THREE.Quaternion();
+            qa.setFromUnitVectors(new THREE.Vector3(0, 0, 1), a);
+            qb.setFromUnitVectors(new THREE.Vector3(0, 0, 1), b);
+            q.slerpQuaternions(qa, qb, t);
+            return new THREE.Vector3(0, 0, 1).applyQuaternion(q).normalize();
+        }
+
+        const npcNames = [
+            "Aria", "Bodhi", "Cleo", "Dax", "Eira", "Finn", "Gwen", "Hugo",
+            "Iris", "Jax", "Kira", "Leo", "Mira", "Noah", "Ora", "Pax",
+            "Quinn", "Rex", "Sage", "Theo", "Uma", "Vera", "Wren", "Xander",
+            "Yuki", "Zara", "Ash", "Briar", "Cade", "Demi", "Eli", "Faye"
+        ];
+
+        // ============================================================
+        // SCENE, CAMERA, RENDERER
+        // ============================================================
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x78caff);
+        scene.fog = new THREE.FogExp2(0x78caff, 0.00155);
+
+        const camera = new THREE.PerspectiveCamera(62, window.innerWidth / window.innerHeight, 0.05, 3000);
+        camera.position.set(0, 8, 18);
+
+        const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.65));
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.shadowMap.enabled = true;
+        renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+        renderer.outputColorSpace = THREE.SRGBColorSpace;
+        renderer.toneMapping = THREE.ACESFilmicToneMapping;
+        renderer.toneMappingExposure = 1.08;
+        renderer.domElement.id = "tiny-world-canvas";
+        document.body.appendChild(renderer.domElement);
+
+        // CSS2DRenderer for labels
+        const labelRenderer = new CSS2DRenderer();
+        labelRenderer.setSize(window.innerWidth, window.innerHeight);
+        labelRenderer.domElement.style.position = "fixed";
+        labelRenderer.domElement.style.top = "0";
+        labelRenderer.domElement.style.left = "0";
+        labelRenderer.domElement.style.pointerEvents = "none";
+        labelRenderer.domElement.style.zIndex = "30";
+        document.body.appendChild(labelRenderer.domElement);
+
+        // ============================================================
+        // LIGHTING
+        // ============================================================
+        const hemisphereLight = new THREE.HemisphereLight(0xbfeaff, 0x263d29, 1.35);
+        scene.add(hemisphereLight);
+
+        const sunLight = new THREE.DirectionalLight(0xffffff, 2.2);
+        sunLight.castShadow = true;
+        sunLight.shadow.mapSize.width = CONFIG.shadowMapSize;
+        sunLight.shadow.mapSize.height = CONFIG.shadowMapSize;
+        sunLight.shadow.camera.near = 30;
+        sunLight.shadow.camera.far = 750;
+        sunLight.shadow.camera.left = -260;
+        sunLight.shadow.camera.right = 260;
+        sunLight.shadow.camera.top = 260;
+        sunLight.shadow.camera.bottom = -260;
+        sunLight.shadow.bias = -0.0005;
+        scene.add(sunLight);
+
+        const moonLight = new THREE.DirectionalLight(0x91aaff, 0.35);
+        scene.add(moonLight);
+
+        // ============================================================
+        // SUN / MOON
+        // ============================================================
+        const sunGroup = new THREE.Group();
+        const sunCore = new THREE.Mesh(new THREE.SphereGeometry(13, 32, 32), new THREE.MeshBasicMaterial({ color: 0xffffe6 }));
+        sunGroup.add(sunCore);
+        const sunGlow = new THREE.Mesh(new THREE.SphereGeometry(17, 24, 24), new THREE.MeshBasicMaterial({ color: 0xffd58a,
+            transparent: true, opacity: 0.18, depthWrite: false }));
+        sunGroup.add(sunGlow);
+        scene.add(sunGroup);
+
+        const moon = new THREE.Mesh(new THREE.SphereGeometry(8, 32, 32), new THREE.MeshStandardMaterial({ color: 0xdce6f4,
+            roughness: 1, metalness: 0 }));
+        scene.add(moon);
+
+        // ============================================================
+        // PLANET
+        // ============================================================
+        const planetMaterial = new THREE.MeshStandardMaterial({ color: 0x4b9d55, roughness: 0.96, metalness: 0 });
+        const planet = new THREE.Mesh(new THREE.SphereGeometry(CONFIG.planetRadius, 96, 96), planetMaterial);
+        planet.receiveShadow = true;
+        scene.add(planet);
+
+        const atmosphere = new THREE.Mesh(new THREE.SphereGeometry(CONFIG.planetRadius + 4.5, 64, 64),
+            new THREE.MeshBasicMaterial({ color: 0x79cfff, transparent: true, opacity: 0.085, side: THREE.BackSide,
+                depthWrite: false }));
+        scene.add(atmosphere);
+
+        // ============================================================
+        // STARS
+        // ============================================================
+        const starCount = 5000;
+        const starGeometry = new THREE.BufferGeometry();
+        const starPositions = new Float32Array(starCount * 3);
+        for (let i = 0; i < starCount; i++) {
+            const dir = randomDirection();
+            const radius = 760 + Math.random() * 420;
+            starPositions[i * 3] = dir.x * radius;
+            starPositions[i * 3 + 1] = dir.y * radius;
+            starPositions[i * 3 + 2] = dir.z * radius;
+        }
+        starGeometry.setAttribute("position", new THREE.BufferAttribute(starPositions, 3));
+        const starMaterial = new THREE.PointsMaterial({ color: 0xffffff, size: 1.25, transparent: true, opacity: 0,
+            depthWrite: false, sizeAttenuation: true });
+        const stars = new THREE.Points(starGeometry, starMaterial);
+        scene.add(stars);
+
+        // ============================================================
+        // CLOUDS (smaller, higher)
+        // ============================================================
+        const cloudGroup = new THREE.Group();
+        scene.add(cloudGroup);
+        const cloudMaterial = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 1, transparent: true, opacity: 0.78,
+            depthWrite: false });
+
+        function createCloud() {
+            const cloud = new THREE.Group();
+            const puffs = 3 + Math.floor(Math.random() * 4);
+            for (let i = 0; i < puffs; i++) {
+                const radius = 1.8 + Math.random() * 2.4;
+                const puff = new THREE.Mesh(new THREE.SphereGeometry(radius, 12, 10), cloudMaterial);
+                puff.position.set(i * 2.8, Math.random() * 1.2, (Math.random() - 0.5) * 2.8);
+                puff.scale.y = 0.6 + Math.random() * 0.3;
+                cloud.add(puff);
+            }
+            return cloud;
+        }
+        for (let i = 0; i < CONFIG.cloudCount; i++) {
+            const cloud = createCloud();
+            const normal = randomDirection();
+            const altitude = 20 + Math.random() * 12;
+            cloud.userData.normal = normal.clone();
+            cloud.userData.altitude = altitude;
+            cloud.userData.speed = 0.003 + Math.random() * 0.003;
+            cloud.scale.setScalar(0.45 + Math.random() * 0.55);
+            placeOnSurface(cloud, normal, altitude);
+            cloudGroup.add(cloud);
+        }
+
+        // ============================================================
+        // ENVIRONMENT GROUPS & OBSTACLES
+        // ============================================================
+        const environmentGroup = new THREE.Group();
+        scene.add(environmentGroup);
+        const obstacleList = [];
+
+        function addObstacle(object, radius, type = "obstacle", extra = {}) {
+            obstacleList.push({ object, position: object.position, radius, type, ...extra });
+        }
+
+        // ============================================================
+        // BUILDING MATERIALS
+        // ============================================================
+        const buildingColors = [0x89939b, 0xa79b87, 0x8b7768, 0xb1a99a, 0x6f7c88, 0x9d6f56];
+        const wallMaterials = buildingColors.map(c => new THREE.MeshStandardMaterial({ color: c, roughness: 0.88 }));
+        const roofMaterial = new THREE.MeshStandardMaterial({ color: 0x56423a, roughness: 0.92 });
+        const doorMaterial = new THREE.MeshStandardMaterial({ color: 0x4c2e21, roughness: 0.82 });
+
+        // ============================================================
+        // HOUSE FACTORY (with bed)
+        // ============================================================
+        const houses = [];
+
+        function createHouse(index) {
+            const house = new THREE.Group();
+            house.userData.isHouse = true;
+            house.userData.isOpen = false;
+            house.userData.doorAngle = 0;
+            house.userData.targetDoorAngle = 0;
+            house.userData.hasBed = Math.random() < 0.5;
+            house.userData.isSleeping = false;
+            house.userData.sleepTimer = 0;
+
+            const width = 6 + Math.random() * 2.5;
+            const depth = 6 + Math.random() * 2.5;
+            const height = 4.5 + Math.random() * 1.8;
+            const material = wallMaterials[Math.floor(Math.random() * wallMaterials.length)];
+
+            // Floor
+            const floor = new THREE.Mesh(new THREE.BoxGeometry(width, 0.35, depth),
+                new THREE.MeshStandardMaterial({ color: 0x776653, roughness: 0.95 }));
+            floor.position.y = 0.18;
+            floor.receiveShadow = true;
+            floor.castShadow = true;
+            house.add(floor);
+
+            // Back wall
+            const backWall = new THREE.Mesh(new THREE.BoxGeometry(width, height, 0.65), material);
+            backWall.position.set(0, height / 2, depth / 2);
+            backWall.castShadow = true;
+            backWall.receiveShadow = true;
+            house.add(backWall);
+
+            // Left wall
+            const leftWall = new THREE.Mesh(new THREE.BoxGeometry(0.65, height, depth), material);
+            leftWall.position.set(-width / 2, height / 2, 0);
+            leftWall.castShadow = true;
+            leftWall.receiveShadow = true;
+            house.add(leftWall);
+
+            // Right wall
+            const rightWall = new THREE.Mesh(new THREE.BoxGeometry(0.65, height, depth), material);
+            rightWall.position.set(width / 2, height / 2, 0);
+            rightWall.castShadow = true;
+            rightWall.receiveShadow = true;
+            house.add(rightWall);
+
+            // Front wall
+            const fw = (width - 2.0) / 2;
+            const fl = new THREE.Mesh(new THREE.BoxGeometry(fw, height, 0.65), material);
+            fl.position.set(-width / 2 + fw / 2, height / 2, -depth / 2);
+            fl.castShadow = true;
+            house.add(fl);
+            const fr = new THREE.Mesh(new THREE.BoxGeometry(fw, height, 0.65), material);
+            fr.position.set(width / 2 - fw / 2, height / 2, -depth / 2);
+            fr.castShadow = true;
+            house.add(fr);
+            const ft = new THREE.Mesh(new THREE.BoxGeometry(2.0, height - 2.3, 0.65), material);
+            ft.position.set(0, 2.3 + (height - 2.3) / 2, -depth / 2);
+            ft.castShadow = true;
+            house.add(ft);
+
+            // Roof
+            const roof = new THREE.Mesh(new THREE.ConeGeometry(Math.max(width, depth) * 0.76, 2.4, 4), roofMaterial);
+            roof.position.y = height + 1.2;
+            roof.rotation.y = Math.PI / 4;
+            roof.castShadow = true;
+            house.add(roof);
+
+            // Door
+            const doorPivot = new THREE.Group();
+            doorPivot.position.set(-1.0, 1.15, -depth / 2 - 0.05);
+            const door = new THREE.Mesh(new THREE.BoxGeometry(2.0, 2.3, 0.18), doorMaterial);
+            door.position.x = 1.0;
+            door.castShadow = true;
+            doorPivot.add(door);
+            house.add(doorPivot);
+            house.userData.door = doorPivot;
+
+            // Windows
+            const winMat = new THREE.MeshStandardMaterial({ color: 0x82cde9, emissive: 0x153a4b, emissiveIntensity: 0.3,
+                roughness: 0.25, metalness: 0.1 });
+            const wl = new THREE.Mesh(new THREE.BoxGeometry(1.25, 1.25, 0.10), winMat);
+            wl.position.set(-2.0, 2.25, -depth / 2 - 0.06);
+            house.add(wl);
+            const wr = wl.clone();
+            wr.position.x = 2.0;
+            house.add(wr);
+
+            // Interior light
+            const interiorLight = new THREE.PointLight(0xffd39a, 0.0, 15);
+            interiorLight.position.set(0, 3.1, 0);
+            house.add(interiorLight);
+            house.userData.interiorLight = interiorLight;
+
+            // Furniture
+            const furnMat = new THREE.MeshStandardMaterial({ color: 0x634633, roughness: 0.9 });
+            const table = new THREE.Mesh(new THREE.BoxGeometry(2.2, 0.65, 1.2), furnMat);
+            table.position.set(0, 0.65, 1.0);
+            table.castShadow = true;
+            house.add(table);
+
+            // Bed
+            if (house.userData.hasBed) {
+                const bedGroup = new THREE.Group();
+                const bedMat = new THREE.MeshStandardMaterial({ color: 0x58738b, roughness: 0.9 });
+                const bedFrame = new THREE.Mesh(new THREE.BoxGeometry(2.6, 0.5, 1.8), bedMat);
+                bedFrame.position.y = 0.25;
+                bedFrame.castShadow = true;
+                bedGroup.add(bedFrame);
+                const pillowMat = new THREE.MeshStandardMaterial({ color: 0xd4c9b8, roughness: 0.95 });
+                const pillow = new THREE.Mesh(new THREE.BoxGeometry(0.8, 0.2, 0.5), pillowMat);
+                pillow.position.set(-0.8, 0.6, 0);
+                bedGroup.add(pillow);
+                const blanketMat = new THREE.MeshStandardMaterial({ color: 0x6d8b9e, roughness: 0.9 });
+                const blanket = new THREE.Mesh(new THREE.BoxGeometry(1.8, 0.15, 1.2), blanketMat);
+                blanket.position.set(0.3, 0.55, 0);
+                bedGroup.add(blanket);
+                bedGroup.position.set(-1.8, 0.3, 1.6);
+                house.add(bedGroup);
+                house.userData.bedGroup = bedGroup;
+                house.userData.bedPos = new THREE.Vector3(-1.8, 0.3, 1.6);
+            }
+
+            house.userData.width = width;
+            house.userData.depth = depth;
+            house.userData.normal = new THREE.Vector3();
+            return house;
+        }
+
+        // ============================================================
+        // SPAWN HOUSES
+        // ============================================================
+        for (let i = 0; i < CONFIG.buildingCount; i++) {
+            const normal = randomDirection();
+            const house = createHouse(i);
+            house.userData.normal.copy(normal);
+            placeOnSurface(house, normal, 0);
+            environmentGroup.add(house);
+            houses.push(house);
+            addObstacle(house, 4.8, "house", { house });
+        }
+
+        // ============================================================
+        // TREES
+        // ============================================================
+        const treeTrunkMat = new THREE.MeshStandardMaterial({ color: 0x60432d, roughness: 1 });
+        const treeLeafMat = new THREE.MeshStandardMaterial({ color: 0x247d3a, roughness: 0.95 });
+        for (let i = 0; i < CONFIG.treeCount; i++) {
+            const normal = randomDirection();
+            const tree = new THREE.Group();
+            const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.25, 0.48, 3.1, 8), treeTrunkMat);
+            trunk.position.y = 1.55;
+            trunk.castShadow = true;
+            trunk.receiveShadow = true;
+            tree.add(trunk);
+            const crown = new THREE.Mesh(new THREE.DodecahedronGeometry(2.1, 1), treeLeafMat);
+            crown.position.y = 4.0;
+            crown.scale.y = 1.05;
+            crown.castShadow = true;
+            crown.receiveShadow = true;
+            tree.add(crown);
+            tree.scale.setScalar(0.75 + Math.random() * 0.55);
+            placeOnSurface(tree, normal, 0);
+            environmentGroup.add(tree);
+            addObstacle(tree, 1.35, "tree");
+        }
+
+        // ============================================================
+        // ROCKS
+        // ============================================================
+        const rockMat = new THREE.MeshStandardMaterial({ color: 0x73766f, roughness: 1 });
+        for (let i = 0; i < CONFIG.rockCount; i++) {
+            const normal = randomDirection();
+            const size = 0.75 + Math.random() * 1.7;
+            const rock = new THREE.Mesh(new THREE.DodecahedronGeometry(size, 0), rockMat);
+            rock.scale.y = 0.38 + Math.random() * 0.55;
+            rock.rotation.set(Math.random() * Math.PI, Math.random() * Math.PI, Math.random() * Math.PI);
+            rock.castShadow = true;
+            rock.receiveShadow = true;
+            placeOnSurface(rock, normal, size * 0.28);
+            environmentGroup.add(rock);
+            addObstacle(rock, size * 0.85, "rock", { height: size * rock.scale.y * 1.4 });
+        }
+
+        // ============================================================
+        // ROAD + STREETLIGHTS
+        // ============================================================
+        const roadGroup = new THREE.Group();
+        scene.add(roadGroup);
+        const roadMaterial = new THREE.MeshStandardMaterial({ color: 0x5a5a5a, roughness: 0.95, metalness: 0 });
+        const sidewalkMaterial = new THREE.MeshStandardMaterial({ color: 0x8a8a7a, roughness: 1 });
+
+        const roadPoints = [];
+        const roadSegments = 60;
+        for (let i = 0; i <= roadSegments; i++) {
+            const t = i / roadSegments;
+            const angle1 = t * Math.PI * 2;
+            const angle2 = t * Math.PI * 2 * 0.7 + 0.8;
+            const x = Math.cos(angle1) * Math.sin(angle2) * 0.7;
+            const y = Math.sin(angle1) * 0.45 + 0.3;
+            const z = Math.cos(angle2) * 0.85;
+            const dir = new THREE.Vector3(x, y, z).normalize();
+            roadPoints.push(dir);
+        }
+
+        function buildRoadRibbon(width, heightOffset, material) {
+            const verts = [];
+            const idx = [];
+            for (let i = 0; i < roadPoints.length; i++) {
+                const p = roadPoints[i];
+                const prev = roadPoints[Math.max(0, i - 1)];
+                const next = roadPoints[Math.min(roadPoints.length - 1, i + 1)];
+                const tangent = next.clone().sub(prev).normalize();
+                const side = new THREE.Vector3().crossVectors(p, tangent).normalize();
+                const left = p.clone().add(side.clone().multiplyScalar(width)).normalize();
+                const right = p.clone().add(side.clone().multiplyScalar(-width)).normalize();
+                left.multiplyScalar(CONFIG.planetRadius + heightOffset);
+                right.multiplyScalar(CONFIG.planetRadius + heightOffset);
+                verts.push(left.x, left.y, left.z);
+                verts.push(right.x, right.y, right.z);
+            }
+            for (let i = 0; i < roadPoints.length - 1; i++) {
+                const a = i * 2,
+                    b = a + 1,
+                    c = a + 2,
+                    d = a + 3;
+                idx.push(a, b, c);
+                idx.push(b, d, c);
+            }
+            const geo = new THREE.BufferGeometry();
+            geo.setAttribute("position", new THREE.Float32BufferAttribute(verts, 3));
+            geo.setIndex(idx);
+            geo.computeVertexNormals();
+            return new THREE.Mesh(geo, material);
+        }
+
+        const roadWidth = 3.2;
+        const road = buildRoadRibbon(roadWidth, 0.22, roadMaterial);
+        road.receiveShadow = true;
+        roadGroup.add(road);
+
+        const sidewalk = buildRoadRibbon(roadWidth + 1.2, 0.15, sidewalkMaterial);
+        sidewalk.receiveShadow = true;
+        roadGroup.add(sidewalk);
+
+        // Streetlights
+        const lightPoleMat = new THREE.MeshStandardMaterial({ color: 0x4a4a4a, metalness: 0.6, roughness: 0.3 });
+        const lightHeadMat = new THREE.MeshStandardMaterial({ color: 0xffeecc, emissive: 0xffdd77, emissiveIntensity: 0.6 });
+        for (let i = 0; i < roadPoints.length; i += 3) {
+            const p = roadPoints[i];
+            const pos = p.clone().multiplyScalar(CONFIG.planetRadius + 0.3);
+            const normal = p.clone();
+            const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.22, 1.8, 6), lightPoleMat);
+            pole.position.copy(pos).add(normal.clone().multiplyScalar(0.9));
+            pole.castShadow = true;
+            orientToSurface(pole, normal);
+            roadGroup.add(pole);
+
+            const arm = new THREE.Mesh(new THREE.BoxGeometry(0.6, 0.1, 0.1), lightPoleMat);
+            const fwd = tangentDirection(normal);
+            const right = new THREE.Vector3().crossVectors(normal, fwd).normalize();
+            arm.position.copy(pos).add(normal.clone().multiplyScalar(1.8)).add(right.clone().multiplyScalar(0.35));
+            arm.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), right);
+            roadGroup.add(arm);
+
+            const lightHead = new THREE.Mesh(new THREE.SphereGeometry(0.3, 8, 8), lightHeadMat);
+            lightHead.position.copy(pos).add(normal.clone().multiplyScalar(1.8)).add(right.clone().multiplyScalar(0.7));
+            roadGroup.add(lightHead);
+
+            const glow = new THREE.PointLight(0xffdd77, 0.6, 12);
+            glow.position.copy(pos).add(normal.clone().multiplyScalar(1.8)).add(right.clone().multiplyScalar(0.7));
+            roadGroup.add(glow);
+        }
+
+        // ============================================================
+        // RIVER (keep existing)
+        // ============================================================
+        const riverGroup = new THREE.Group();
+        scene.add(riverGroup);
+        const riverMaterial = new THREE.MeshPhysicalMaterial({ color: 0x2b9dd6, roughness: 0.22, metalness: 0.08,
+            transmission: 0.12, transparent: true, opacity: 0.84, side: THREE.DoubleSide });
+        const riverBankMat = new THREE.MeshStandardMaterial({ color: 0x6f7250, roughness: 1 });
+        const riverStart = new THREE.Vector3(0.45, 0.55, 0.70).normalize();
+        const riverEnd = new THREE.Vector3(-0.75, 0.42, -0.52).normalize();
+        const riverPoints = [];
+        for (let i = 0; i < CONFIG.riverSegments; i++) {
+            const t = i / (CONFIG.riverSegments - 1);
+            let dir = slerpDirection(riverStart, riverEnd, t);
+            const side = tangentDirection(dir);
+            const wave = Math.sin(t * Math.PI * 8) * 0.025;
+            dir.add(side.multiplyScalar(wave));
+            dir.normalize();
+            riverPoints.push(dir);
+        }
+
+        function buildRibbon(width, heightOffset, material) {
+            const verts = [];
+            const idx = [];
+            for (let i = 0; i < riverPoints.length; i++) {
+                const p = riverPoints[i];
+                const prev = riverPoints[Math.max(0, i - 1)];
+                const next = riverPoints[Math.min(riverPoints.length - 1, i + 1)];
+                const tangent = next.clone().sub(prev).normalize();
+                const side = new THREE.Vector3().crossVectors(p, tangent).normalize();
+                const left = p.clone().add(side.clone().multiplyScalar(width)).normalize();
+                const right = p.clone().add(side.clone().multiplyScalar(-width)).normalize();
+                left.multiplyScalar(CONFIG.planetRadius + heightOffset);
+                right.multiplyScalar(CONFIG.planetRadius + heightOffset);
+                verts.push(left.x, left.y, left.z);
+                verts.push(right.x, right.y, right.z);
+            }
+            for (let i = 0; i < riverPoints.length - 1; i++) {
+                const a = i * 2,
+                    b = a + 1,
+                    c = a + 2,
+                    d = a + 3;
+                idx.push(a, b, c);
+                idx.push(b, d, c);
+            }
+            const geo = new THREE.BufferGeometry();
+            geo.setAttribute("position", new THREE.Float32BufferAttribute(verts, 3));
+            geo.setIndex(idx);
+            geo.computeVertexNormals();
+            return new THREE.Mesh(geo, material);
+        }
+        const river = buildRibbon(5.4, 0.28, riverMaterial);
+        riverGroup.add(river);
+        const riverBankLeft = buildRibbon(6.25, 0.16, riverBankMat);
+        const riverBankRight = buildRibbon(6.9, 0.15, riverBankMat);
+        riverGroup.add(riverBankLeft);
+        riverGroup.add(riverBankRight);
+
+        // ============================================================
+        // CHARACTER FACTORY
+        // ============================================================
+        function createCharacter(bodyColor) {
+            const container = new THREE.Group();
+            const bodyMat = new THREE.MeshStandardMaterial({ color: bodyColor, roughness: 0.82 });
+            const skinMat = new THREE.MeshStandardMaterial({ color: 0xffd1b3, roughness: 0.9 });
+            const pantsMat = new THREE.MeshStandardMaterial({ color: 0x303844, roughness: 0.95 });
+
+            const torso = new THREE.Mesh(new THREE.BoxGeometry(1.0, 1.5, 0.72), bodyMat);
+            torso.position.y = 1.25;
+            torso.castShadow = true;
+            container.add(torso);
+
+            const head = new THREE.Mesh(new THREE.SphereGeometry(0.5, 18, 18), skinMat);
+            head.position.y = 2.52;
+            head.castShadow = true;
+            container.add(head);
+
+            const leftLeg = new THREE.Mesh(new THREE.BoxGeometry(0.35, 0.9, 0.42), pantsMat);
+            leftLeg.position.set(-0.25, 0.45, 0);
+            leftLeg.castShadow = true;
+            container.add(leftLeg);
+
+            const rightLeg = new THREE.Mesh(new THREE.BoxGeometry(0.35, 0.9, 0.42), pantsMat);
+            rightLeg.position.set(0.25, 0.45, 0);
+            rightLeg.castShadow = true;
+            container.add(rightLeg);
+
+            const armMat = bodyMat;
+            const leftArm = new THREE.Mesh(new THREE.BoxGeometry(0.25, 1.15, 0.28), armMat);
+            leftArm.position.set(-0.65, 1.35, 0);
+            leftArm.castShadow = true;
+            container.add(leftArm);
+
+            const rightArm = new THREE.Mesh(new THREE.BoxGeometry(0.25, 1.15, 0.28), armMat);
+            rightArm.position.set(0.65, 1.35, 0);
+            rightArm.castShadow = true;
+            container.add(rightArm);
+
+            container.userData = { leftLeg, rightLeg, leftArm, rightArm };
+            return container;
+        }
+
+        // ============================================================
+        // PLAYER
+        // ============================================================
+        const player = new THREE.Group();
+        scene.add(player);
+        const playerMesh = createCharacter(0xe53935);
+        player.add(playerMesh);
+
+        let playerNormal = new THREE.Vector3(0, 1, 0);
+        let playerForward = new THREE.Vector3(0, 0, 1);
+        playerForward = projectOntoTangent(playerForward, playerNormal);
+
+        let currentSpeed = 0;
+        let walkTime = 0;
+        let verticalVelocity = 0;
+        let jumpHeight = 0;
+        let isGrounded = true;
+        let jumpCount = 0;
+        let currentWaterFactor = 1.0;
+        let playerHP = CONFIG.playerMaxHP;
+        let score = 0;
+        let isSleeping = false;
+        let sleepTimer = 0;
+
+        function updatePlayerTransform() {
+            player.position.copy(playerNormal).multiplyScalar(CONFIG.planetRadius + jumpHeight);
+            const forward = projectOntoTangent(playerForward, playerNormal);
+            const right = new THREE.Vector3().crossVectors(playerNormal, forward).normalize();
+            const matrix = new THREE.Matrix4();
+            matrix.makeBasis(right, playerNormal, forward);
+            player.quaternion.setFromRotationMatrix(matrix);
+        }
+        updatePlayerTransform();
+
+        // ============================================================
+        // NPC SYSTEM (with names, HP, combat)
+        // ============================================================
+        const npcList = [];
+        const npcColors = [0x2196f3, 0xffc107, 0x9c27b0, 0x00acc1, 0xff7043, 0x66bb6a, 0xab47bc, 0x26a69a];
+
+        const labelStyle = `
+              color: white;
+              font-family: "Segoe UI", sans-serif;
+              font-size: 12px;
+              font-weight: 700;
+              text-shadow: 0 1px 8px rgba(0,0,0,0.9);
+              background: rgba(0,0,0,0.55);
+              padding: 3px 10px;
+              border-radius: 12px;
+              border: 1px solid rgba(255,255,255,0.15);
+              backdrop-filter: blur(4px);
+              white-space: nowrap;
+              pointer-events: none;
+              text-align: center;
+              line-height: 1.4;
+            `;
+
+        for (let i = 0; i < CONFIG.npcCount; i++) {
+            const normal = randomDirection();
+            const npc = new THREE.Group();
+            const color = npcColors[Math.floor(Math.random() * npcColors.length)];
+            const mesh = createCharacter(color);
+            npc.add(mesh);
+
+            const forward = projectOntoTangent(tangentDirection(normal), normal);
+            const name = npcNames[Math.floor(Math.random() * npcNames.length)];
+
+            const npcData = {
+                object: npc,
+                mesh,
+                normal: normal.clone(),
+                forward: forward.clone(),
+                speed: 0.5 + Math.random() * 0.7,
+                timer: 1 + Math.random() * 4,
+                turnTarget: 0,
+                currentTurn: 0,
+                walkCounter: Math.random() * 10,
+                radius: 1.05,
+                name: name,
+                maxHP: CONFIG.npcMaxHP + Math.floor(Math.random() * 15),
+                hp: CONFIG.npcMaxHP + Math.floor(Math.random() * 15),
+                isKO: false,
+                koTimer: 0,
+                isAggro: false,
+                aggroTimer: 0,
+                attackCooldown: 0,
+                label: null,
+                labelDiv: null,
+            };
+
+            npc.position.copy(normal).multiplyScalar(CONFIG.planetRadius);
+            orientToSurface(npc, normal);
+            environmentGroup.add(npc);
+
+            // Create CSS2D label
+            const labelDiv = document.createElement("div");
+            labelDiv.style.cssText = labelStyle;
+            labelDiv.innerHTML =
+                `${name}<br><span style="font-size:10px;color:#ff6b6b;">❤️ ${npcData.hp}/${npcData.maxHP}</span>`;
+            const label = new CSS2DObject(labelDiv);
+            label.position.set(0, 3.2, 0);
+            npc.add(label);
+            npcData.label = label;
+            npcData.labelDiv = labelDiv;
+
+            npcList.push(npcData);
+        }
+
+        // ============================================================
+        // INPUT STATE
+        // ============================================================
+        const keys = {};
+        window.addEventListener("keydown", e => {
+            const key = e.key.toLowerCase();
+            keys[key] = true;
+            if (key === " " || key === "spacebar") { e.preventDefault();
+                jump(); }
+            if (key === "e") { interact(); }
+            if (key === "c") { cycleCameraMode(); }
+            if (key === "j") { performAttack(); }
+        }, { passive: false });
+        window.addEventListener("keyup", e => { keys[e.key.toLowerCase()] = false; });
+
+        // ============================================================
+        // JOYSTICK
+        // ============================================================
+        const joystick = document.getElementById("virtual-joystick");
+        const joystickThumb = document.getElementById("joystick-thumb");
+        let joystickActive = false;
+        let joystickPointerId = null;
+        let joystickX = 0,
+            joystickY = 0;
+
+        function resetJoystick() {
+            joystickActive = false;
+            joystickPointerId = null;
+            joystickX = 0;
+            joystickY = 0;
+            joystickThumb.style.transform = "translate(0px, 0px)";
+        }
+
+        function updateJoystick(cx, cy) {
+            const rect = joystick.getBoundingClientRect();
+            const cx2 = rect.left + rect.width / 2;
+            const cy2 = rect.top + rect.height / 2;
+            let dx = cx - cx2,
+                dy = cy - cy2;
+            const max = 41;
+            const dist = Math.hypot(dx, dy);
+            if (dist > max) { dx = dx / dist * max;
+                dy = dy / dist * max; }
+            joystickThumb.style.transform = `translate(${dx}px, ${dy}px)`;
+            joystickX = dx / max;
+            joystickY = dy / max;
+        }
+        joystick.addEventListener("pointerdown", e => {
+            e.preventDefault();
+            joystickActive = true;
+            joystickPointerId = e.pointerId;
+            joystick.setPointerCapture(e.pointerId);
+            updateJoystick(e.clientX, e.clientY);
+        }, { passive: false });
+        joystick.addEventListener("pointermove", e => {
+            if (!joystickActive || e.pointerId !== joystickPointerId) return;
+            updateJoystick(e.clientX, e.clientY);
+        });
+        joystick.addEventListener("pointerup", resetJoystick);
+        joystick.addEventListener("pointercancel", resetJoystick);
+
+        // ============================================================
+        // CAMERA INPUT
+        // ============================================================
+        const cameraTouchZone = document.getElementById("camera-touch-zone");
+        let cameraDragging = false;
+        let cameraPointerId = null;
+        let lastCameraX = 0,
+            lastCameraY = 0;
+        let cameraYaw = 0,
+            cameraPitch = 0.22;
+        let cameraDistance = CONFIG.cameraDistance;
+        let cameraMode = 0;
+        const cameraModeNames = ["Third Person", "Close", "First Person"];
+
+        cameraTouchZone.addEventListener("pointerdown", e => {
+            if (e.pointerType === "mouse" && e.button !== 0) return;
+            cameraDragging = true;
+            cameraPointerId = e.pointerId;
+            lastCameraX = e.clientX;
+            lastCameraY = e.clientY;
+            cameraTouchZone.setPointerCapture(e.pointerId);
+        });
+        cameraTouchZone.addEventListener("pointermove", e => {
+            if (!cameraDragging || e.pointerId !== cameraPointerId) return;
+            const dx = e.clientX - lastCameraX,
+                dy = e.clientY - lastCameraY;
+            lastCameraX = e.clientX;
+            lastCameraY = e.clientY;
+            cameraYaw -= dx * CONFIG.cameraSensitivity;
+            cameraPitch += dy * CONFIG.cameraSensitivity;
+            cameraPitch = clamp(cameraPitch, CONFIG.cameraPitchMin, CONFIG.cameraPitchMax);
+        });
+        cameraTouchZone.addEventListener("pointerup", () => { cameraDragging = false; });
+        cameraTouchZone.addEventListener("pointercancel", () => { cameraDragging = false; });
+        window.addEventListener("wheel", e => {
+            cameraDistance += e.deltaY * 0.015;
+            cameraDistance = clamp(cameraDistance, CONFIG.cameraMinDistance, CONFIG.cameraMaxDistance);
+        }, { passive: true });
+
+        // ============================================================
+        // MOBILE BUTTONS
+        // ============================================================
+        document.getElementById("jump-button").addEventListener("pointerdown", e => { e.preventDefault();
+            jump(); }, { passive: false });
+        document.getElementById("interact-button").addEventListener("pointerdown", e => { e.preventDefault();
+            interact(); }, { passive: false });
+        document.getElementById("camera-button").addEventListener("pointerdown", e => { e.preventDefault();
+            cycleCameraMode(); }, { passive: false });
+        document.getElementById("attack-button").addEventListener("pointerdown", e => { e.preventDefault();
+            performAttack(); }, { passive: false });
+
+        // ============================================================
+        // JUMP (double jump)
+        // ============================================================
+        function jump() {
+            if (isSleeping) return;
+            if (isGrounded) {
+                verticalVelocity = CONFIG.jumpVelocity;
+                isGrounded = false;
+                jumpCount = 1;
+                return;
+            }
+            if (jumpCount < CONFIG.doubleJumpCount) {
+                verticalVelocity = CONFIG.jumpVelocity * 0.85;
+                jumpCount++;
+            }
+        }
+
+        function updateJump(dt) {
+            if (isGrounded) {
+                jumpHeight = 0;
+                verticalVelocity = 0;
+                jumpCount = 0;
+                return;
+            }
+            verticalVelocity -= CONFIG.gravity * dt;
+            jumpHeight += verticalVelocity * dt;
+            if (jumpHeight <= 0) {
+                jumpHeight = 0;
+                verticalVelocity = 0;
+                isGrounded = true;
+                jumpCount = 0;
+            }
+            updatePlayerTransform();
+        }
+
+        // ============================================================
+        // PLAYER MOVEMENT
+        // ============================================================
+        function getMovementInput() {
+            let turn = 0,
+                walk = 0;
+            if (keys["a"] || keys["arrowleft"]) turn += 1;
+            if (keys["d"] || keys["arrowright"]) turn -= 1;
+            if (keys["w"] || keys["arrowup"]) walk += 1;
+            if (keys["s"] || keys["arrowdown"]) walk -= 1;
+            if (joystickActive) {
+                turn = -joystickX;
+                walk = -joystickY;
+            }
+            return { turn, walk };
+        }
+
+        function checkObstacleCollision(candidateNormal) {
+            const cp = candidateNormal.clone().multiplyScalar(CONFIG.planetRadius);
+            for (const ob of obstacleList) {
+                if (ob.type === "house") {
+                    const house = ob.house;
+                    if (house.userData.isOpen) {
+                        const local = cp.clone();
+                        house.worldToLocal(local);
+                        const w = house.userData.width,
+                            d = house.userData.depth;
+                        const inside = Math.abs(local.x) < w * 0.5 && Math.abs(local.z) < d * 0.5;
+                        const nearDoor = Math.abs(local.x) < 1.35 && local.z < -d * 0.5 + 2.0;
+                        if (inside || nearDoor) continue;
+                    }
+                }
+                const dist = cp.distanceTo(ob.position);
+                if (dist < CONFIG.playerRadius + ob.radius) return ob;
+            }
+            return null;
+        }
+
+        function attemptMove(dist) {
+            const movement = playerForward.clone().multiplyScalar(dist);
+            const cw = player.position.clone().add(movement);
+            const cn = cw.normalize();
+            const collision = checkObstacleCollision(cn);
+            if (collision && collision.type === "rock" && isGrounded && collision.height <= CONFIG.maxStepHeight) {
+                jumpHeight = Math.max(jumpHeight, 0.65);
+                playerNormal.copy(cn);
+                playerForward = projectOntoTangent(playerForward, playerNormal);
+                updatePlayerTransform();
+                return true;
+            }
+            if (collision) return false;
+            playerNormal.copy(cn);
+            playerForward = projectOntoTangent(playerForward, playerNormal);
+            updatePlayerTransform();
+            return true;
+        }
+
+        function updatePlayer(dt) {
+            if (isSleeping) {
+                sleepTimer += dt;
+                if (sleepTimer > 1.0) {
+                    sleepTimer = 0;
+                    playerHP = Math.min(playerHP + CONFIG.sleepHealRate, CONFIG.playerMaxHP);
+                    updatePlayerUI();
+                }
+                elapsedTime += dt * CONFIG.sleepSpeedMultiplier;
+                return;
+            }
+
+            const input = getMovementInput();
+            let turn = input.turn,
+                walk = input.walk;
+
+            if (Math.abs(turn) > 0.03) {
+                const rot = new THREE.Quaternion().setFromAxisAngle(playerNormal, turn * CONFIG.playerTurnSpeed * dt);
+                playerForward.applyQuaternion(rot);
+                playerForward = projectOntoTangent(playerForward, playerNormal);
+            }
+
+            let targetSpeed = 0;
+            if (walk > 0) targetSpeed = CONFIG.playerWalkSpeed * walk;
+            else if (walk < 0) targetSpeed = CONFIG.playerReverseSpeed * walk;
+            if (currentWaterFactor < 1) targetSpeed *= currentWaterFactor;
+
+            const rate = Math.abs(targetSpeed) > Math.abs(currentSpeed) ? CONFIG.acceleration : CONFIG.deceleration;
+            currentSpeed = damp(currentSpeed, targetSpeed, rate, dt);
+
+            if (Math.abs(currentSpeed) > 0.005) {
+                const moved = attemptMove(currentSpeed * dt);
+                if (!moved) currentSpeed = damp(currentSpeed, 0, 18, dt);
+            }
+
+            if (Math.abs(currentSpeed) > 0.08 && isGrounded) {
+                walkTime += dt * Math.abs(currentSpeed) * 1.55;
+            }
+
+            const wa = Math.min(1, Math.abs(currentSpeed) / CONFIG.playerWalkSpeed);
+            const swing = Math.sin(walkTime * 8.5) * 0.42 * wa;
+            const pm = playerMesh.userData;
+            pm.leftLeg.rotation.x = swing;
+            pm.rightLeg.rotation.x = -swing;
+            pm.leftArm.rotation.x = -swing * 0.55;
+            pm.rightArm.rotation.x = swing * 0.55;
+
+            const status = document.getElementById("status-text");
+            if (!isGrounded) { status.textContent = "Status: Jumping";
+                status.style.color = "#fff59d"; } else if (currentWaterFactor < 1) { status.textContent = "Status: In Water";
+                status.style.color = "#81d4fa"; } else if (Math.abs(currentSpeed) < 0.05) { status.textContent = "Status: Idle";
+                status.style.color = "#90caf9"; } else { status.textContent = "Status: Exploring";
+                status.style.color = "#69f0ae"; }
+
+            document.getElementById("speed-meter").textContent = `Speed: ${Math.abs(currentSpeed).toFixed(1)} m/s`;
+        }
+
+        // ============================================================
+        // PLAYER UI
+        // ============================================================
+        function updatePlayerUI() {
+            document.getElementById("player-hp-display").textContent = `❤️ HP: ${Math.floor(playerHP)} / ${CONFIG.playerMaxHP}`;
+            document.getElementById("score-display").textContent = `🏆 Score: ${score}`;
+        }
+
+        // ============================================================
+        // COMBAT
+        // ============================================================
+        let attackCooldownTimer = 0;
+
+        function performAttack() {
+            if (attackCooldownTimer > 0 || isSleeping) return;
+            attackCooldownTimer = 0.4;
+
+            const pPos = player.position.clone();
+            let closest = null,
+                closestDist = Infinity;
+            for (const npc of npcList) {
+                if (npc.isKO) continue;
+                const dist = pPos.distanceTo(npc.object.position);
+                if (dist < CONFIG.attackRange && dist < closestDist) {
+                    closest = npc;
+                    closestDist = dist;
+                }
+            }
+            if (closest) {
+                closest.hp -= CONFIG.attackDamage;
+                closest.isAggro = true;
+                closest.aggroTimer = 4;
+
+                // Flash effect
+                closest.mesh.children.forEach(child => {
+                    if (child.isMesh) {
+                        const orig = child.material.color.clone();
+                        child.material.color.set(0xff4444);
+                        setTimeout(() => { child.material.color.copy(orig); }, 150);
+                    }
+                });
+
+                if (closest.hp <= 0) {
+                    closest.hp = 0;
+                    closest.isKO = true;
+                    closest.koTimer = CONFIG.respawnDelay;
+                    score += 10;
+                    updatePlayerUI();
+                    const koDiv = closest.labelDiv;
+                    koDiv.innerHTML = `${closest.name}<br><span style="color:#ff6b6b;font-weight:900;">💀 KO!</span>`;
+                    koDiv.style.borderColor = "#ff4444";
+                } else {
+                    const div = closest.labelDiv;
+                    div.innerHTML =
+                        `${closest.name}<br><span style="font-size:10px;color:#ff6b6b;">❤️ ${closest.hp}/${closest.maxHP}</span>`;
+                }
+                updatePlayerUI();
+            }
+        }
+
+        // Click on NPC to attack (desktop)
+        const raycaster = new THREE.Raycaster();
+        const mouse = new THREE.Vector2();
+        renderer.domElement.addEventListener("click", (e) => {
+            if (e.button !== 0) return;
+            mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
+            mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
+            raycaster.setFromCamera(mouse, camera);
+            const targets = [];
+            for (const npc of npcList) {
+                if (npc.isKO) continue;
+                targets.push(npc.object);
+            }
+            const hits = raycaster.intersectObjects(targets, true);
+            if (hits.length > 0) {
+                let hitObj = hits[0].object;
+                let npcData = null;
+                for (const npc of npcList) {
+                    if (npc.object === hitObj || npc.object.children.includes(hitObj) ||
+                        npc.mesh === hitObj || npc.mesh.children.includes(hitObj)) {
+                        npcData = npc;
+                        break;
+                    }
+                }
+                if (npcData && !npcData.isKO) {
+                    performAttack();
+                }
+            }
+        });
+
+        // ============================================================
+        // NPC UPDATE (AI + combat)
+        // ============================================================
+        function updateNPCs(dt) {
+            const pPos = player.position.clone();
+            for (const npc of npcList) {
+                // KO respawn
+                if (npc.isKO) {
+                    npc.koTimer -= dt;
+                    if (npc.koTimer <= 0) {
+                        npc.isKO = false;
+                        npc.hp = npc.maxHP;
+                        const newNormal = randomDirection();
+                        npc.normal.copy(newNormal);
+                        npc.object.position.copy(newNormal).multiplyScalar(CONFIG.planetRadius);
+                        orientToSurface(npc.object, newNormal);
+                        npc.forward = projectOntoTangent(tangentDirection(newNormal), newNormal);
+                        const div = npc.labelDiv;
+                        div.innerHTML =
+                            `${npc.name}<br><span style="font-size:10px;color:#ff6b6b;">❤️ ${npc.hp}/${npc.maxHP}</span>`;
+                        div.style.borderColor = "rgba(255,255,255,0.15)";
+                        npc.aggroTimer = 0;
+                        npc.isAggro = false;
+                    }
+                    continue;
+                }
+
+                if (npc.attackCooldown > 0) npc.attackCooldown -= dt;
+
+                if (npc.isAggro) {
+                    npc.aggroTimer -= dt;
+                    if (npc.aggroTimer <= 0) npc.isAggro = false;
+                }
+
+                npc.timer -= dt;
+                if (npc.timer <= 0) {
+                    npc.timer = 2 + Math.random() * 4;
+                    npc.turnTarget = (Math.random() - 0.5) * 1.2;
+                }
+
+                let targetForward = npc.forward.clone();
+                if (npc.isAggro) {
+                    const toPlayer = pPos.clone().sub(npc.object.position).normalize();
+                    const proj = projectOntoTangent(toPlayer, npc.normal);
+                    if (proj.length() > 0.1) {
+                        targetForward = proj;
+                        npc.turnTarget = 0;
+                    }
+                    const dist = pPos.distanceTo(npc.object.position);
+                    if (dist < 2.5 && npc.attackCooldown <= 0) {
+                        npc.attackCooldown = 1.2;
+                        playerHP = Math.max(0, playerHP - 8);
+                        updatePlayerUI();
+                        if (playerHP <= 0) {
+                            playerHP = CONFIG.playerMaxHP;
+                            const newNormal = randomDirection();
+                            playerNormal.copy(newNormal);
+                            playerForward = projectOntoTangent(tangentDirection(newNormal), newNormal);
+                            updatePlayerTransform();
+                            updatePlayerUI();
+                            document.getElementById("status-text").textContent = "Status: Respawned";
+                            document.getElementById("status-text").style.color = "#ff6b6b";
+                            setTimeout(() => {
+                                document.getElementById("status-text").textContent = "Status: Exploring";
+                                document.getElementById("status-text").style.color = "#69f0ae";
+                            }, 1500);
+                        }
+                    }
+                }
+
+                npc.currentTurn = damp(npc.currentTurn, npc.turnTarget, 2.5, dt);
+                const rot = new THREE.Quaternion().setFromAxisAngle(npc.normal, npc.currentTurn * dt);
+                npc.forward.applyQuaternion(rot);
+                npc.forward = projectOntoTangent(npc.forward, npc.normal);
+
+                if (npc.isAggro) {
+                    npc.forward.lerp(targetForward, dt * 2);
+                    npc.forward = projectOntoTangent(npc.forward, npc.normal);
+                }
+
+                const speed = npc.isAggro ? npc.speed * 1.5 : npc.speed;
+                const movement = npc.forward.clone().multiplyScalar(speed * dt);
+                const nextWorld = npc.object.position.clone().add(movement);
+                const nextNormal = nextWorld.normalize();
+                let blocked = false;
+                const testPos = nextNormal.clone().multiplyScalar(CONFIG.planetRadius);
+                for (const ob of obstacleList) {
+                    if (ob.type === "house") continue;
+                    if (testPos.distanceTo(ob.position) < 1.0 + ob.radius) { blocked = true; break; }
+                }
+                if (!blocked) {
+                    npc.normal.copy(nextNormal);
+                    npc.forward = projectOntoTangent(npc.forward, npc.normal);
+                    npc.object.position.copy(npc.normal).multiplyScalar(CONFIG.planetRadius);
+                    orientToSurface(npc.object, npc.normal);
+                } else {
+                    npc.turnTarget *= -1;
+                }
+
+                npc.walkCounter += dt * speed * 2.1;
+                const swing2 = Math.sin(npc.walkCounter * 6) * 0.34;
+                const nm = npc.mesh.userData;
+                if (nm) {
+                    nm.leftLeg.rotation.x = swing2;
+                    nm.rightLeg.rotation.x = -swing2;
+                }
+
+                if (npc.label) {
+                    npc.label.position.set(0, 3.2 + (npc.isKO ? 0.5 : 0), 0);
+                }
+            }
+        }
+
+        // ============================================================
+        // HOUSE DOORS + BED
+        // ============================================================
+        let nearbyHouse = null;
+        let nearbyBed = false;
+
+        function updateHouseDoors(dt) {
+            for (const house of houses) {
+                house.userData.doorAngle = damp(house.userData.doorAngle, house.userData.targetDoorAngle, 7, dt);
+                house.userData.door.rotation.y = house.userData.doorAngle;
+                const targetLight = house.userData.isOpen ? 1.8 : 0;
+                house.userData.interiorLight.intensity = damp(house.userData.interiorLight.intensity, targetLight, 5, dt);
+
+                if (house.userData.hasBed && house.userData.bedGroup) {
+                    const bedWorld = new THREE.Vector3();
+                    house.userData.bedGroup.getWorldPosition(bedWorld);
+                    const dist = player.position.distanceTo(bedWorld);
+                    if (dist < 2.5 && house.userData.isOpen) {
+                        house.userData.isSleeping = true;
+                        nearbyBed = true;
+                        if (!isSleeping && house.userData.isOpen) {
+                            isSleeping = true;
+                            sleepTimer = 0;
+                            document.getElementById("status-text").textContent = "💤 Sleeping...";
+                            document.getElementById("status-text").style.color = "#b39ddb";
+                        }
+                    } else {
+                        house.userData.isSleeping = false;
+                        if (isSleeping && nearbyBed) {
+                            isSleeping = false;
+                            document.getElementById("status-text").textContent = "Status: Awake";
+                            document.getElementById("status-text").style.color = "#69f0ae";
+                        }
+                        nearbyBed = false;
+                    }
+                }
+            }
+            if (isSleeping && !nearbyBed) {
+                isSleeping = false;
+                document.getElementById("status-text").textContent = "Status: Awake";
+                document.getElementById("status-text").style.color = "#69f0ae";
+            }
+        }
+
+        function findNearestInteraction() {
+            const pPos = getPlayerWorldPosition();
+            let closest = null,
+                closestDist = Infinity;
+            for (const house of houses) {
+                const dist = pPos.distanceTo(house.position);
+                if (dist < 8.5 && dist < closestDist) {
+                    closest = house;
+                    closestDist = dist;
+                }
+            }
+            return { house: closest, distance: closestDist };
+        }
+
+        function getPlayerWorldPosition() { return player.position.clone(); }
+
+        function updateInteractionUI() {
+            const result = findNearestInteraction();
+            nearbyHouse = result.house;
+            const prompt = document.getElementById("interaction-prompt");
+            const mobileBtn = document.getElementById("interact-button");
+            if (nearbyHouse && result.distance < 8.5) {
+                const action = nearbyHouse.userData.isOpen ? "CLOSE DOOR" : "OPEN DOOR";
+                prompt.textContent = `E · ${action}`;
+                prompt.classList.add("visible");
+                mobileBtn.textContent = nearbyHouse.userData.isOpen ? "CLOSE" : "USE";
+                mobileBtn.classList.add("visible");
+            } else {
+                prompt.classList.remove("visible");
+                mobileBtn.classList.remove("visible");
+                nearbyHouse = null;
+            }
+        }
+
+        function interact() {
+            if (isSleeping) {
+                isSleeping = false;
+                document.getElementById("status-text").textContent = "Status: Awake";
+                document.getElementById("status-text").style.color = "#69f0ae";
+                return;
+            }
+            if (!nearbyHouse) return;
+            nearbyHouse.userData.isOpen = !nearbyHouse.userData.isOpen;
+            nearbyHouse.userData.targetDoorAngle = nearbyHouse.userData.isOpen ? -Math.PI * 0.52 : 0;
+        }
+
+        // ============================================================
+        // CAMERA MODE
+        // ============================================================
+        function cycleCameraMode() {
+            cameraMode = (cameraMode + 1) % 3;
+            if (cameraMode === 0) cameraDistance = CONFIG.cameraDistance;
+            else if (cameraMode === 1) cameraDistance = 7.0;
+            else cameraDistance = 0.15;
+            document.getElementById("crosshair").classList.toggle("visible", cameraMode === 2);
+            document.getElementById("desktop-help").textContent =
+                `Camera: ${cameraModeNames[cameraMode]} · C to switch`;
+        }
+
+        // ============================================================
+        // CAMERA RIG
+        // ============================================================
+        const desiredCameraPos = new THREE.Vector3();
+        const desiredLookAt = new THREE.Vector3();
+
+        function updateCamera(dt) {
+            const up = playerNormal.clone();
+            const forward = projectOntoTangent(playerForward, up);
+            const right = new THREE.Vector3().crossVectors(up, forward).normalize();
+
+            const yawQ = new THREE.Quaternion().setFromAxisAngle(up, cameraYaw);
+            let cameraBack = forward.clone().negate().applyQuaternion(yawQ);
+            cameraBack = projectOntoTangent(cameraBack, up);
+            const cameraRight = new THREE.Vector3().crossVectors(up, cameraBack).normalize();
+            const pitchQ = new THREE.Quaternion().setFromAxisAngle(cameraRight, cameraPitch);
+            cameraBack.applyQuaternion(pitchQ);
+            cameraBack = cameraBack.normalize();
+
+            let dist = cameraMode === 2 ? 0.08 : cameraDistance;
+
+            if (cameraMode === 2) {
+                desiredCameraPos.copy(player.position).add(up.clone().multiplyScalar(2.35)).add(forward.clone()
+                .multiplyScalar(0.05));
+            } else {
+                desiredCameraPos.copy(player.position).add(up.clone().multiplyScalar(CONFIG.cameraHeight)).add(cameraBack
+                    .multiplyScalar(dist));
+            }
+
+            const smooth = 1 - Math.exp(-CONFIG.cameraLag * dt);
+            camera.position.lerp(desiredCameraPos, smooth);
+            camera.up.copy(up);
+
+            if (cameraMode === 2) {
+                desiredLookAt.copy(player.position).add(up.clone().multiplyScalar(2.25)).add(forward.clone()
+                .multiplyScalar(7));
+            } else {
+                desiredLookAt.copy(player.position).add(up.clone().multiplyScalar(CONFIG.cameraLookHeight)).add(forward
+                    .clone().multiplyScalar(CONFIG.cameraLookAhead));
+            }
+            camera.lookAt(desiredLookAt);
+        }
+
+        // ============================================================
+        // WATER
+        // ============================================================
+        function updateWaterState() {
+            let closestDist = Infinity;
+            const pd = playerNormal.clone();
+            for (const pt of riverPoints) {
+                const angle = Math.acos(clamp(pd.dot(pt), -1, 1));
+                const arc = angle * CONFIG.planetRadius;
+                if (arc < closestDist) closestDist = arc;
+            }
+            currentWaterFactor = closestDist < 5.4 ? 0.58 : 1.0;
+        }
+
+        let riverTime = 0;
+
+        function updateRiver(dt) {
+            riverTime += dt;
+            const pos = river.geometry.attributes.position;
+            for (let i = 0; i < riverPoints.length; i++) {
+                const pt = riverPoints[i];
+                const prev = riverPoints[Math.max(0, i - 1)];
+                const next = riverPoints[Math.min(riverPoints.length - 1, i + 1)];
+                const tangent = next.clone().sub(prev).normalize();
+                const side = new THREE.Vector3().crossVectors(pt, tangent).normalize();
+                const wave = Math.sin(riverTime * 2.1 + i * 0.34) * 0.16;
+                const left = pt.clone().add(side.clone().multiplyScalar(5.4)).normalize().multiplyScalar(CONFIG
+                    .planetRadius + 0.28 + wave);
+                const right = pt.clone().add(side.clone().multiplyScalar(-5.4)).normalize().multiplyScalar(CONFIG
+                    .planetRadius + 0.28 + wave);
+                pos.setXYZ(i * 2, left.x, left.y, left.z);
+                pos.setXYZ(i * 2 + 1, right.x, right.y, right.z);
+            }
+            pos.needsUpdate = true;
+            river.geometry.computeVertexNormals();
+        }
+
+        // ============================================================
+        // DAY/NIGHT
+        // ============================================================
+        let elapsedTime = 0;
+        const skyColors = {
+            night: new THREE.Color(0x02040e),
+            deepBlue: new THREE.Color(0x101f4b),
+            purple: new THREE.Color(0x513a78),
+            pink: new THREE.Color(0xd36d7f),
+            peach: new THREE.Color(0xf39b72),
+            orange: new THREE.Color(0xf0a052),
+            golden: new THREE.Color(0xf6c878),
+            day: new THREE.Color(0x78caff)
+        };
+        const currentSky = new THREE.Color();
+        const currentSunColor = new THREE.Color();
+        const currentHemisphereSky = new THREE.Color();
+        const currentHemisphereGround = new THREE.Color();
+
+        function interpolateColorStops(stops, value) {
+            if (value <= stops[0].position) return stops[0].color.clone();
+            if (value >= stops[stops.length - 1].position) return stops[stops.length - 1].color.clone();
+            for (let i = 0; i < stops.length - 1; i++) {
+                const a = stops[i],
+                    b = stops[i + 1];
+                if (value >= a.position && value <= b.position) {
+                    const range = b.position - a.position;
+                    let t = (value - a.position) / range;
+                    t = THREE.MathUtils.smootherstep(t, 0, 1);
+                    return a.color.clone().lerp(b.color, t);
+                }
+            }
+            return stops[stops.length - 1].color.clone();
+        }
+        const skyStops = [
+            { position: 0.00, color: skyColors.night },
+            { position: 0.18, color: skyColors.deepBlue },
+            { position: 0.32, color: skyColors.purple },
+            { position: 0.42, color: skyColors.pink },
+            { position: 0.49, color: skyColors.peach },
+            { position: 0.55, color: skyColors.golden },
+            { position: 0.64, color: skyColors.day },
+            { position: 1.00, color: skyColors.day }
+        ];
+
+        function getSkyForElevation(elevation) {
+            let n = (elevation + 1) / 2;
+            n = clamp(n, 0, 1);
+            return interpolateColorStops(skyStops, n);
+        }
+
+        function updateDayNight(dt) {
+            if (!isSleeping) elapsedTime += dt;
+            const progress = (elapsedTime % CONFIG.dayLengthSec) / CONFIG.dayLengthSec;
+            const angle = progress * Math.PI * 2 - Math.PI / 2;
+            const orbit = 460;
+            const sx = Math.cos(angle) * orbit,
+                sy = Math.sin(angle) * orbit,
+                sz = 170;
+            sunLight.position.set(sx, sy, sz);
+            sunGroup.position.set(sx, sy, sz);
+            moonLight.position.set(-sx, -sy, -sz);
+            moon.position.set(-sx, -sy, -sz);
+            const elevation = Math.sin(angle);
+            const daylight = THREE.MathUtils.smoothstep(elevation, -0.18, 0.25);
+            const nightFactor = 1 - daylight;
+            const twilight = 1 - Math.min(1, Math.abs(elevation) / 0.24);
+            const twilightPos = Math.max(0, twilight);
+
+            currentSky.copy(getSkyForElevation(elevation));
+            scene.background.lerp(currentSky, 1 - Math.exp(-7 * dt));
+            scene.fog.color.lerp(currentSky, 1 - Math.exp(-7 * dt));
+
+            const dayIntensity = 0.10 + daylight * 2.15;
+            sunLight.intensity = damp(sunLight.intensity, dayIntensity, 5, dt);
+            const moonIntensity = 0.025 + nightFactor * 0.38;
+            moonLight.intensity = damp(moonLight.intensity, moonIntensity, 4, dt);
+            const hemiIntensity = 0.28 + daylight * 1.22 + twilightPos * 0.12;
+            hemisphereLight.intensity = damp(hemisphereLight.intensity, hemiIntensity, 4, dt);
+
+            const sunWarm = clamp(twilightPos * 1.25, 0, 1);
+            currentSunColor.setRGB(1.0, 0.78 + 0.18 * daylight, 0.43 + 0.52 * daylight);
+            sunLight.color.lerp(currentSunColor, 1 - Math.exp(-5 * dt));
+            sunCore.material.color.lerp(currentSunColor, 1 - Math.exp(-5 * dt));
+            sunGlow.material.color.copy(currentSunColor);
+
+            currentHemisphereSky.setRGB(0.22 + daylight * 0.52, 0.28 + daylight * 0.63, 0.48 + daylight * 0.49);
+            currentHemisphereGround.setRGB(0.025 + daylight * 0.12, 0.045 + daylight * 0.18, 0.035 + daylight * 0.08);
+            hemisphereLight.color.lerp(currentHemisphereSky, 1 - Math.exp(-4 * dt));
+            hemisphereLight.groundColor.lerp(currentHemisphereGround, 1 - Math.exp(-4 * dt));
+
+            const starTarget = THREE.MathUtils.smoothstep(-0.10, -0.32, elevation);
+            stars.material.opacity = damp(stars.material.opacity, starTarget * 0.95, 3.5, dt);
+            atmosphere.material.opacity = damp(atmosphere.material.opacity, 0.055 + daylight * 0.045 + twilightPos * 0.045, 3,
+                dt);
+
+            const cloudWarm = twilightPos * 0.5;
+            cloudMaterial.color.setRGB(1.0, 1.0 - cloudWarm * 0.12, 1.0 - cloudWarm * 0.22);
+
+            const totalMinutes = progress * 24 * 60;
+            const hours = Math.floor(totalMinutes / 60);
+            const minutes = Math.floor(totalMinutes % 60);
+            let period = elevation > 0.10 ? "Day" : elevation > -0.12 ? "Twilight" : "Night";
+            let icon = period === "Day" ? "☀️" : period === "Night" ? "🌙" : "🌅";
+            document.getElementById("time-display").textContent =
+                `${icon} ${String(hours).padStart(2,"0")}:${String(minutes).padStart(2,"0")} · ${period}`;
+        }
+
+        // ============================================================
+        // CLOUDS
+        // ============================================================
+        function updateClouds(dt) {
+            for (const cloud of cloudGroup.children) {
+                const normal = cloud.userData.normal;
+                normal.applyAxisAngle(tangentDirection(normal), cloud.userData.speed * dt);
+                normal.normalize();
+                cloud.userData.normal = normal;
+                placeOnSurface(cloud, normal, cloud.userData.altitude);
+            }
+        }
+
+        let worldAnimTime = 0;
+
+        function updateEnvironment(dt) {
+            worldAnimTime += dt;
+            for (const cloud of cloudGroup.children) {
+                const sw = 1 + Math.sin(worldAnimTime * 0.45 + cloud.id) * 0.008;
+                cloud.scale.multiplyScalar(sw);
+            }
+            stars.rotation.y += dt * 0.001;
+        }
+
+        // ============================================================
+        // MAIN LOOP
+        // ============================================================
+        const clock = new THREE.Clock();
+        let frameCount = 0,
+            fpsTimer = performance.now();
+
+        function mainLoop() {
+            requestAnimationFrame(mainLoop);
+            const dt = Math.min(clock.getDelta(), 0.05);
+
+            if (attackCooldownTimer > 0) attackCooldownTimer -= dt;
+
+            updatePlayer(dt);
+            updateJump(dt);
+            updateNPCs(dt);
+            updateHouseDoors(dt);
+            updateWaterState();
+            updateRiver(dt);
+            updateDayNight(dt);
+            updateClouds(dt);
+            updateEnvironment(dt);
+            updateInteractionUI();
+            updateCamera(dt);
+            updatePlayerUI();
+
+            frameCount++;
+            const now = performance.now();
+            if (now - fpsTimer >= 500) {
+                const fps = Math.round(frameCount * 1000 / (now - fpsTimer));
+                document.getElementById("fps-counter").textContent = `FPS: ${fps}`;
+                frameCount = 0;
+                fpsTimer = now;
+            }
+
+            renderer.render(scene, camera);
+            labelRenderer.render(scene, camera);
+        }
+
+        // ============================================================
+        // RESIZE
+        // ============================================================
+        window.addEventListener("resize", () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.65));
+            labelRenderer.setSize(window.innerWidth, window.innerHeight);
+        });
+
+        // ============================================================
+        // INIT
+        // ============================================================
+        cameraMode = 0;
+        cameraYaw = 0;
+        cameraPitch = 0.22;
+        cameraDistance = CONFIG.cameraDistance;
+
+        // LOADING
+        const loadingProgress = document.getElementById("loading-progress");
+        let fakeProgress = 0;
+        const loadingInterval = setInterval(() => {
+            fakeProgress += 8 + Math.random() * 10;
+            fakeProgress = Math.min(fakeProgress, 100);
+            loadingProgress.style.width = `${fakeProgress}%`;
+            if (fakeProgress >= 100) {
+                clearInterval(loadingInterval);
+                setTimeout(() => {
+                    document.getElementById("loading-screen").classList.add("hidden");
+                }, 300);
+            }
+        }, 90);
+
+        // Apply label styles to NPC labels
+        for (const npc of npcList) {
+            if (npc.labelDiv) {
+                npc.labelDiv.style.cssText = labelStyle;
+            }
+        }
+
+        mainLoop();
+
+        console.log("🌍 Tiny World loaded!");
+        console.log("🎮 Controls: WASD move, SPACE jump (double), E interact, C camera, J attack");
+        console.log("🏆 Score: " + score);
+        console.log("❤️ Player HP: " + playerHP);
+        console.log("💤 Find a bed in a house to sleep and heal!");
+        console.log("⚔️ Click on NPCs or press J to attack!");
+    </script>
+</body>
+</html>
