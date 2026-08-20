@@ -17,7 +17,7 @@
             height: 100%;
             overflow: hidden;
             background: #02030a;
-            font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+            font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
             touch-action: none;
             user-select: none;
         }
@@ -29,112 +29,119 @@
             width: 100%;
             height: 100%;
         }
+
+        /* ===== UI ===== */
         #ui-container {
             position: fixed;
-            top: max(16px, env(safe-area-inset-top));
-            left: max(16px, env(safe-area-inset-left));
+            top: max(14px, env(safe-area-inset-top));
+            left: max(14px, env(safe-area-inset-left));
             z-index: 50;
-            color: #ffffff;
-            text-shadow: 0 2px 5px rgba(0, 0, 0, 0.9);
+            color: #fff;
+            text-shadow: 0 2px 6px rgba(0, 0, 0, 0.9);
             pointer-events: none;
-            background: rgba(0, 0, 0, 0.30);
-            padding: 13px 17px;
+            background: rgba(0, 0, 0, 0.32);
+            padding: 11px 15px;
             border-radius: 14px;
             backdrop-filter: blur(10px);
             -webkit-backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.13);
-            min-width: 170px;
+            border: 1px solid rgba(255, 255, 255, 0.10);
+            min-width: 160px;
         }
         #ui-container h1 {
-            margin: 0 0 4px 0;
-            font-size: 17px;
+            margin: 0 0 3px 0;
+            font-size: 16px;
             font-weight: 700;
-            letter-spacing: 0.3px;
+            letter-spacing: 0.2px;
         }
         #ui-container p {
             margin: 2px 0;
-            font-size: 11px;
-            color: rgba(255, 255, 255, 0.82);
+            font-size: 10px;
+            color: rgba(255, 255, 255, 0.75);
         }
         #status-text {
-            margin-top: 6px !important;
+            margin-top: 5px !important;
             font-weight: 700;
             color: #69f0ae;
+            font-size: 11px;
         }
         #score-display {
             font-weight: 700;
             color: #ffd54f;
-            font-size: 13px;
-            margin-top: 4px;
+            font-size: 12px;
+            margin-top: 3px;
         }
         #player-hp-display {
             font-weight: 700;
             color: #ef5350;
-            font-size: 12px;
+            font-size: 11px;
             margin-top: 2px;
         }
         #telemetry-panel {
             position: fixed;
-            top: max(16px, env(safe-area-inset-top));
-            right: max(16px, env(safe-area-inset-right));
+            top: max(14px, env(safe-area-inset-top));
+            right: max(14px, env(safe-area-inset-right));
             z-index: 50;
-            color: #ffffff;
+            color: #fff;
             text-align: right;
-            font-size: 11px;
-            line-height: 1.55;
-            text-shadow: 0 2px 5px rgba(0, 0, 0, 0.9);
+            font-size: 10px;
+            line-height: 1.5;
+            text-shadow: 0 2px 6px rgba(0, 0, 0, 0.9);
             pointer-events: none;
-            background: rgba(0, 0, 0, 0.27);
-            padding: 10px 13px;
+            background: rgba(0, 0, 0, 0.28);
+            padding: 8px 12px;
             border-radius: 12px;
             backdrop-filter: blur(9px);
             -webkit-backdrop-filter: blur(9px);
-            border: 1px solid rgba(255, 255, 255, 0.12);
+            border: 1px solid rgba(255, 255, 255, 0.10);
         }
         #time-display {
             position: fixed;
-            top: max(15px, env(safe-area-inset-top));
+            top: max(14px, env(safe-area-inset-top));
             left: 50%;
             transform: translateX(-50%);
             z-index: 50;
-            color: #ffffff;
-            background: rgba(0, 0, 0, 0.27);
-            padding: 7px 15px;
+            color: #fff;
+            background: rgba(0, 0, 0, 0.28);
+            padding: 6px 14px;
             border-radius: 20px;
-            font-size: 12px;
+            font-size: 11px;
             font-weight: 600;
-            border: 1px solid rgba(255, 255, 255, 0.15);
+            border: 1px solid rgba(255, 255, 255, 0.12);
             backdrop-filter: blur(9px);
             -webkit-backdrop-filter: blur(9px);
             pointer-events: none;
-            text-shadow: 0 2px 5px rgba(0, 0, 0, 0.9);
+            text-shadow: 0 2px 6px rgba(0, 0, 0, 0.9);
             white-space: nowrap;
         }
+
+        /* ===== JOYSTICK ===== */
         #virtual-joystick {
             position: fixed;
             left: max(22px, env(safe-area-inset-left));
             bottom: max(22px, env(safe-area-inset-bottom));
-            width: 138px;
-            height: 138px;
+            width: 130px;
+            height: 130px;
             z-index: 100;
             border-radius: 50%;
-            background: radial-gradient(circle at center, rgba(255, 255, 255, 0.07), rgba(255, 255, 255, 0.025));
-            border: 2px solid rgba(255, 255, 255, 0.22);
-            box-shadow: inset 0 0 25px rgba(255, 255, 255, 0.045), 0 10px 28px rgba(0, 0, 0, 0.38);
+            background: radial-gradient(circle at center, rgba(255, 255, 255, 0.07), rgba(255, 255, 255, 0.02));
+            border: 2px solid rgba(255, 255, 255, 0.20);
+            box-shadow: inset 0 0 25px rgba(255, 255, 255, 0.04), 0 10px 28px rgba(0, 0, 0, 0.38);
             touch-action: none;
         }
         #joystick-thumb {
             position: absolute;
-            left: 41px;
-            top: 41px;
-            width: 56px;
-            height: 56px;
+            left: 38px;
+            top: 38px;
+            width: 54px;
+            height: 54px;
             border-radius: 50%;
             background: radial-gradient(circle at 35% 30%, rgba(255, 255, 255, 0.98), rgba(220, 230, 235, 0.80));
             box-shadow: 0 5px 16px rgba(0, 0, 0, 0.50), inset 0 1px 2px rgba(255, 255, 255, 0.7);
             pointer-events: none;
             will-change: transform;
         }
+
+        /* ===== CAMERA TOUCH ===== */
         #camera-touch-zone {
             position: fixed;
             right: 0;
@@ -145,13 +152,15 @@
             pointer-events: auto;
             touch-action: none;
         }
+
+        /* ===== MOBILE BUTTONS ===== */
         #mobile-controls {
             position: fixed;
-            right: max(20px, env(safe-area-inset-right));
-            bottom: max(24px, env(safe-area-inset-bottom));
+            right: max(18px, env(safe-area-inset-right));
+            bottom: max(22px, env(safe-area-inset-bottom));
             z-index: 110;
-            width: 170px;
-            height: 160px;
+            width: 160px;
+            height: 150px;
             pointer-events: none;
         }
         .mobile-button {
@@ -160,9 +169,9 @@
             align-items: center;
             justify-content: center;
             border-radius: 50%;
-            color: #ffffff;
+            color: #fff;
             background: rgba(0, 0, 0, 0.34);
-            border: 1px solid rgba(255, 255, 255, 0.28);
+            border: 1px solid rgba(255, 255, 255, 0.25);
             backdrop-filter: blur(8px);
             -webkit-backdrop-filter: blur(8px);
             box-shadow: 0 6px 16px rgba(0, 0, 0, 0.30), inset 0 0 12px rgba(255, 255, 255, 0.04);
@@ -170,7 +179,7 @@
             font-weight: 700;
             pointer-events: auto;
             touch-action: none;
-            transition: transform 0.08s ease, background 0.15s ease, opacity 0.2s ease;
+            transition: transform 0.08s ease, background 0.15s ease;
         }
         .mobile-button:active {
             transform: scale(0.92);
@@ -178,27 +187,27 @@
         }
         #jump-button {
             right: 0;
-            bottom: 35px;
-            width: 64px;
-            height: 64px;
-            font-size: 13px;
+            bottom: 30px;
+            width: 62px;
+            height: 62px;
+            font-size: 14px;
         }
         #attack-button {
-            right: 72px;
-            bottom: 80px;
-            width: 56px;
-            height: 56px;
+            right: 68px;
+            bottom: 76px;
+            width: 54px;
+            height: 54px;
             background: rgba(180, 40, 40, 0.45);
             border-color: rgba(255, 100, 100, 0.4);
-            font-size: 10px;
+            font-size: 11px;
         }
         #interact-button {
             right: 4px;
             bottom: 0;
-            width: 48px;
-            height: 32px;
-            border-radius: 16px;
-            font-size: 9px;
+            width: 44px;
+            height: 28px;
+            border-radius: 14px;
+            font-size: 8px;
             opacity: 0;
             pointer-events: none;
         }
@@ -207,27 +216,29 @@
             pointer-events: auto;
         }
         #camera-button {
-            right: 55px;
+            right: 52px;
             bottom: 2px;
-            width: 48px;
-            height: 32px;
-            border-radius: 16px;
-            font-size: 9px;
+            width: 44px;
+            height: 28px;
+            border-radius: 14px;
+            font-size: 8px;
         }
+
+        /* ===== PROMPT ===== */
         #interaction-prompt {
             position: fixed;
             left: 50%;
             bottom: 18%;
             transform: translate(-50%, 10px);
             z-index: 90;
-            min-width: 150px;
-            padding: 9px 16px;
-            border-radius: 22px;
+            min-width: 140px;
+            padding: 8px 15px;
+            border-radius: 20px;
             background: rgba(0, 0, 0, 0.55);
-            border: 1px solid rgba(255, 255, 255, 0.22);
-            color: white;
+            border: 1px solid rgba(255, 255, 255, 0.20);
+            color: #fff;
             text-align: center;
-            font-size: 12px;
+            font-size: 11px;
             font-weight: 700;
             opacity: 0;
             pointer-events: none;
@@ -260,18 +271,21 @@
         #desktop-help {
             position: fixed;
             left: 50%;
-            bottom: 17px;
+            bottom: 14px;
             transform: translateX(-50%);
             z-index: 45;
-            color: rgba(255, 255, 255, 0.68);
-            font-size: 10px;
-            padding: 5px 10px;
+            color: rgba(255, 255, 255, 0.6);
+            font-size: 9px;
+            padding: 4px 10px;
             background: rgba(0, 0, 0, 0.20);
             border-radius: 10px;
             pointer-events: none;
             text-align: center;
-            max-width: 90%;
+            max-width: 92%;
+            white-space: nowrap;
         }
+
+        /* ===== LOADING ===== */
         #loading-screen {
             position: fixed;
             inset: 0;
@@ -281,7 +295,7 @@
             justify-content: center;
             flex-direction: column;
             background: radial-gradient(circle at center, #162b38 0%, #050b12 55%, #020308 100%);
-            color: white;
+            color: #fff;
             transition: opacity 0.7s ease, visibility 0.7s ease;
         }
         #loading-screen.hidden {
@@ -292,16 +306,16 @@
         #loading-title {
             font-size: 26px;
             font-weight: 800;
-            margin-bottom: 8px;
+            margin-bottom: 6px;
             letter-spacing: 0.4px;
         }
         #loading-subtitle {
-            font-size: 12px;
-            opacity: 0.65;
-            margin-bottom: 20px;
+            font-size: 11px;
+            opacity: 0.6;
+            margin-bottom: 18px;
         }
         #loading-bar {
-            width: 220px;
+            width: 200px;
             height: 4px;
             overflow: hidden;
             border-radius: 5px;
@@ -315,21 +329,13 @@
             transition: width 0.25s ease;
         }
 
-        /* Label renderer overlay */
-        .label-renderer {
-            position: fixed;
-            top: 0;
-            left: 0;
-            pointer-events: none;
-            z-index: 30;
-        }
-
+        /* ===== RESPONSIVE ===== */
         @media (max-width: 700px) {
             #ui-container {
                 top: max(10px, env(safe-area-inset-top));
                 left: max(10px, env(safe-area-inset-left));
-                padding: 9px 11px;
-                min-width: 130px;
+                padding: 8px 10px;
+                min-width: 120px;
             }
             #ui-container h1 {
                 font-size: 13px;
@@ -338,25 +344,25 @@
                 display: none;
             }
             #status-text {
-                display: block !important;
-                font-size: 10px;
+                font-size: 9px;
+                margin-top: 3px !important;
             }
             #score-display {
-                font-size: 11px;
+                font-size: 10px;
             }
             #player-hp-display {
-                font-size: 10px;
+                font-size: 9px;
             }
             #telemetry-panel {
                 top: max(10px, env(safe-area-inset-top));
                 right: max(10px, env(safe-area-inset-right));
-                padding: 7px 9px;
-                font-size: 10px;
+                padding: 6px 8px;
+                font-size: 9px;
             }
             #time-display {
                 top: max(10px, env(safe-area-inset-top));
-                font-size: 10px;
-                padding: 6px 11px;
+                font-size: 9px;
+                padding: 5px 10px;
             }
             #desktop-help {
                 display: none;
@@ -365,32 +371,32 @@
                 display: none;
             }
             #mobile-controls {
-                width: 155px;
-                height: 150px;
+                width: 148px;
+                height: 140px;
             }
             #jump-button {
-                width: 56px;
-                height: 56px;
-                font-size: 11px;
-                bottom: 30px;
+                width: 54px;
+                height: 54px;
+                font-size: 12px;
+                bottom: 28px;
             }
             #attack-button {
-                width: 50px;
-                height: 50px;
-                font-size: 9px;
-                right: 64px;
-                bottom: 72px;
+                width: 48px;
+                height: 48px;
+                font-size: 10px;
+                right: 62px;
+                bottom: 70px;
             }
             #interact-button {
-                width: 42px;
-                height: 28px;
-                font-size: 8px;
+                width: 40px;
+                height: 24px;
+                font-size: 7px;
             }
             #camera-button {
-                width: 42px;
-                height: 28px;
-                font-size: 8px;
-                right: 50px;
+                width: 40px;
+                height: 24px;
+                font-size: 7px;
+                right: 48px;
                 bottom: 2px;
             }
         }
@@ -415,8 +421,8 @@
     <!-- UI -->
     <div id="ui-container">
         <h1>🌍 Tiny World</h1>
-        <p><b>PC:</b> WASD · SPACE · E · C · J (attack)</p>
-        <p><b>Mobile:</b> Joystick · Drag right side · Tap buttons</p>
+        <p><b>PC:</b> WASD · SPACE · E · C · J</p>
+        <p><b>Mobile:</b> Joystick · Drag · Buttons</p>
         <div id="score-display">🏆 Score: 0</div>
         <div id="player-hp-display">❤️ HP: 100 / 100</div>
         <p id="status-text">Status: Exploring</p>
@@ -433,9 +439,7 @@
     <div id="camera-touch-zone"></div>
 
     <!-- JOYSTICK -->
-    <div id="virtual-joystick">
-        <div id="joystick-thumb"></div>
-    </div>
+    <div id="virtual-joystick"><div id="joystick-thumb"></div></div>
 
     <!-- MOBILE CONTROLS -->
     <div id="mobile-controls">
@@ -469,7 +473,6 @@
         // ============================================================
         const CONFIG = {
             planetRadius: 180,
-            playerHeight: 3.0,
             playerRadius: 1.15,
             playerWalkSpeed: 3.8,
             playerReverseSpeed: 2.0,
@@ -488,12 +491,12 @@
             cameraPitchMax: 1.0,
             jumpVelocity: 10.5,
             gravity: 24.0,
-            maxStepHeight: 2.8, // increased for rocks
+            maxStepHeight: 2.8,
             npcCount: 18,
-            buildingCount: 28,
-            treeCount: 130,
-            rockCount: 75,
-            cloudCount: 20,
+            buildingCount: 26,
+            treeCount: 120,
+            rockCount: 70,
+            cloudCount: 18,
             dayLengthSec: 180,
             riverSegments: 80,
             shadowMapSize: 1536,
@@ -582,7 +585,7 @@
         renderer.domElement.id = "tiny-world-canvas";
         document.body.appendChild(renderer.domElement);
 
-        // CSS2DRenderer for labels
+        // CSS2D Renderer for labels
         const labelRenderer = new CSS2DRenderer();
         labelRenderer.setSize(window.innerWidth, window.innerHeight);
         labelRenderer.domElement.style.position = "fixed";
@@ -643,23 +646,19 @@
         scene.add(atmosphere);
 
         // ============================================================
-        // STARS — brighter, more visible at night
+        // STARS
         // ============================================================
         const starCount = 6000;
         const starGeometry = new THREE.BufferGeometry();
         const starPositions = new Float32Array(starCount * 3);
-        const starSizes = new Float32Array(starCount);
         for (let i = 0; i < starCount; i++) {
             const dir = randomDirection();
             const radius = 700 + Math.random() * 500;
             starPositions[i * 3] = dir.x * radius;
             starPositions[i * 3 + 1] = dir.y * radius;
             starPositions[i * 3 + 2] = dir.z * radius;
-            starSizes[i] = 0.6 + Math.random() * 1.8;
         }
         starGeometry.setAttribute("position", new THREE.BufferAttribute(starPositions, 3));
-        starGeometry.setAttribute("size", new THREE.BufferAttribute(starSizes, 1));
-
         const starMaterial = new THREE.PointsMaterial({
             color: 0xffffff,
             size: 1.6,
@@ -673,21 +672,26 @@
         scene.add(stars);
 
         // ============================================================
-        // CLOUDS (smaller, higher)
+        // CLOUDS — smaller, higher, more realistic
         // ============================================================
         const cloudGroup = new THREE.Group();
         scene.add(cloudGroup);
-        const cloudMaterial = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 1, transparent: true, opacity: 0.78,
-            depthWrite: false });
+        const cloudMaterial = new THREE.MeshStandardMaterial({
+            color: 0xffffff,
+            roughness: 1,
+            transparent: true,
+            opacity: 0.65,
+            depthWrite: false,
+        });
 
         function createCloud() {
             const cloud = new THREE.Group();
-            const puffs = 3 + Math.floor(Math.random() * 4);
-            for (let i = 0; i < puffs; i++) {
-                const radius = 1.8 + Math.random() * 2.4;
-                const puff = new THREE.Mesh(new THREE.SphereGeometry(radius, 12, 10), cloudMaterial);
-                puff.position.set(i * 2.8, Math.random() * 1.2, (Math.random() - 0.5) * 2.8);
-                puff.scale.y = 0.6 + Math.random() * 0.3;
+            const count = 4 + Math.floor(Math.random() * 5);
+            for (let i = 0; i < count; i++) {
+                const r = 1.2 + Math.random() * 1.8;
+                const puff = new THREE.Mesh(new THREE.SphereGeometry(r, 10, 8), cloudMaterial);
+                puff.position.set(i * 2.4 + (Math.random() - 0.5) * 0.6, Math.random() * 0.8 - 0.3, (Math.random() - 0.5) * 2.0);
+                puff.scale.y = 0.5 + Math.random() * 0.3;
                 cloud.add(puff);
             }
             return cloud;
@@ -695,11 +699,11 @@
         for (let i = 0; i < CONFIG.cloudCount; i++) {
             const cloud = createCloud();
             const normal = randomDirection();
-            const altitude = 20 + Math.random() * 12;
+            const altitude = 28 + Math.random() * 14; // higher
             cloud.userData.normal = normal.clone();
             cloud.userData.altitude = altitude;
-            cloud.userData.speed = 0.003 + Math.random() * 0.003;
-            cloud.scale.setScalar(0.45 + Math.random() * 0.55);
+            cloud.userData.speed = 0.002 + Math.random() * 0.003;
+            cloud.scale.setScalar(0.5 + Math.random() * 0.6);
             placeOnSurface(cloud, normal, altitude);
             cloudGroup.add(cloud);
         }
@@ -724,7 +728,7 @@
         const doorMaterial = new THREE.MeshStandardMaterial({ color: 0x4c2e21, roughness: 0.82 });
 
         // ============================================================
-        // HOUSE FACTORY — BIGGER DOOR (3.0 wide, 2.8 tall)
+        // HOUSE FACTORY — BIG DOOR (3.2 wide, 2.8 tall)
         // ============================================================
         const houses = [];
 
@@ -772,8 +776,9 @@
             rightWall.receiveShadow = true;
             house.add(rightWall);
 
-            // Front wall — wider door opening (3.0)
-            const doorW = 3.0;
+            // Front wall — wider door opening (3.2)
+            const doorW = 3.2;
+            const doorH = 2.8;
             const fw = (width - doorW) / 2;
             const fl = new THREE.Mesh(new THREE.BoxGeometry(fw, height, 0.65), material);
             fl.position.set(-width / 2 + fw / 2, height / 2, -depth / 2);
@@ -783,8 +788,6 @@
             fr.position.set(width / 2 - fw / 2, height / 2, -depth / 2);
             fr.castShadow = true;
             house.add(fr);
-            // Top piece above door (taller door = shorter top piece)
-            const doorH = 2.8;
             const ft = new THREE.Mesh(new THREE.BoxGeometry(doorW, height - doorH, 0.65), material);
             ft.position.set(0, doorH + (height - doorH) / 2, -depth / 2);
             ft.castShadow = true;
@@ -797,7 +800,7 @@
             roof.castShadow = true;
             house.add(roof);
 
-            // Door — bigger (3.0 wide, 2.8 tall)
+            // Door
             const doorPivot = new THREE.Group();
             doorPivot.position.set(-doorW / 2 + 0.5, doorH / 2 + 0.1, -depth / 2 - 0.05);
             const door = new THREE.Mesh(new THREE.BoxGeometry(doorW - 0.2, doorH - 0.2, 0.18), doorMaterial);
@@ -899,10 +902,9 @@
         }
 
         // ============================================================
-        // ROCKS — now walkable (treat as low obstacles with step-up)
+        // ROCKS — walkable
         // ============================================================
         const rockMat = new THREE.MeshStandardMaterial({ color: 0x73766f, roughness: 1 });
-        const rockList = [];
         for (let i = 0; i < CONFIG.rockCount; i++) {
             const normal = randomDirection();
             const size = 0.75 + Math.random() * 1.7;
@@ -915,21 +917,11 @@
             const height = size * sy * 1.4;
             placeOnSurface(rock, normal, height * 0.3);
             environmentGroup.add(rock);
-            // Store as walkable obstacle
-            const rockData = {
-                object: rock,
-                position: rock.position,
-                radius: size * 0.85,
-                type: "rock",
-                height: height,
-                normal: normal.clone(),
-            };
-            rockList.push(rockData);
-            addObstacle(rock, size * 0.85, "rock", { height: height, rockData });
+            addObstacle(rock, size * 0.85, "rock", { height });
         }
 
         // ============================================================
-        // ROAD + STREETLIGHTS (more visible)
+        // ROAD + STREETLIGHTS
         // ============================================================
         const roadGroup = new THREE.Group();
         scene.add(roadGroup);
@@ -990,7 +982,6 @@
         sidewalk.receiveShadow = true;
         roadGroup.add(sidewalk);
 
-        // Road center line
         const centerLine = buildRoadRibbon(0.2, 0.25, roadLineMat);
         centerLine.receiveShadow = true;
         roadGroup.add(centerLine);
@@ -1025,18 +1016,19 @@
         }
 
         // ============================================================
-        // RIVER (more visible with brighter color)
+        // RIVER — vibrant blue with shimmer
         // ============================================================
         const riverGroup = new THREE.Group();
         scene.add(riverGroup);
         const riverMaterial = new THREE.MeshPhysicalMaterial({
-            color: 0x2b9dd6,
-            roughness: 0.22,
-            metalness: 0.08,
-            transmission: 0.12,
+            color: 0x1a8fc4,
+            roughness: 0.15,
+            metalness: 0.05,
+            transmission: 0.10,
             transparent: true,
             opacity: 0.88,
             side: THREE.DoubleSide,
+            envMapIntensity: 0.3,
         });
         const riverBankMat = new THREE.MeshStandardMaterial({ color: 0x6f7250, roughness: 1 });
         const riverStart = new THREE.Vector3(0.45, 0.55, 0.70).normalize();
@@ -1092,44 +1084,40 @@
         riverGroup.add(riverBankRight);
 
         // ============================================================
-        // BRIDGE over the river
+        // BRIDGE
         // ============================================================
         const bridgeGroup = new THREE.Group();
         scene.add(bridgeGroup);
 
-        // Find the midpoint of the river
         const midIdx = Math.floor(riverPoints.length / 2);
         const midPoint = riverPoints[midIdx];
         const bridgePos = midPoint.clone().multiplyScalar(CONFIG.planetRadius + 0.4);
 
-        // Bridge deck
         const bridgeDeckMat = new THREE.MeshStandardMaterial({ color: 0x8a7a6a, roughness: 0.9 });
         const bridgeRailMat = new THREE.MeshStandardMaterial({ color: 0x6a5a4a, roughness: 0.8 });
 
-        const bridgeLength = 8;
-        const bridgeWidth = 3.5;
-        const deck = new THREE.Mesh(new THREE.BoxGeometry(bridgeLength, 0.4, bridgeWidth), bridgeDeckMat);
+        const bridgeLen = 8;
+        const bridgeW = 3.5;
+        const deck = new THREE.Mesh(new THREE.BoxGeometry(bridgeLen, 0.4, bridgeW), bridgeDeckMat);
         deck.position.copy(bridgePos).add(midPoint.clone().multiplyScalar(0.2));
         deck.castShadow = true;
         deck.receiveShadow = true;
         orientToSurface(deck, midPoint);
         bridgeGroup.add(deck);
 
-        // Rails
         for (let side = -1; side <= 1; side += 2) {
-            const rail = new THREE.Mesh(new THREE.BoxGeometry(bridgeLength, 0.8, 0.15), bridgeRailMat);
+            const rail = new THREE.Mesh(new THREE.BoxGeometry(bridgeLen, 0.8, 0.15), bridgeRailMat);
             const offset = new THREE.Vector3().crossVectors(midPoint, tangentDirection(midPoint)).normalize()
-                .multiplyScalar(side * bridgeWidth / 2);
+                .multiplyScalar(side * bridgeW / 2);
             rail.position.copy(bridgePos).add(midPoint.clone().multiplyScalar(0.2)).add(offset);
             rail.position.add(midPoint.clone().multiplyScalar(0.4));
             rail.castShadow = true;
             orientToSurface(rail, midPoint);
             bridgeGroup.add(rail);
 
-            // Rail posts
-            for (let i = -3; i <= 3; i++) {
+            for (let j = -3; j <= 3; j++) {
                 const post = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.08, 0.8, 6), bridgeRailMat);
-                const along = tangentDirection(midPoint).clone().multiplyScalar(i * 1.0);
+                const along = tangentDirection(midPoint).clone().multiplyScalar(j * 1.0);
                 post.position.copy(bridgePos).add(midPoint.clone().multiplyScalar(0.2)).add(offset).add(along);
                 post.position.add(midPoint.clone().multiplyScalar(0.4));
                 orientToSurface(post, midPoint);
@@ -1204,7 +1192,7 @@
         let score = 0;
         let isSleeping = false;
         let sleepTimer = 0;
-        let attackAnimTime = 0; // for attack animation
+        let attackAnimTime = 0;
 
         function updatePlayerTransform() {
             player.position.copy(playerNormal).multiplyScalar(CONFIG.planetRadius + jumpHeight);
@@ -1217,26 +1205,28 @@
         updatePlayerTransform();
 
         // ============================================================
-        // NPC SYSTEM (with names, HP, combat, death animation)
+        // NPC SYSTEM — small labels, hidden when not visible
         // ============================================================
         const npcList = [];
         const npcColors = [0x2196f3, 0xffc107, 0x9c27b0, 0x00acc1, 0xff7043, 0x66bb6a, 0xab47bc, 0x26a69a];
 
+        // Small, clean label style
         const labelStyle = `
-              color: white;
-              font-family: "Segoe UI", sans-serif;
-              font-size: 10px;
+              color: #fff;
+              font-family: "Segoe UI", system-ui, sans-serif;
+              font-size: 8px;
               font-weight: 600;
-              text-shadow: 0 1px 8px rgba(0,0,0,0.95);
-              background: rgba(0,0,0,0.50);
-              padding: 2px 8px;
-              border-radius: 10px;
-              border: 1px solid rgba(255,255,255,0.10);
-              backdrop-filter: blur(4px);
+              text-shadow: 0 1px 6px rgba(0,0,0,0.95);
+              background: rgba(0,0,0,0.45);
+              padding: 1px 6px;
+              border-radius: 8px;
+              border: 1px solid rgba(255,255,255,0.08);
+              backdrop-filter: blur(3px);
+              -webkit-backdrop-filter: blur(3px);
               white-space: nowrap;
               pointer-events: none;
               text-align: center;
-              line-height: 1.3;
+              line-height: 1.2;
               transition: opacity 0.15s ease;
             `;
 
@@ -1261,7 +1251,7 @@
                 currentTurn: 0,
                 walkCounter: Math.random() * 10,
                 radius: 1.05,
-                name: name,
+                name,
                 maxHP: CONFIG.npcMaxHP + Math.floor(Math.random() * 15),
                 hp: CONFIG.npcMaxHP + Math.floor(Math.random() * 15),
                 isKO: false,
@@ -1280,19 +1270,17 @@
             orientToSurface(npc, normal);
             environmentGroup.add(npc);
 
-            // Create CSS2D label (smaller)
+            // Small label
             const labelDiv = document.createElement("div");
             labelDiv.style.cssText = labelStyle;
             labelDiv.innerHTML =
-                `${name}<br><span style="font-size:8px;color:#ff6b6b;">❤️ ${npcData.hp}/${npcData.maxHP}</span>`;
+                `${name}<br><span style="font-size:7px;color:#ff6b6b;">❤️ ${npcData.hp}/${npcData.maxHP}</span>`;
             const label = new CSS2DObject(labelDiv);
-            label.position.set(0, 3.2, 0);
+            label.position.set(0, 3.0, 0);
             npc.add(label);
             npcData.label = label;
             npcData.labelDiv = labelDiv;
-            // Initially hide — will be shown only when visible
             labelDiv.style.opacity = "0";
-            labelDiv.style.transition = "opacity 0.2s ease";
 
             npcList.push(npcData);
         }
@@ -1317,9 +1305,9 @@
         // ============================================================
         const joystick = document.getElementById("virtual-joystick");
         const joystickThumb = document.getElementById("joystick-thumb");
-        let joystickActive = false;
-        let joystickPointerId = null;
-        let joystickX = 0,
+        let joystickActive = false,
+            joystickPointerId = null,
+            joystickX = 0,
             joystickY = 0;
 
         function resetJoystick() {
@@ -1362,9 +1350,9 @@
         // CAMERA INPUT
         // ============================================================
         const cameraTouchZone = document.getElementById("camera-touch-zone");
-        let cameraDragging = false;
-        let cameraPointerId = null;
-        let lastCameraX = 0,
+        let cameraDragging = false,
+            cameraPointerId = null,
+            lastCameraX = 0,
             lastCameraY = 0;
         let cameraYaw = 0,
             cameraPitch = 0.22;
@@ -1410,7 +1398,7 @@
             performAttack(); }, { passive: false });
 
         // ============================================================
-        // JUMP (double jump)
+        // JUMP
         // ============================================================
         function jump() {
             if (isSleeping) return;
@@ -1445,7 +1433,7 @@
         }
 
         // ============================================================
-        // PLAYER MOVEMENT (with improved rock collision)
+        // PLAYER MOVEMENT — FIXED DOOR COLLISION
         // ============================================================
         function getMovementInput() {
             let turn = 0,
@@ -1466,44 +1454,34 @@
             for (const ob of obstacleList) {
                 if (ob.type === "house") {
                     const house = ob.house;
+                    // If door is open, allow passage through door area
                     if (house.userData.isOpen) {
                         const local = cp.clone();
                         house.worldToLocal(local);
-                        const w = house.userData.width,
-                            d = house.userData.depth;
-                        const inside = Math.abs(local.x) < w * 0.5 && Math.abs(local.z) < d * 0.5;
-                        // Wider door detection (3.0)
-                        const doorW = house.userData.doorWidth || 3.0;
-                        const nearDoor = Math.abs(local.x) < doorW * 0.6 && local.z < -d * 0.5 + 2.0;
+                        const d = house.userData.depth;
+                        const doorW = house.userData.doorWidth || 3.2;
+                        // Door area: wide and deep enough for player to pass
+                        const nearDoor = Math.abs(local.x) < doorW * 0.8 && local.z < -d * 0.5 + 3.0;
+                        // Also allow if inside house (player is already inside)
+                        const inside = Math.abs(local.x) < house.userData.width * 0.4 && Math.abs(local.z) < d * 0.4;
                         if (inside || nearDoor) continue;
                     }
                     const dist = cp.distanceTo(ob.position);
                     if (dist < CONFIG.playerRadius + ob.radius) return ob;
                 } else if (ob.type === "rock") {
-                    // Rock: allow walking on top, block from sides
                     const dist = cp.distanceTo(ob.position);
                     const rockHeight = ob.height || 1.0;
-                    // Check if player is above the rock
-                    const playerWorldPos = player.position.clone();
-                    const rockPos = ob.position.clone();
-                    const normal = rockPos.clone().normalize();
-                    const heightAboveRock = (playerWorldPos.dot(normal) - rockPos.dot(normal)) * 1.0;
-                    // If player is above the rock center, allow walking on it
-                    if (heightAboveRock > rockHeight * 0.3) {
-                        // Check if player is within the rock's horizontal footprint
-                        const horizontalDist = cp.distanceTo(ob.position);
-                        if (horizontalDist < ob.radius + CONFIG.playerRadius * 0.8) {
-                            // On top of rock — allow
-                            continue;
-                        }
+                    const pWorld = player.position.clone();
+                    const rPos = ob.position.clone();
+                    const normal = rPos.clone().normalize();
+                    const heightAbove = (pWorld.dot(normal) - rPos.dot(normal)) * 1.0;
+                    if (heightAbove > rockHeight * 0.3) {
+                        const horizDist = cp.distanceTo(ob.position);
+                        if (horizDist < ob.radius + CONFIG.playerRadius * 0.8) continue;
                     }
                     if (dist < CONFIG.playerRadius + ob.radius) {
-                        // Check if we're stepping onto the rock from the side
                         const stepUp = jumpHeight + 0.5;
-                        if (stepUp > rockHeight * 0.6) {
-                            // Allow stepping up
-                            continue;
-                        }
+                        if (stepUp > rockHeight * 0.6) continue;
                         return ob;
                     }
                 } else {
@@ -1520,7 +1498,6 @@
             const cn = cw.normalize();
             const collision = checkObstacleCollision(cn);
             if (collision && collision.type === "rock" && isGrounded) {
-                // Step up onto rock
                 const rockHeight = collision.height || 1.0;
                 if (rockHeight <= CONFIG.maxStepHeight) {
                     jumpHeight = Math.max(jumpHeight, rockHeight * 0.5);
@@ -1550,13 +1527,15 @@
                 return;
             }
 
-            // Attack animation decay
+            // Attack animation
             if (attackAnimTime > 0) {
                 attackAnimTime -= dt * 6;
                 if (attackAnimTime < 0) attackAnimTime = 0;
-                const swing = Math.sin(attackAnimTime * Math.PI) * 1.2;
-                playerMesh.userData.rightArm.rotation.x = -1.2 + swing * 0.8;
-                playerMesh.userData.leftArm.rotation.x = -1.2 + swing * 0.4;
+                const swing = Math.sin(attackAnimTime * Math.PI) * 1.4;
+                const pm = playerMesh.userData;
+                pm.rightArm.rotation.x = -1.4 + swing * 0.9;
+                pm.leftArm.rotation.x = -1.0 + swing * 0.3;
+                pm.rightArm.rotation.z = swing * 0.3;
             }
 
             const input = getMovementInput();
@@ -1615,14 +1594,14 @@
         }
 
         // ============================================================
-        // COMBAT with hit animation
+        // COMBAT — with visible hit animation
         // ============================================================
         let attackCooldownTimer = 0;
 
         function performAttack() {
             if (attackCooldownTimer > 0 || isSleeping) return;
             attackCooldownTimer = 0.4;
-            attackAnimTime = 1.0; // trigger attack animation
+            attackAnimTime = 1.0;
 
             const pPos = player.position.clone();
             let closest = null,
@@ -1658,20 +1637,18 @@
                     score += 10;
                     updatePlayerUI();
                     const koDiv = closest.labelDiv;
-                    koDiv.innerHTML = `${closest.name}<br><span style="color:#ff6b6b;font-weight:900;">💀 KO!</span>`;
+                    koDiv.innerHTML = `${closest.name}<br><span style="color:#ff6b6b;font-weight:900;">💀</span>`;
                     koDiv.style.borderColor = "#ff4444";
-                    // Death animation: fall over
-                    closest.originalY = closest.object.position.y;
                 } else {
                     const div = closest.labelDiv;
                     div.innerHTML =
-                        `${closest.name}<br><span style="font-size:8px;color:#ff6b6b;">❤️ ${closest.hp}/${closest.maxHP}</span>`;
+                        `${closest.name}<br><span style="font-size:7px;color:#ff6b6b;">❤️ ${closest.hp}/${closest.maxHP}</span>`;
                 }
                 updatePlayerUI();
             }
         }
 
-        // Click on NPC to attack (desktop)
+        // Click NPC to attack
         const raycaster = new THREE.Raycaster();
         const mouse = new THREE.Vector2();
         renderer.domElement.addEventListener("click", (e) => {
@@ -1702,12 +1679,10 @@
         });
 
         // ============================================================
-        // NPC UPDATE (AI + combat + death animation + label visibility)
+        // NPC UPDATE — label visibility based on camera frustum
         // ============================================================
         function updateNPCs(dt) {
             const pPos = player.position.clone();
-
-            // Update camera frustum for label visibility
             camera.updateMatrixWorld();
             const frustum = new THREE.Frustum();
             frustum.setFromProjectionMatrix(new THREE.Matrix4().multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse));
@@ -1715,16 +1690,14 @@
             camera.getWorldDirection(camDir);
 
             for (const npc of npcList) {
-                // --- Death animation ---
+                // Death animation
                 if (npc.isDying && npc.isKO) {
                     npc.deathAnimTime += dt * 3;
                     if (npc.deathAnimTime < 1) {
-                        // Fall over
                         const angle = npc.deathAnimTime * 1.2;
                         npc.object.rotation.z = angle * 0.6;
                         npc.object.position.y = npc.originalY - angle * 0.3;
                     }
-                    // Respawn after KO timer
                     npc.koTimer -= dt;
                     if (npc.koTimer <= 0) {
                         npc.isKO = false;
@@ -1738,8 +1711,8 @@
                         npc.forward = projectOntoTangent(tangentDirection(newNormal), newNormal);
                         const div = npc.labelDiv;
                         div.innerHTML =
-                            `${npc.name}<br><span style="font-size:8px;color:#ff6b6b;">❤️ ${npc.hp}/${npc.maxHP}</span>`;
-                        div.style.borderColor = "rgba(255,255,255,0.10)";
+                            `${npc.name}<br><span style="font-size:7px;color:#ff6b6b;">❤️ ${npc.hp}/${npc.maxHP}</span>`;
+                        div.style.borderColor = "rgba(255,255,255,0.08)";
                         npc.aggroTimer = 0;
                         npc.isAggro = false;
                         npc.originalY = npc.object.position.y;
@@ -1747,11 +1720,11 @@
                     continue;
                 }
 
-                // --- Label visibility: only when in front of camera ---
+                // Label visibility: only when in front of camera AND within frustum
                 const npcPos = npc.object.position.clone();
                 const toNpc = npcPos.clone().sub(camera.position).normalize();
                 const dot = camDir.dot(toNpc);
-                const visible = dot > 0.25; // in front of camera
+                const visible = dot > 0.15 && frustum.containsPoint(npcPos);
                 if (npc.labelDiv) {
                     npc.labelDiv.style.opacity = visible ? "1" : "0";
                 }
@@ -1820,9 +1793,8 @@
                 for (const ob of obstacleList) {
                     if (ob.type === "house") continue;
                     if (ob.type === "rock") {
-                        // NPCs can also walk on rocks
-                        const dist2 = testPos.distanceTo(ob.position);
-                        if (dist2 < 0.8 + ob.radius) { blocked = true; break; }
+                        const d2 = testPos.distanceTo(ob.position);
+                        if (d2 < 0.8 + ob.radius) { blocked = true; break; }
                         continue;
                     }
                     if (testPos.distanceTo(ob.position) < 0.8 + ob.radius) { blocked = true; break; }
@@ -1837,15 +1809,15 @@
                 }
 
                 npc.walkCounter += dt * speed * 2.1;
-                const swing2 = Math.sin(npc.walkCounter * 6) * 0.34;
+                const sw2 = Math.sin(npc.walkCounter * 6) * 0.34;
                 const nm = npc.mesh.userData;
                 if (nm) {
-                    nm.leftLeg.rotation.x = swing2;
-                    nm.rightLeg.rotation.x = -swing2;
+                    nm.leftLeg.rotation.x = sw2;
+                    nm.rightLeg.rotation.x = -sw2;
                 }
 
                 if (npc.label) {
-                    npc.label.position.set(0, 3.2 + (npc.isKO ? 0.5 : 0), 0);
+                    npc.label.position.set(0, 3.0 + (npc.isKO ? 0.5 : 0), 0);
                 }
             }
         }
@@ -2124,10 +2096,8 @@
             hemisphereLight.color.lerp(currentHemisphereSky, 1 - Math.exp(-4 * dt));
             hemisphereLight.groundColor.lerp(currentHemisphereGround, 1 - Math.exp(-4 * dt));
 
-            // Stars: brighter at night
             const starTarget = THREE.MathUtils.smoothstep(-0.10, -0.32, elevation);
             stars.material.opacity = damp(stars.material.opacity, starTarget * 0.95, 3.5, dt);
-
             atmosphere.material.opacity = damp(atmosphere.material.opacity, 0.055 + daylight * 0.045 + twilightPos * 0.045, 3,
                 dt);
 
@@ -2225,7 +2195,6 @@
         cameraPitch = 0.22;
         cameraDistance = CONFIG.cameraDistance;
 
-        // LOADING
         const loadingProgress = document.getElementById("loading-progress");
         let fakeProgress = 0;
         const loadingInterval = setInterval(() => {
@@ -2240,7 +2209,7 @@
             }
         }, 90);
 
-        // Apply label styles to NPC labels
+        // Apply label styles
         for (const npc of npcList) {
             if (npc.labelDiv) {
                 npc.labelDiv.style.cssText = labelStyle;
@@ -2250,14 +2219,12 @@
         mainLoop();
 
         console.log("🌍 Tiny World loaded!");
-        console.log("🎮 Controls: WASD move, SPACE jump (double), E interact, C camera, J attack");
-        console.log("🏆 Score: " + score);
-        console.log("❤️ Player HP: " + playerHP);
-        console.log("💤 Find a bed in a house to sleep and heal!");
-        console.log("⚔️ Click on NPCs or press J to attack!");
-        console.log("🌉 Bridge crosses the river!");
-        console.log("🪨 Walk on rocks with double jump!");
-        console.log("🚪 Doors are now bigger (3.0 wide)!");
+        console.log("🎮 WASD · SPACE · E · C · J");
+        console.log("🚪 Bigger doors (3.2 wide) — you can enter!");
+        console.log("🏷️ NPC labels are small and only show when visible");
+        console.log("🌊 River is bright and visible");
+        console.log("☁️ Clouds are smaller and higher");
+        console.log("⚔️ Hit animation on attack (J or tap ⚔️)");
     </script>
 </body>
     </html>
