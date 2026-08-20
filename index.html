@@ -3,102 +3,214 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>3D Model Loader Test</title>
+    <title>Complex Tiny World</title>
     <style>
-        body { margin: 0; overflow: hidden; background: #87CEEB; }
-        #info { 
-            position: absolute; top: 10px; width: 100%; text-align: center; 
-            color: black; font-family: sans-serif; font-weight: bold; 
-            background: rgba(255,255,255,0.7); padding: 10px 0; pointer-events: none; 
-        }
+        body { margin: 0; overflow: hidden; background: #000; touch-action: none; font-family: sans-serif; }
+        #ui { position: absolute; top: 10px; left: 10px; color: white; text-shadow: 2px 2px 2px #000; pointer-events: none; z-index: 10; }
+        #joystick-zone { position: absolute; bottom: 30px; left: 30px; width: 120px; height: 120px; background: rgba(255,255,255,0.2); border-radius: 50%; border: 2px solid rgba(255,255,255,0.5); z-index: 5; }
+        #joystick-knob { position: absolute; top: 35px; left: 35px; width: 50px; height: 50px; background: rgba(255,255,255,0.8); border-radius: 50%; pointer-events: none; }
     </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
 </head>
 <body>
-    <div id="info">Memuatkan Model 3D... Sila tunggu sekejap.</div>
-    
-    <!-- ES Module Shims untuk sokongan browser -->
-    <script async src="https://unpkg.com/es-module-shims@1.8.0/dist/es-module-shims.js"></script>
-    
-    <!-- Import Map untuk panggil Three.js dan Loader -->
-    <script type="importmap">
-      {
-        "imports": {
-          "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
-          "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
-        }
-      }
-    </script>
+    <div id="ui"><h2>Tiny World Explorer</h2></div>
+    <div id="joystick-zone"><div id="joystick-knob"></div></div>
 
-    <script type="module">
-        import * as THREE from 'three';
-        import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-        import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
-
-        // 1. Setup Scene
+    <script>
         const scene = new THREE.Scene();
-        scene.background = new THREE.Color(0x87CEEB);
+        scene.background = new THREE.Color(0x000000);
+        scene.fog = new THREE.FogExp2(0x87CEEB, 0.015);
 
-        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-        camera.position.set(0, 2, 5);
-
+        const camera = new THREE.PerspectiveCamera(60, window.innerWidth/window.innerHeight, 0.1, 1000);
         const renderer = new THREE.WebGLRenderer({ antialias: true });
         renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.shadowMap.enabled = true;
+        renderer.shadowMap.type = THREE.PCFSoftShadowMap;
         document.body.appendChild(renderer.domElement);
 
-        // Kawalan Kamera (Boleh drag guna mouse/skrin sentuh)
-        const controls = new OrbitControls(camera, renderer.domElement);
-        controls.enableDamping = true;
-        controls.target.set(0, 1, 0);
+        const ambient = new THREE.AmbientLight(0xffffff, 0.4);
+        scene.add(ambient);
+        const sun = new THREE.DirectionalLight(0xffffff, 0.8);
+        sun.position.set(20, 30, 20);
+        sun.castShadow = true;
+        sun.shadow.mapSize.width = 2048;
+        sun.shadow.mapSize.height = 2048;
+        scene.add(sun);
 
-        // 2. Pencahayaan
-        const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
-        scene.add(ambientLight);
-        const dirLight = new THREE.DirectionalLight(0xffffff, 1);
-        dirLight.position.set(5, 10, 7.5);
-        scene.add(dirLight);
+        const planetGroup = new THREE.Group();
+        scene.add(planetGroup);
 
-        // 3. Lantai
-        const floor = new THREE.Mesh(
-            new THREE.PlaneGeometry(50, 50),
-            new THREE.MeshLambertMaterial({ color: 0x4CAF50 })
-        );
-        floor.rotation.x = -Math.PI / 2;
-        scene.add(floor);
+        const radius = 20;
 
-        // 4. LOAD MODEL 3D (.glb / .gltf)
-        const loader = new GLTFLoader();
+        // Bintang di alam semesta
+        const starGeo = new THREE.BufferGeometry();
+        const starCount = 2000;
+        const starPos = new Float32Array(starCount * 3);
+        for(let i=0; i<starCount*3; i++) starPos[i] = (Math.random() - 0.5) * 500;
+        starGeo.setAttribute('position', new THREE.BufferAttribute(starPos, 3));
+        const starMat = new THREE.PointsMaterial({color: 0xffffff, size: 0.5});
+        const stars = new THREE.Points(starGeo, starMat);
+        scene.add(stars);
+
+        // Planet (Bumi dan Air)
+        const water = new THREE.Mesh(new THREE.SphereGeometry(radius * 0.98, 64, 64), new THREE.MeshPhongMaterial({color: 0x1E90FF, flatShading: true}));
+        planetGroup.add(water);
         
-        // Nanti kau boleh tukar link ni dengan link fail .glb kau sendiri dalam GitHub
-        const modelUrl = 'https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Models/master/2.0/Duck/glTF-Binary/Duck.glb';
+        const earth = new THREE.Mesh(new THREE.SphereGeometry(radius, 64, 64), new THREE.MeshLambertMaterial({color: 0x3CB371}));
+        earth.receiveShadow = true;
+        earth.castShadow = true;
+        planetGroup.add(earth);
 
-        loader.load(
-            modelUrl,
-            function (gltf) {
-                const model = gltf.scene;
-                scene.add(model);
-                document.getElementById('info').innerText = "Berjaya! Cuba drag/swipe skrin untuk tengok sekeliling.";
-            },
-            function (xhr) {
-                console.log((xhr.loaded / xhr.total * 100) + '% loaded');
-            },
-            function (error) {
-                console.error('Error memuatkan model:', error);
-                document.getElementById('info').innerText = "Ralat: Gagal memuatkan model 3D.";
-            }
-        );
+        // Fungsi letak objek keliling globe
+        function placeObject(mesh, r, isRoad = false) {
+            const phi = Math.acos(2 * Math.random() - 1);
+            const theta = Math.random() * Math.PI * 2;
+            mesh.position.set(r * Math.sin(phi) * Math.cos(theta), r * Math.cos(phi), r * Math.sin(phi) * Math.sin(theta));
+            mesh.lookAt(0,0,0);
+            if(!isRoad) mesh.rotateX(Math.PI/2);
+            planetGroup.add(mesh);
+        }
 
-        // 5. Game Loop & Resize
+        // Gunung
+        for(let i=0; i<15; i++) {
+            const mountain = new THREE.Mesh(new THREE.ConeGeometry(2, 4, 5), new THREE.MeshLambertMaterial({color: 0x808080}));
+            mountain.castShadow = true;
+            mountain.receiveShadow = true;
+            placeObject(mountain, radius);
+        }
+
+        // Pokok
+        for(let i=0; i<40; i++) {
+            const tree = new THREE.Group();
+            const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.2, 1), new THREE.MeshLambertMaterial({color: 0x8B4513}));
+            trunk.position.y = 0.5;
+            trunk.castShadow = true;
+            const leaves = new THREE.Mesh(new THREE.ConeGeometry(0.8, 2, 5), new THREE.MeshLambertMaterial({color: 0x228B22}));
+            leaves.position.y = 1.5;
+            leaves.castShadow = true;
+            tree.add(trunk, leaves);
+            placeObject(tree, radius);
+        }
+
+        // Bangunan dan Jalan
+        const cityMat = new THREE.MeshLambertMaterial({color: 0xFFFAF0});
+        const roofMat = new THREE.MeshLambertMaterial({color: 0xA52A2A});
+        for(let i=0; i<10; i++) {
+            const bldg = new THREE.Group();
+            const body = new THREE.Mesh(new THREE.BoxGeometry(2, 3, 2), cityMat);
+            body.position.y = 1.5;
+            body.castShadow = true;
+            body.receiveShadow = true;
+            const roof = new THREE.Mesh(new THREE.ConeGeometry(1.6, 1.5, 4), roofMat);
+            roof.position.y = 3.75;
+            roof.rotation.y = Math.PI/4;
+            roof.castShadow = true;
+            bldg.add(body, roof);
+            placeObject(bldg, radius);
+            
+            const road = new THREE.Mesh(new THREE.PlaneGeometry(3, 8), new THREE.MeshBasicMaterial({color: 0x333333, side: THREE.DoubleSide}));
+            placeObject(road, radius + 0.05, true);
+        }
+
+        // Fungsi cipta Manusia / NPC
+        function createPerson(color) {
+            const person = new THREE.Group();
+            const body = new THREE.Mesh(new THREE.BoxGeometry(0.6, 0.8, 0.4), new THREE.MeshLambertMaterial({color: color}));
+            body.position.y = 0.8;
+            body.castShadow = true;
+            const head = new THREE.Mesh(new THREE.SphereGeometry(0.3, 8, 8), new THREE.MeshLambertMaterial({color: 0xFFE4C4}));
+            head.position.y = 1.5;
+            head.castShadow = true;
+            person.add(body, head);
+            return person;
+        }
+        
+        // NPC lain bertaburan
+        for(let i=0; i<10; i++) {
+            const npc = createPerson(Math.random() * 0xffffff);
+            placeObject(npc, radius);
+        }
+
+        // Player (Watak Utama - Merah)
+        const player = createPerson(0xFF0000);
+        player.position.set(0, radius + 1, 0);
+        scene.add(player);
+
+        const controls = new THREE.OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true;
+        controls.maxPolarAngle = Math.PI/2 - 0.05;
+
+        // --- KAWALAN ---
+        let moveX = 0, moveY = 0;
+        const keys = {};
+        window.addEventListener('keydown', e => keys[e.key.toLowerCase()] = true);
+        window.addEventListener('keyup', e => keys[e.key.toLowerCase()] = false);
+
+        const zone = document.getElementById('joystick-zone');
+        const knob = document.getElementById('joystick-knob');
+        let isDragging = false;
+        let center = {x:0, y:0};
+
+        // Kawalan Touch / Joystick untuk Handphone
+        zone.addEventListener('touchstart', e => {
+            isDragging = true;
+            const rect = zone.getBoundingClientRect();
+            center = { x: rect.left + 60, y: rect.top + 60 };
+            updateJoystick(e.touches[0]);
+        });
+        zone.addEventListener('touchmove', e => {
+            if(isDragging) updateJoystick(e.touches[0]);
+        });
+        zone.addEventListener('touchend', () => {
+            isDragging = false;
+            knob.style.transform = `translate(0px, 0px)`;
+            moveX = 0; moveY = 0;
+        });
+
+        function updateJoystick(touch) {
+            let dx = touch.clientX - center.x;
+            let dy = touch.clientY - center.y;
+            const maxDist = 35;
+            const dist = Math.sqrt(dx*dx + dy*dy);
+            if(dist > maxDist) { dx = (dx/dist)*maxDist; dy = (dy/dist)*maxDist; }
+            knob.style.transform = `translate(${dx}px, ${dy}px)`;
+            moveX = dx / maxDist; moveY = dy / maxDist;
+        }
+
+        // --- GAME LOOP ---
+        function animate() {
+            requestAnimationFrame(animate);
+
+            const speed = 0.02;
+            let currentRotX = 0, currentRotZ = 0;
+
+            // Kawalan Keyboard (WASD) PC atau Joystick HP
+            if(keys['w'] || moveY < -0.1) currentRotX -= speed;
+            if(keys['s'] || moveY > 0.1) currentRotX += speed;
+            if(keys['a'] || moveX < -0.1) currentRotZ -= speed;
+            if(keys['d'] || moveX > 0.1) currentRotZ += speed;
+
+            // Pusingkan globe seolah-olah player berjalan
+            planetGroup.rotation.x += currentRotX;
+            planetGroup.rotation.z += currentRotZ;
+
+            stars.rotation.y += 0.001; // Bintang sentiasa bergerak perlahan
+
+            controls.target.copy(player.position);
+            camera.position.x = player.position.x + Math.sin(planetGroup.rotation.z) * 10;
+            camera.position.z = player.position.z + Math.cos(planetGroup.rotation.x) * 10;
+            controls.update();
+
+            renderer.render(scene, camera);
+        }
+
         window.addEventListener('resize', () => {
             camera.aspect = window.innerWidth / window.innerHeight;
             camera.updateProjectionMatrix();
             renderer.setSize(window.innerWidth, window.innerHeight);
         });
 
-        function animate() {
-            requestAnimationFrame(animate);
-            controls.update();
-            renderer.render(scene, camera);
-        }
         animate();
     </script>
 </body>
