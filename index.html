@@ -3,10 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Tiny World — Massive Production Edition Pro</title>
+    <title>Tiny World — Working Edition</title>
     <style>
         *, ::before, ::after { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-        html, body { margin: 0; width: 100%; height: 100%; overflow: hidden; background: #75c4ff; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; touch-action: none; }
+        html, body { margin: 0; width: 100%; height: 100%; overflow: hidden; background: #75c4ff; font-family: sans-serif; touch-action: none; }
         canvas { display: block; width: 100%; height: 100%; }
 
         #ui-container {
@@ -16,7 +16,7 @@
             padding: 15px 20px; border-radius: 12px; backdrop-filter: blur(8px);
             border: 1px solid rgba(255, 255, 255, 0.15);
         }
-        #ui-container h1 { margin: 0 0 6px 0; font-size: 18px; color: #00e676; letter-spacing: 0.5px; }
+        #ui-container h1 { margin: 0 0 6px 0; font-size: 18px; color: #00e676; }
         #ui-container p { margin: 3px 0; font-size: 13px; color: #e0e0e0; }
 
         #telemetry-panel {
@@ -44,7 +44,6 @@
             position: absolute; left: 42px; top: 42px; width: 56px; height: 56px;
             border-radius: 50%; background: rgba(255, 255, 255, 0.85);
             box-shadow: 0 4px 12px rgba(0,0,0,0.5); pointer-events: none;
-            will-change: transform;
         }
 
         #jump-btn {
@@ -55,16 +54,15 @@
             box-shadow: 0 8px 20px rgba(0,0,0,0.4); backdrop-filter: blur(5px);
             cursor: pointer; user-select: none;
         }
-        #jump-btn:active { background: rgba(0, 230, 118, 0.5); transform: scale(0.95); }
     </style>
 </head>
 <body>
 
     <div id="ui-container">
-        <h1>🌍 Tiny World: Massive Edition</h1>
+        <h1>🌍 Tiny World: Working</h1>
         <p><b>PC:</b> W/S | A/D | Space (Jump)</p>
-        <p><b>Mouse:</b> Drag to rotate POV</p>
-        <p id="status-text" style="color: #69f0ae; font-weight: bold; margin-top: 4px;">Status: Fully Loaded</p>
+        <p><b>Mobile:</b> Joystick & Jump Button</p>
+        <p id="status-text" style="color: #69f0ae; font-weight: bold; margin-top: 4px;">Status: Active</p>
     </div>
 
     <div id="telemetry-panel">
@@ -91,636 +89,199 @@
     <script type="module">
         import * as THREE from 'three';
 
-        /* ==========================================================
-           1. COMPREHENSIVE CONFIGURATION OBJECT
-           ========================================================== */
-        const WORLD_CONFIG = {
-            planetRadius: 180,
-            playerWalkSpeed: 3.8,
-            playerReverseSpeed: 1.8,
-            playerTurnSpeed: 2.2,
+        const CFG = {
+            radius: 180,
+            walkSpeed: 4.0,
+            turnSpeed: 2.5,
             jumpForce: 6.5,
-            gravityConstant: 16.0,
-            cameraDistance: 14,
+            gravity: 16.0,
+            cameraDist: 14,
             cameraHeight: 5.2,
-            npcPopulation: 25,
-            housePopulation: 18,
-            treePopulation: 140,
-            rockPopulation: 70,
-            dayCycleDurationSec: 200
+            dayLength: 180
         };
 
-        /* ==========================================================
-           2. SCENE, CAMERA & WEBGL RENDERER INITIALIZATION
-           ========================================================== */
-        const primaryScene = new THREE.Scene();
-        primaryScene.background = new THREE.Color(0x75c4ff);
-        primaryScene.fog = new THREE.FogExp2(0x75c4ff, 0.0018);
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x75c4ff);
+        scene.fog = new THREE.FogExp2(0x75c4ff, 0.0018);
 
-        const primaryCamera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 3000);
+        const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 3000);
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.shadowMap.enabled = true;
+        renderer.outputColorSpace = THREE.SRGBColorSpace;
+        document.body.appendChild(renderer.domElement);
 
-        const webglRenderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
-        webglRenderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.8));
-        webglRenderer.setSize(window.innerWidth, window.innerHeight);
-        webglRenderer.shadowMap.enabled = true;
-        webglRenderer.shadowMap.type = THREE.PCFSoftShadowMap;
-        webglRenderer.outputColorSpace = THREE.SRGBColorSpace;
-        document.body.appendChild(webglRenderer.domElement);
+        // Lights
+        scene.add(new THREE.AmbientLight(0xffffff, 0.5));
+        scene.add(new THREE.HemisphereLight(0xbfe9ff, 0x29442a, 1.2));
+        
+        const sun = new THREE.DirectionalLight(0xffffff, 2.0);
+        sun.position.set(200, 300, 150);
+        sun.castShadow = true;
+        scene.add(sun);
 
-        /* ==========================================================
-           3. ADVANCED LIGHTING & CELESTIAL MANAGEMENT
-           ========================================================== */
-        const globalAmbientLight = new THREE.AmbientLight(0xffffff, 0.45);
-        primaryScene.add(globalAmbientLight);
-
-        const hemisphereEnvironmentLight = new THREE.HemisphereLight(0xbfe9ff, 0x29442a, 1.4);
-        primaryScene.add(hemisphereEnvironmentLight);
-
-        const directionalSunLight = new THREE.DirectionalLight(0xffffff, 2.2);
-        directionalSunLight.castShadow = true;
-        directionalSunLight.shadow.mapSize.width = 2048;
-        directionalSunLight.shadow.mapSize.height = 2048;
-        directionalSunLight.shadow.camera.near = 50;
-        directionalSunLight.shadow.camera.far = 700;
-        directionalSunLight.shadow.camera.left = -280; 
-        directionalSunLight.shadow.camera.right = 280;
-        directionalSunLight.shadow.camera.top = 280; 
-        directionalSunLight.shadow.camera.bottom = -280;
-        directionalSunLight.shadow.bias = -0.0004;
-        primaryScene.add(directionalSunLight);
-
-        const directionalMoonLight = new THREE.DirectionalLight(0x8da9ff, 0.3);
-        primaryScene.add(directionalMoonLight);
-
-        const sunVisualMesh = new THREE.Mesh(
-            new THREE.SphereGeometry(12, 32, 32),
-            new THREE.MeshBasicMaterial({ color: 0xffffee })
+        // Planet
+        const planet = new THREE.Mesh(
+            new THREE.SphereGeometry(CFG.radius, 64, 64),
+            new THREE.MeshStandardMaterial({ color: 0x3e9850, roughness: 0.9 })
         );
-        primaryScene.add(sunVisualMesh);
+        planet.receiveShadow = true;
+        scene.add(planet);
 
-        const moonVisualMesh = new THREE.Mesh(
-            new THREE.SphereGeometry(9, 32, 32),
-            new THREE.MeshStandardMaterial({ color: 0xd9e1ec, roughness: 1 })
-        );
-        primaryScene.add(moonVisualMesh);
-
-        /* ==========================================================
-           4. PLANET, ATMOSPHERE, STARS & PROCEDURAL CLOUDS
-           ========================================================== */
-        const sphericalPlanetMesh = new THREE.Mesh(
-            new THREE.SphereGeometry(WORLD_CONFIG.planetRadius, 128, 128),
-            new THREE.MeshStandardMaterial({ color: 0x3e9850, roughness: 0.95, metalness: 0 })
-        );
-        sphericalPlanetMesh.receiveShadow = true;
-        primaryScene.add(sphericalPlanetMesh);
-
-        const planetaryAtmosphere = new THREE.Mesh(
-            new THREE.SphereGeometry(WORLD_CONFIG.planetRadius + 4, 64, 64),
-            new THREE.MeshBasicMaterial({ color: 0x79cfff, transparent: true, opacity: 0.075, side: THREE.BackSide })
-        );
-        primaryScene.add(planetaryAtmosphere);
-
-        // Starfield
-        const starfieldGeometry = new THREE.BufferGeometry();
-        const starCoordinates = new Float32Array(5000 * 3);
-        for (let i = 0; i < 5000 * 3; i += 3) {
-            const u = Math.random(), v = Math.random();
-            const theta = u * 2.0 * Math.PI, phi = Math.acos(2.0 * v - 1.0);
-            const r = 850 + Math.random() * 350;
-            starCoordinates[i] = r * Math.sin(phi) * Math.cos(theta);
-            starCoordinates[i+1] = r * Math.sin(phi) * Math.sin(theta);
-            starCoordinates[i+2] = r * Math.cos(phi);
-        }
-        starfieldGeometry.setAttribute('position', new THREE.BufferAttribute(starCoordinates, 3));
-        const backgroundStars = new THREE.Points(starfieldGeometry, new THREE.PointsMaterial({ color: 0xffffff, size: 1.4, transparent: true, opacity: 0 }));
-        primaryScene.add(backgroundStars);
-
-        // Clouds Container
-        const globalCloudGroup = new THREE.Group();
-        primaryScene.add(globalCloudGroup);
-
-        function generateRandomDirectionVector() {
-            return new THREE.Vector3(Math.random() - 0.5, Math.random() - 0.5, Math.random() - 0.5).normalize();
+        // Helpers
+        function randomDir() {
+            return new THREE.Vector3(Math.random()-.5, Math.random()-.5, Math.random()-.5).normalize();
         }
 
-        function positionObjectOnSurface(targetObject, surfaceNormal, verticalOffset = 0) {
-            targetObject.position.copy(surfaceNormal.clone().multiplyScalar(WORLD_CONFIG.planetRadius + verticalOffset));
-            targetObject.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), surfaceNormal);
-            primaryScene.add(targetObject);
+        function placeObject(obj, normal, height=0) {
+            obj.position.copy(normal.clone().multiplyScalar(CFG.radius + height));
+            obj.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0), normal);
+            scene.add(obj);
         }
 
-        for (let i = 0; i < 18; i++) {
-            const cloudCluster = new THREE.Group();
-            const cloudMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 1, transparent: true, opacity: 0.72 });
-            for (let j = 0; j < 3; j++) {
-                const puff = new THREE.Mesh(new THREE.SphereGeometry(3 + Math.random() * 2.2, 10, 10), cloudMat);
-                puff.position.set(j * 3.5, Math.random() * 1.2, (Math.random() - 0.5) * 2);
-                cloudCluster.add(puff);
-            }
-            positionObjectOnSurface(cloudCluster, generateRandomDirectionVector(), 16 + Math.random() * 6);
-            globalCloudGroup.add(cloudCluster);
+        // Spawn Trees & Rocks
+        for(let i=0; i<40; i++) {
+            const tree = new THREE.Group();
+            const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.5, 3), new THREE.MeshStandardMaterial({color: 0x62432b}));
+            trunk.position.y = 1.5;
+            const crown = new THREE.Mesh(new THREE.DodecahedronGeometry(2), new THREE.MeshStandardMaterial({color: 0x2e7d32}));
+            crown.position.y = 3.5;
+            tree.add(trunk, crown);
+            placeObject(tree, randomDir(), 0);
         }
 
-        /* ==========================================================
-           5. RIVER, HOUSES, ROCKS & TREES GENERATION
-           ========================================================== */
-        const globalObstacleRegistry = [];
-        const interactiveHousesRegistry = [];
+        // Player
+        const player = new THREE.Group();
+        scene.add(player);
 
-        function checkWorldCollision(positionToCheck, clearanceRadius) {
-            for (let obstacle of globalObstacleRegistry) {
-                if (positionToCheck.distanceTo(obstacle.position) < (clearanceRadius + obstacle.radius)) {
-                    return true;
-                }
-            }
-            return false;
+        const playerMesh = new THREE.Group();
+        const torso = new THREE.Mesh(new THREE.BoxGeometry(1, 1.5, 0.7), new THREE.MeshStandardMaterial({color: 0xe53935}));
+        torso.position.y = 1.1;
+        const head = new THREE.Mesh(new THREE.SphereGeometry(0.5, 16, 16), new THREE.MeshStandardMaterial({color: 0xffd2b5}));
+        head.position.y = 2.45;
+        playerMesh.add(torso, head);
+        player.add(playerMesh);
+
+        let pNormal = new THREE.Vector3(0, 1, 0);
+        let pForward = new THREE.Vector3(0, 0, 1);
+        let speed = 0;
+        let vVel = 0;
+        let hOffset = 0;
+        let isJumping = false;
+
+        function updatePlayerTransform() {
+            player.position.copy(pNormal.clone().multiplyScalar(CFG.radius + hOffset));
+            const tangent = pForward.clone().sub(pNormal.clone().multiplyScalar(pForward.dot(pNormal))).normalize();
+            const right = new THREE.Vector3().crossVectors(pNormal, tangent).normalize();
+            player.quaternion.setFromRotationMatrix(new THREE.Matrix4().makeBasis(right, pNormal, tangent));
         }
+        updatePlayerTransform();
 
-        // River Generation
-        const riverCurvePathNodes = [];
-        for (let i = 0; i <= 35; i++) {
-            const angleVal = (i / 35) * Math.PI * 2;
-            const nodeDir = new THREE.Vector3(Math.cos(angleVal), Math.sin(angleVal * 0.4), Math.sin(angleVal)).normalize();
-            riverCurvePathNodes.push(nodeDir.multiplyScalar(WORLD_CONFIG.planetRadius + 0.12));
-        }
-        const riverMaterial = new THREE.MeshStandardMaterial({ color: 0x2196f3, roughness: 0.2, metalness: 0.8 });
-        for (let nodePt of riverCurvePathNodes) {
-            const waterSegment = new THREE.Mesh(new THREE.BoxGeometry(4.5, 0.05, 12), riverMaterial);
-            positionObjectOnSurface(waterSegment, nodePt.clone().normalize(), 0.05);
-        }
-
-        // Houses Generation with Interactive Doors
-        for (let i = 0; i < WORLD_CONFIG.housePopulation; i++) {
-            const normalVec = generateRandomDirectionVector();
-            const houseGroup = new THREE.Group();
-
-            const houseBase = new THREE.Mesh(new THREE.BoxGeometry(4, 3, 4), new THREE.MeshStandardMaterial({ color: 0x90a4ae, roughness: 0.8 }));
-            houseBase.position.y = 1.5; houseBase.castShadow = true; houseBase.receiveShadow = true;
-            houseGroup.add(houseBase);
-
-            const houseRoof = new THREE.Mesh(new THREE.ConeGeometry(3.2, 2, 4), new THREE.MeshStandardMaterial({ color: 0xbf360c, roughness: 0.7 }));
-            houseRoof.position.y = 4.0; houseRoof.rotation.y = Math.PI / 4; houseRoof.castShadow = true;
-            houseGroup.add(houseRoof);
-
-            const doorPivotContainer = new THREE.Group();
-            doorPivotContainer.position.set(0, 0, 2.01);
-            const doorMesh = new THREE.Mesh(new THREE.BoxGeometry(1.2, 2.2, 0.1), new THREE.MeshStandardMaterial({ color: 0x5d4037 }));
-            doorMesh.position.set(0.6, 1.1, 0); doorMesh.castShadow = true;
-            doorPivotContainer.add(doorMesh);
-            houseGroup.add(doorPivotContainer);
-
-            positionObjectOnSurface(houseGroup, normalVec, 0);
-            const houseWorldPos = houseGroup.position.clone();
-            globalObstacleRegistry.push({ position: houseWorldPos, radius: 2.3 });
-            interactiveHousesRegistry.push({ houseGroup, doorPivotContainer, isDoorOpen: false, worldPosition: houseWorldPos });
-        }
-
-        // Climbable Rocks Generation
-        for (let i = 0; i < WORLD_CONFIG.rockPopulation; i++) {
-            const normalVec = generateRandomDirectionVector();
-            const rockHeight = 1.2 + Math.random() * 1.6;
-            const rockMesh = new THREE.Mesh(new THREE.DodecahedronGeometry(rockHeight, 0), new THREE.MeshStandardMaterial({ color: 0x78909c, roughness: 0.9 }));
-            rockMesh.scale.y = 0.6; rockMesh.castShadow = true; rockMesh.receiveShadow = true;
-            positionObjectOnSurface(rockMesh, normalVec, rockHeight * 0.3);
-            globalObstacleRegistry.push({ position: rockMesh.position.clone(), radius: rockHeight * 0.85, height: rockHeight * 0.55 });
-        }
-
-        // Trees Generation
-        for (let i = 0; i < WORLD_CONFIG.treePopulation; i++) {
-            const normalVec = generateRandomDirectionVector();
-            const treeGroup = new THREE.Group();
-            const trunkMesh = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.5, 3, 8), new THREE.MeshStandardMaterial({ color: 0x62432b }));
-            trunkMesh.position.y = 1.5; trunkMesh.castShadow = true;
-            treeGroup.add(trunkMesh);
-            const crownMesh = new THREE.Mesh(new THREE.DodecahedronGeometry(2, 1), new THREE.MeshStandardMaterial({ color: 0x2e7d32 }));
-            crownMesh.position.y = 3.8; crownMesh.castShadow = true;
-            treeGroup.add(crownMesh);
-            positionObjectOnSurface(treeGroup, normalVec, 0);
-            globalObstacleRegistry.push({ position: treeGroup.position.clone(), radius: 1.1 });
-        }
-
-        /* ==========================================================
-           6. CHARACTER FACTORY & ANIMATION RIG
-           ========================================================== */
-        function constructCharacterModel(hexColorCode) {
-            const characterContainer = new THREE.Group();
-
-            const torsoMesh = new THREE.Mesh(
-                new THREE.BoxGeometry(1.0, 1.5, 0.7),
-                new THREE.MeshStandardMaterial({ color: hexColorCode, roughness: 0.8 })
-            );
-            torsoMesh.position.y = 1.1; torsoMesh.castShadow = true;
-            characterContainer.add(torsoMesh);
-
-            const headMesh = new THREE.Mesh(
-                new THREE.SphereGeometry(0.5, 20, 20),
-                new THREE.MeshStandardMaterial({ color: 0xffd2b5, roughness: 0.9 })
-            );
-            headMesh.position.y = 2.45; headMesh.castShadow = true;
-            characterContainer.add(headMesh);
-
-            const limbsMaterial = new THREE.MeshStandardMaterial({ color: 0x303844, roughness: 0.9 });
-            const leftLegMesh = new THREE.Mesh(new THREE.BoxGeometry(0.35, 0.9, 0.4), limbsMaterial);
-            leftLegMesh.position.set(-0.25, 0.45, 0); leftLegMesh.castShadow = true;
-            characterContainer.add(leftLegMesh);
-
-            const rightLegMesh = new THREE.Mesh(new THREE.BoxGeometry(0.35, 0.9, 0.4), limbsMaterial);
-            rightLegMesh.position.set(0.25, 0.45, 0); rightLegMesh.castShadow = true;
-            characterContainer.add(rightLegMesh);
-
-            characterContainer.userData = { leftLeg: leftLegMesh, rightLeg: rightLegMesh };
-            return characterContainer;
-        }
-
-        /* ==========================================================
-           7. PLAYER CONTROLLER & KINEMATICS SETUP
-           ========================================================== */
-        const playerEntity = new THREE.Group();
-        primaryScene.add(playerEntity);
-
-        const playerVisualMesh = constructCharacterModel(0xe53935); // Main Player Red
-        playerEntity.add(playerVisualMesh);
-
-        let playerSurfaceNormal = new THREE.Vector3(0, 1, 0);
-        let playerForwardTangent = new THREE.Vector3(0, 0, 1);
-        let currentPlayerSpeed = 0;
-        let playerWalkAnimationTime = 0;
-        let playerVerticalVelocity = 0;
-        let playerHeightOffset = 0;
-        let isPlayerJumping = false;
-
-        function refreshPlayerTransformation() {
-            const totalRadiusDistance = WORLD_CONFIG.planetRadius + playerHeightOffset;
-            playerEntity.position.copy(playerSurfaceNormal.clone().multiplyScalar(totalRadiusDistance));
-            
-            const tangentDir = playerForwardTangent.clone().sub(playerSurfaceNormal.clone().multiplyScalar(playerForwardTangent.dot(playerSurfaceNormal))).normalize();
-            const rightVector = new THREE.Vector3().crossVectors(playerSurfaceNormal, tangentDir).normalize();
-            
-            const transformationMatrix = new THREE.Matrix4().makeBasis(rightVector, playerSurfaceNormal, tangentDir);
-            playerEntity.quaternion.setFromRotationMatrix(transformationMatrix);
-        }
-        refreshPlayerTransformation();
-
-        /* ==========================================================
-           8. NPC AI POPULATION & BEHAVIOR SYSTEM
-           ========================================================== */
-        const activeNpcRegistry = [];
-
-        for (let i = 0; i < WORLD_CONFIG.npcPopulation; i++) {
-            const npcGroupNode = new THREE.Group();
-            const npcVisual = constructCharacterModel(0x2196f3);
-            npcGroupNode.add(npcVisual);
-
-            let normalVector = generateRandomDirectionVector();
-            while (normalVector.distanceTo(playerSurfaceNormal) < 0.3) normalVector = generateRandomDirectionVector();
-
-            let forwardVector = new THREE.Vector3(0, 0, 1);
-            forwardVector.sub(normalVector.clone().multiplyScalar(forwardVector.dot(normalVector))).normalize();
-
-            npcGroupNode.position.copy(normalVector.clone().multiplyScalar(WORLD_CONFIG.planetRadius));
-
-            activeNpcRegistry.push({
-                node: npcGroupNode,
-                visualMesh: npcVisual,
-                normal: normalVector,
-                forward: forwardVector,
-                movementSpeed: 0.5 + Math.random() * 0.7,
-                steeringTimer: Math.random() * 3,
-                turnTargetAngle: 0,
-                currentTurnAngle: 0,
-                walkCycleCounter: Math.random() * 10
-            });
-            primaryScene.add(npcGroupNode);
-        }
-
-        function updateNpcAutonomousBehaviors(deltaTime) {
-            for (let npc of activeNpcRegistry) {
-                npc.steeringTimer -= deltaTime;
-                if (npc.steeringTimer <= 0) {
-                    npc.steeringTimer = 2.0 + Math.random() * 3.5;
-                    npc.turnTargetAngle = (Math.random() - 0.5) * 1.3;
-                }
-
-                npc.currentTurnAngle = THREE.MathUtils.damp(npc.currentTurnAngle, npc.turnTargetAngle, 2.0, deltaTime);
-                const rotQuaternion = new THREE.Quaternion().setFromAxisAngle(npc.normal, npc.currentTurnAngle * deltaTime);
-                npc.forward.applyQuaternion(rotQuaternion);
-                npc.forward.sub(npc.normal.clone().multiplyScalar(npc.forward.dot(npc.normal))).normalize();
-
-                const displacementStep = npc.forward.clone().multiplyScalar(npc.movementSpeed * deltaTime);
-                const projectedPos = npc.node.position.clone().add(displacementStep);
-                const updatedNormal = projectedPos.clone().normalize();
-                
-                npc.normal.copy(updatedNormal);
-                const updatedForward = npc.forward.clone().sub(updatedNormal.clone().multiplyScalar(updatedNormal.dot(npc.forward))).normalize();
-                npc.forward.copy(updatedForward);
-                npc.node.position.copy(updatedNormal.clone().multiplyScalar(WORLD_CONFIG.planetRadius));
-
-                const tFwd = npc.forward.clone().sub(npc.normal.clone().multiplyScalar(npc.normal.dot(npc.forward))).normalize();
-                const rVec = new THREE.Vector3().crossVectors(npc.normal, tFwd).normalize();
-                npc.node.quaternion.setFromRotationMatrix(new THREE.Matrix4().makeBasis(rVec, npc.normal, tFwd));
-
-                npc.walkCycleCounter += deltaTime * npc.movementSpeed * 2.0;
-                const legSwingAngle = Math.sin(npc.walkCycleCounter * 6) * 0.35;
-                npc.visualMesh.userData.leftLeg.rotation.x = legSwingAngle;
-                npc.visualMesh.userData.rightLeg.rotation.x = -legSwingAngle;
-            }
-        }
-
-        /* ==========================================================
-           9. INPUT CONTROLLERS (KEYBOARD, VIRTUAL JOYSTICK & ORBIT POV)
-           ========================================================== */
-        const activeKeyboardState = {};
-        window.addEventListener('keydown', (event) => {
-            activeKeyboardState[event.key.toLowerCase()] = true;
-            if (event.code === 'Space' && !isPlayerJumping && playerHeightOffset <= 0.05) executePlayerJump();
+        // Controls
+        const keys = {};
+        window.addEventListener('keydown', e => {
+            keys[e.key.toLowerCase()] = true;
+            if(e.code === 'Space' && !isJumping) { vVel = CFG.jumpForce; isJumping = true; }
         });
-        window.addEventListener('keyup', (event) => {
-            activeKeyboardState[event.key.toLowerCase()] = false;
-        });
+        window.addEventListener('keyup', e => { keys[e.key.toLowerCase()] = false; });
 
         document.getElementById('jump-btn').addEventListener('click', () => {
-            if (!isPlayerJumping && playerHeightOffset <= 0.05) executePlayerJump();
+            if(!isJumping) { vVel = CFG.jumpForce; isJumping = true; }
         });
 
-        function executePlayerJump() {
-            playerVerticalVelocity = WORLD_CONFIG.jumpForce;
-            isPlayerJumping = true;
+        const zone = document.getElementById('virtual-joystick');
+        const knob = document.getElementById('joystick-thumb');
+        let joyActive = false, joyX = 0, joyY = 0;
+
+        zone.addEventListener('pointerdown', e => { joyActive = true; moveJoy(e.clientX, e.clientY); });
+        zone.addEventListener('pointermove', e => { if(joyActive) moveJoy(e.clientX, e.clientY); });
+        window.addEventListener('pointerup', () => { joyActive = false; joyX = 0; joyY = 0; knob.style.transform = `translate(0px,0px)`; });
+
+        function moveJoy(x, y) {
+            const rect = zone.getBoundingClientRect();
+            let dx = x - (rect.left + 70), dy = y - (rect.top + 70);
+            const dist = Math.hypot(dx, dy), max = 42;
+            if(dist > max) { dx = (dx/dist)*max; dy = (dy/dist)*max; }
+            knob.style.transform = `translate(${dx}px,${dy}px)`;
+            joyX = dx / max; joyY = dy / max;
         }
 
-        const joystickZoneElement = document.getElementById('virtual-joystick');
-        const joystickThumbElement = document.getElementById('joystick-thumb');
-        let isJoystickActive = false;
-        let joystickPointerId = null;
-        let joystickAxisX = 0;
-        let joystickAxisY = 0;
-
-        joystickZoneElement.addEventListener('pointerdown', (e) => {
-            isJoystickActive = true;
-            joystickPointerId = e.pointerId;
-            joystickZoneElement.setPointerCapture(e.pointerId);
-            evaluateJoystickPosition(e.clientX, e.clientY);
+        // Camera Orbit
+        let camAzimuth = 0;
+        let isOrbiting = false, lastMouse = {x:0, y:0};
+        window.addEventListener('pointerdown', e => {
+            if(e.target.closest('#virtual-joystick') || e.target.closest('#jump-btn')) return;
+            isOrbiting = true; lastMouse = {x: e.clientX, y: e.clientY};
         });
-        joystickZoneElement.addEventListener('pointermove', (e) => {
-            if (!isJoystickActive || e.pointerId !== joystickPointerId) return;
-            evaluateJoystickPosition(e.clientX, e.clientY);
+        window.addEventListener('pointermove', e => {
+            if(!isOrbiting) return;
+            camAzimuth -= (e.clientX - lastMouse.x) * 0.005;
+            lastMouse = {x: e.clientX, y: e.clientY};
         });
-        joystickZoneElement.addEventListener('pointerup', terminateJoystick);
-        joystickZoneElement.addEventListener('pointercancel', terminateJoystick);
+        window.addEventListener('pointerup', () => { isOrbiting = false; });
 
-        function terminateJoystick() {
-            isJoystickActive = false;
-            joystickPointerId = null;
-            joystickAxisX = 0;
-            joystickAxisY = 0;
-            joystickThumbElement.style.transform = `translate(0px, 0px)`;
-        }
+        // Loop
+        const clock = new THREE.Clock();
+        function animate() {
+            requestAnimationFrame(animate);
+            const dt = Math.min(clock.getDelta(), 0.05);
 
-        function evaluateJoystickPosition(clientX, clientY) {
-            const rect = joystickZoneElement.getBoundingClientRect();
-            let dx = clientX - (rect.left + rect.width / 2);
-            let dy = clientY - (rect.top + rect.height / 2);
-            const maxRadius = 42;
-            const dist = Math.hypot(dx, dy);
-            if (dist > maxRadius) {
-                dx = (dx / dist) * maxRadius;
-                dy = (dy / dist) * maxRadius;
-            }
-            joystickThumbElement.style.transform = `translate(${dx}px, ${dy}px)`;
-            joystickAxisX = dx / maxRadius;
-            joystickAxisY = dy / maxRadius;
-        }
+            let turn = 0, walk = 0;
+            if(keys['a'] || keys['arrowleft']) turn = 1;
+            if(keys['d'] || keys['arrowright']) turn = -1;
+            if(keys['w'] || keys['arrowup']) walk = 1;
+            if(keys['s'] || keys['arrowdown']) walk = -1;
+            if(joyActive) { turn = -joyX; walk = -joyY; }
 
-        // Camera POV Orbit Drag Control
-        let isCameraOrbiting = false;
-        let cameraAzimuthAngle = 0;
-        let cameraElevationAngle = 0.5;
-        let lastMouseCoordinates = { x: 0, y: 0 };
-
-        window.addEventListener('pointerdown', (e) => {
-            if (e.target.closest('#virtual-joystick') || e.target.closest('#jump-btn') || e.target.closest('#ui-container')) return;
-            isCameraOrbiting = true;
-            lastMouseCoordinates = { x: e.clientX, y: e.clientY };
-        });
-        window.addEventListener('pointermove', (e) => {
-            if (!isCameraOrbiting) return;
-            const deltaX = e.clientX - lastMouseCoordinates.x;
-            const deltaY = e.clientY - lastMouseCoordinates.y;
-            cameraAzimuthAngle -= deltaX * 0.005;
-            cameraElevationAngle = THREE.MathUtils.clamp(cameraElevationAngle + deltaY * 0.005, 0.1, 1.2);
-            lastMouseCoordinates = { x: e.clientX, y: e.clientY };
-        });
-        window.addEventListener('pointerup', () => { isCameraOrbiting = false; });
-
-        /* ==========================================================
-           10. PLAYER KINEMATICS & HOUSE DOOR INTERACTION LOOP
-           ========================================================== */
-        function updatePlayerLogic(deltaTime) {
-            let turnInput = 0;
-            let walkInput = 0;
-
-            if (activeKeyboardState['a'] || activeKeyboardState['arrowleft']) turnInput = 1;
-            if (activeKeyboardState['d'] || activeKeyboardState['arrowright']) turnInput = -1;
-            if (activeKeyboardState['w'] || activeKeyboardState['arrowup']) walkInput = 1;
-            if (activeKeyboardState['s'] || activeKeyboardState['arrowdown']) walkInput = -1;
-
-            if (isJoystickActive) {
-                turnInput = -joystickAxisX;
-                walkInput = -joystickAxisY;
+            if(Math.abs(turn) > 0.05) {
+                const q = new THREE.Quaternion().setFromAxisAngle(pNormal, turn * CFG.turnSpeed * dt);
+                pForward.applyQuaternion(q);
+                pForward.sub(pNormal.clone().multiplyScalar(pForward.dot(pNormal))).normalize();
             }
 
-            if (Math.abs(turnInput) > 0.05) {
-                const turnQuaternion = new THREE.Quaternion().setFromAxisAngle(playerSurfaceNormal, turnInput * WORLD_CONFIG.playerTurnSpeed * deltaTime);
-                playerForwardTangent.applyQuaternion(turnQuaternion);
-                playerForwardTangent.sub(playerSurfaceNormal.clone().multiplyScalar(playerForwardTangent.dot(playerSurfaceNormal))).normalize();
+            const targetSpeed = walk !== 0 ? CFG.walkSpeed * walk : 0;
+            speed = THREE.MathUtils.damp(speed, targetSpeed, 6.0, dt);
+
+            if(isJumping) {
+                vVel -= CFG.gravity * dt;
+                hOffset += vVel * dt;
+                if(hOffset <= 0) { hOffset = 0; vVel = 0; isJumping = false; }
             }
 
-            const targetVelocity = walkInput > 0 ? WORLD_CONFIG.playerWalkSpeed * walkInput : walkInput < 0 ? WORLD_CONFIG.playerReverseSpeed * walkInput : 0;
-            currentPlayerSpeed = THREE.MathUtils.damp(currentPlayerSpeed, targetVelocity, 6.0, deltaTime);
-
-            // Gravity & Vertical Physics
-            if (isPlayerJumping || playerHeightOffset > 0) {
-                playerVerticalVelocity -= WORLD_CONFIG.gravityConstant * deltaTime;
-                playerHeightOffset += playerVerticalVelocity * deltaTime;
-                if (playerHeightOffset <= 0) {
-                    playerHeightOffset = 0;
-                    playerVerticalVelocity = 0;
-                    isPlayerJumping = false;
-                }
-            }
-
-            // Rock Climbing Height Adjustment
-            let groundElevationHeight = 0;
-            for (let obstacle of globalObstacleRegistry) {
-                if (obstacle.height && playerEntity.position.distanceTo(obstacle.position) < obstacle.radius) {
-                    if (playerHeightOffset <= obstacle.height + 0.2) {
-                        groundElevationHeight = obstacle.height;
-                    }
-                }
-            }
-            if (playerHeightOffset < groundElevationHeight && !isPlayerJumping) {
-                playerHeightOffset = groundElevationHeight;
-            }
-
-            if (Math.abs(currentPlayerSpeed) > 0.01) {
-                const movementStep = playerForwardTangent.clone().multiplyScalar(currentPlayerSpeed * deltaTime);
-                const testPos = playerEntity.position.clone().add(movementStep);
-                const testNormal = testPos.clone().normalize();
-                const testWorldPos = testNormal.clone().multiplyScalar(WORLD_CONFIG.planetRadius);
-
-                if (!checkWorldCollision(testWorldPos, 1.2)) {
-                    playerSurfaceNormal.copy(testNormal);
-                    const newFwdTangent = playerForwardTangent.clone().sub(playerSurfaceNormal.clone().multiplyScalar(playerForwardTangent.dot(playerSurfaceNormal))).normalize();
-                    playerForwardTangent.copy(newFwdTangent);
-                    refreshPlayerTransformation();
-                } else {
-                    currentPlayerSpeed *= 0.1;
-                }
+            if(Math.abs(speed) > 0.01) {
+                const disp = pForward.clone().multiplyScalar(speed * dt);
+                const nextPos = player.position.clone().add(disp);
+                pNormal.copy(nextPos.normalize());
+                pForward.sub(pNormal.clone().multiplyScalar(pForward.dot(pNormal))).normalize();
+                updatePlayerTransform();
             } else {
-                refreshPlayerTransformation();
+                updatePlayerTransform();
             }
 
-            // Proximity House Door Automation
-            for (let houseObj of interactiveHousesRegistry) {
-                const distanceToHouse = playerEntity.position.distanceTo(houseObj.worldPosition);
-                if (distanceToHouse < 5.0 && !houseObj.isDoorOpen) {
-                    houseObj.isDoorOpen = true;
-                    let progress = 0;
-                    const animInterval = setInterval(() => {
-                        progress += 0.1;
-                        houseObj.doorPivotContainer.rotation.y = Math.min(Math.PI * 0.6, progress * Math.PI * 0.6);
-                        if (progress >= 1) clearInterval(animInterval);
-                    }, 30);
-                } else if (distanceToHouse >= 6.0 && houseObj.isDoorOpen) {
-                    houseObj.isDoorOpen = false;
-                    let progress = 1;
-                    const animInterval = setInterval(() => {
-                        progress -= 0.1;
-                        houseObj.doorPivotContainer.rotation.y = Math.max(0, progress * Math.PI * 0.6);
-                        if (progress <= 0) clearInterval(animInterval);
-                    }, 30);
-                }
-            }
+            // Camera follow
+            const up = pNormal.clone();
+            const fwd = pForward.clone().sub(up.clone().multiplyScalar(pForward.dot(up))).normalize();
+            const rotM = new THREE.Matrix4().makeAxisAngle(up, camAzimuth);
+            const back = fwd.clone().applyMatrix4(rotM).negate();
 
-            if (Math.abs(currentPlayerSpeed) > 0.1 && playerHeightOffset === 0) {
-                playerWalkAnimationTime += deltaTime * Math.abs(currentPlayerSpeed) * 1.5;
-            }
-            const legSwingVal = Math.sin(playerWalkAnimationTime * 8) * 0.45 * Math.min(1, Math.abs(currentPlayerSpeed) / WORLD_CONFIG.playerWalkSpeed);
-            playerVisualMesh.userData.leftLeg.rotation.x = legSwingVal;
-            playerVisualMesh.userData.rightLeg.rotation.x = -legSwingVal;
+            const targetCamPos = player.position.clone()
+                .add(up.clone().multiplyScalar(CFG.cameraHeight))
+                .add(back.clone().multiplyScalar(CFG.cameraDist));
 
-            document.getElementById('speed-meter').textContent = `Speed: ${Math.abs(currentPlayerSpeed).toFixed(1)} m/s`;
+            camera.position.lerp(targetCamPos, 0.1);
+            camera.up.copy(up);
+            camera.lookAt(player.position.clone().add(up.clone().multiplyScalar(1.5)));
+
+            renderer.render(scene, camera);
         }
 
-        /* ==========================================================
-           11. SMOOTH MULTI-STOP DAY/NIGHT SKY GRADIENT SYSTEM
-           ========================================================== */
-        let totalElapsedGameTime = WORLD_CONFIG.dayCycleDurationSec * 0.25; // Mulakan pukul 12 tengah hari
+        animate();
 
-        function updateDayNightLightingCycle(deltaTime) {
-            totalElapsedGameTime += deltaTime;
-            const cycleFraction = (totalElapsedGameTime % WORLD_CONFIG.dayCycleDurationSec) / WORLD_CONFIG.dayCycleDurationSec;
-            const sunOrbitAngle = cycleFraction * Math.PI * 2 - Math.PI / 2;
-            const celestialOrbitRadius = 450;
-            const calculatedSunX = Math.cos(sunOrbitAngle) * celestialOrbitRadius;
-            const calculatedSunY = Math.sin(sunOrbitAngle) * celestialOrbitRadius;
-
-            directionalSunLight.position.set(calculatedSunX, calculatedSunY, 150);
-            sunVisualMesh.position.copy(directionalSunLight.position);
-            directionalMoonLight.position.set(-calculatedSunX, -calculatedSunY, -150);
-            moonVisualMesh.position.copy(directionalMoonLight.position);
-
-            const sunElevationFactor = Math.sin(sunOrbitAngle);
-
-            directionalSunLight.intensity = THREE.MathUtils.lerp(0.1, 2.4, Math.max(0, sunElevationFactor));
-            directionalMoonLight.intensity = THREE.MathUtils.lerp(0.02, 0.4, Math.max(0, -sunElevationFactor));
-            hemisphereEnvironmentLight.intensity = THREE.MathUtils.lerp(0.25, 1.4, Math.max(0, sunElevationFactor + 0.2));
-
-            // Smooth Multi-stop Shifting Sky Color
-            const interpolatedSkyColor = new THREE.Color();
-            if (sunElevationFactor > 0.18) {
-                interpolatedSkyColor.set(0x75c4ff);
-            } else if (sunElevationFactor >= -0.18 && sunElevationFactor <= 0.18) {
-                const tNormalized = (sunElevationFactor + 0.18) / 0.36;
-                interpolatedSkyColor.set(0x0a0c1b).lerp(new THREE.Color(0xf08a5d), tNormalized).lerp(new THREE.Color(0x75c4ff), tNormalized * tNormalized);
-            } else {
-                interpolatedSkyColor.set(0x02030a);
-            }
-
-            primaryScene.background.copy(interpolatedSkyColor);
-            primaryScene.fog.color.copy(interpolatedSkyColor);
-            backgroundStars.material.opacity = THREE.MathUtils.clamp(1 - (sunElevationFactor + 0.2) * 2, 0, 1);
-
-            const totalClockMinutes = cycleFraction * 24 * 60;
-            const currentHours = Math.floor(totalClockMinutes / 60);
-            const currentMinutes = Math.floor(totalClockMinutes % 60);
-            const timePeriodLabel = sunElevationFactor > 0.05 ? "Day" : sunElevationFactor > -0.05 ? "Twilight" : "Night";
-            const timePeriodIcon = timePeriodLabel === "Day" ? "☀️" : timePeriodLabel === "Night" ? "🌙" : "🌅";
-            
-            document.getElementById('time-display').textContent = `${timePeriodIcon} ${String(currentHours).padStart(2,'0')}:${String(currentMinutes).padStart(2,'0')} · ${timePeriodLabel}`;
-        }
-
-        /* ==========================================================
-           12. CAMERA RIG ORBIT & FOLLOW SYSTEM
-           ========================================================== */
-        const targetedCameraPosition = new THREE.Vector3();
-        const cameraLookAtTarget = new THREE.Vector3();
-
-        function updateCameraRigSystem(deltaTime) {
-            const surfaceUpVector = playerSurfaceNormal.clone();
-            const forwardTangentDir = playerForwardTangent.clone().sub(surfaceUpVector.clone().multiplyScalar(playerForwardTangent.dot(surfaceUpVector))).normalize();
-            
-            const rotationMatrixAxis = new THREE.Matrix4().makeAxisAngle(surfaceUpVector, cameraAzimuthAngle);
-            const rotatedForwardDir = forwardTangentDir.clone().applyMatrix4(rotationMatrixAxis);
-            const backwardVector = rotatedForwardDir.clone().negate();
-
-            targetedCameraPosition.copy(playerEntity.position)
-                .add(surfaceUpVector.clone().multiplyScalar(WORLD_CONFIG.cameraHeight + cameraElevationAngle * 4))
-                .add(backwardVector.clone().multiplyScalar(WORLD_CONFIG.cameraDistance));
-
-            primaryCamera.position.lerp(targetedCameraPosition, 1.0 - Math.exp(-8.0 * deltaTime));
-            primaryCamera.up.copy(surfaceUpVector);
-
-            cameraLookAtTarget.copy(playerEntity.position).add(surfaceUpVector.clone().multiplyScalar(1.8));
-            primaryCamera.lookAt(cameraLookAtTarget);
-        }
-
-        /* ==========================================================
-           13. RESIZE HANDLER & MAIN GAME EXECUTION LOOP
-           ========================================================== */
         window.addEventListener('resize', () => {
-            primaryCamera.aspect = window.innerWidth / window.innerHeight;
-            primaryCamera.updateProjectionMatrix();
-            webglRenderer.setSize(window.innerWidth, window.innerHeight);
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
         });
-
-        const simulationClock = new THREE.Clock();
-        let renderedFramesCounter = 0;
-        let lastFpsTimestamp = performance.now();
-
-        function executeMainGameLoop() {
-            requestAnimationFrame(executeMainGameLoop);
-            const deltaTime = Math.min(simulationClock.getDelta(), 0.05);
-
-            updatePlayerLogic(deltaTime);
-            updateNpcAutonomousBehaviors(deltaTime);
-            updateDayNightLightingCycle(deltaTime);
-            updateCameraRigSystem(deltaTime);
-
-            backgroundStars.rotation.y += deltaTime * 0.0008;
-
-            renderedFramesCounter++;
-            const currentTimeNow = performance.now();
-            if (currentTimeNow - lastFpsTimestamp >= 500) {
-                const currentFpsRate = Math.round((renderedFramesCounter * 1000) / (currentTimeNow - lastFpsTimestamp));
-                document.getElementById('fps-counter').textContent = `FPS: ${currentFpsRate}`;
-                renderedFramesCounter = 0;
-                lastFpsTimestamp = currentTimeNow;
-            }
-
-            webglRenderer.render(primaryScene, primaryCamera);
-        }
-
-        executeMainGameLoop();
     </script>
 </body>
 </html>
