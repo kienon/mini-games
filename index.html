@@ -61,10 +61,10 @@
 <body>
 
     <div id="ui-container">
-        <h1>🌍 Tiny World: Pro Explorer</h1>
+        <h1>🌍 Tiny World: Ultimate Living</h1>
         <p><b>PC:</b> W/S | A/D | Space (Jump)</p>
-        <p><b>Mouse:</b> Drag to rotate POV</p>
-        <p id="status-text" style="color: #69f0ae; font-weight: bold; margin-top: 4px;">Status: Active</p>
+        <p><b>Mobile:</b> Analog Joystick & Jump</p>
+        <p id="status-text" style="color: #69f0ae; font-weight: bold; margin-top: 4px;">Status: Fully Operational</p>
     </div>
 
     <div id="telemetry-panel">
@@ -91,22 +91,29 @@
     <script type="module">
         import * as THREE from 'three';
 
+        /* ==========================================================
+           1. CONFIGURATION (Expanded & Detailed)
+           ========================================================== */
         const CONFIG = {
             planetRadius: 180,
-            walkSpeed: 3.8,
-            reverseSpeed: 1.8,
-            turnSpeed: 2.2,
-            jumpForce: 6.0,
-            gravity: 14.0,
+            playerWalkSpeed: 3.8,
+            playerReverseSpeed: 1.8,
+            playerTurnSpeed: 2.2,
+            jumpForce: 6.5,
+            gravity: 16.0,
             cameraDist: 14,
             cameraHeight: 5.2,
-            npcCount: 20,
-            buildingCount: 30,
-            treeCount: 120,
-            rockCount: 50,
+            cameraLag: 8.0,
+            npcCount: 25,
+            buildingCount: 40,
+            treeCount: 140,
+            rockCount: 60,
             dayLengthSec: 200
         };
 
+        /* ==========================================================
+           2. SCENE, CAMERA & RENDERER INITIALIZATION
+           ========================================================== */
         const scene = new THREE.Scene();
         scene.background = new THREE.Color(0x75c4ff);
         scene.fog = new THREE.FogExp2(0x75c4ff, 0.0018);
@@ -121,30 +128,44 @@
         renderer.outputColorSpace = THREE.SRGBColorSpace;
         document.body.appendChild(renderer.domElement);
 
-        // Lighting
+        /* ==========================================================
+           3. DYNAMIC LIGHTING & CELESTIAL BODIES (SUN & MOON)
+           ========================================================== */
+        scene.add(new THREE.AmbientLight(0xffffff, 0.45));
         const hemisphereLight = new THREE.HemisphereLight(0xbfe9ff, 0x29442a, 1.4);
         scene.add(hemisphereLight);
 
-        const sunLight = new THREE.DirectionalLight(0xffffff, 2.0);
+        const sunLight = new THREE.DirectionalLight(0xffffff, 2.2);
         sunLight.castShadow = true;
         sunLight.shadow.mapSize.width = 2048;
         sunLight.shadow.mapSize.height = 2048;
         sunLight.shadow.camera.near = 50;
         sunLight.shadow.camera.far = 700;
-        sunLight.shadow.camera.left = -280; sunLight.shadow.camera.right = 280;
-        sunLight.shadow.camera.top = 280; sunLight.shadow.camera.bottom = -280;
+        sunLight.shadow.camera.left = -280;
+        sunLight.shadow.camera.right = 280;
+        sunLight.shadow.camera.top = 280;
+        sunLight.shadow.camera.bottom = -280;
         sunLight.shadow.bias = -0.0004;
         scene.add(sunLight);
 
         const moonLight = new THREE.DirectionalLight(0x8da9ff, 0.3);
         scene.add(moonLight);
 
-        const sunMesh = new THREE.Mesh(new THREE.SphereGeometry(12, 32, 32), new THREE.MeshBasicMaterial({ color: 0xffffee }));
+        const sunMesh = new THREE.Mesh(
+            new THREE.SphereGeometry(12, 32, 32),
+            new THREE.MeshBasicMaterial({ color: 0xffffee })
+        );
         scene.add(sunMesh);
-        const moonMesh = new THREE.Mesh(new THREE.SphereGeometry(9, 32, 32), new THREE.MeshStandardMaterial({ color: 0xd9e1ec, roughness: 1 }));
+
+        const moonMesh = new THREE.Mesh(
+            new THREE.SphereGeometry(9, 32, 32),
+            new THREE.MeshStandardMaterial({ color: 0xd9e1ec, roughness: 1 })
+        );
         scene.add(moonMesh);
 
-        // Planet
+        /* ==========================================================
+           4. ENVIRONMENT: PLANET, STARS, CLOUDS & RIVER
+           ========================================================== */
         const planet = new THREE.Mesh(
             new THREE.SphereGeometry(CONFIG.planetRadius, 128, 128),
             new THREE.MeshStandardMaterial({ color: 0x3e9850, roughness: 0.95, metalness: 0 })
@@ -158,62 +179,80 @@
         );
         scene.add(atmosphere);
 
-        // Stars & Clouds
+        // Stars
         const starGeo = new THREE.BufferGeometry();
-        const starPos = new Float32Array(4500 * 3);
-        for (let i = 0; i < 4500 * 3; i += 3) {
+        const starCount = 4500;
+        const starPositions = new Float32Array(starCount * 3);
+        for (let i = 0; i < starCount * 3; i += 3) {
             const u = Math.random(), v = Math.random();
             const theta = u * 2.0 * Math.PI, phi = Math.acos(2.0 * v - 1.0);
             const r = 800 + Math.random() * 300;
-            starPos[i] = r * Math.sin(phi) * Math.cos(theta);
-            starPos[i+1] = r * Math.sin(phi) * Math.sin(theta);
-            starPos[i+2] = r * Math.cos(phi);
+            starPositions[i] = r * Math.sin(phi) * Math.cos(theta);
+            starPositions[i+1] = r * Math.sin(phi) * Math.sin(theta);
+            starPositions[i+2] = r * Math.cos(phi);
         }
-        starGeo.setAttribute('position', new THREE.BufferAttribute(starPos, 3));
+        starGeo.setAttribute('position', new THREE.BufferAttribute(starPositions, 3));
         const stars = new THREE.Points(starGeo, new THREE.PointsMaterial({ color: 0xffffff, size: 1.4, transparent: true, opacity: 0 }));
         scene.add(stars);
 
+        // Procedural Clouds Group
         const cloudGroup = new THREE.Group();
         scene.add(cloudGroup);
-        function randomDir() { return new THREE.Vector3(Math.random()-.5, Math.random()-.5, Math.random()-.5).normalize(); }
-        function placeOnPlanet(obj, normal, height=0) {
+
+        function createCloudPuffCluster() {
+            const group = new THREE.Group();
+            const mat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 1, transparent: true, opacity: 0.75 });
+            const count = 3 + Math.floor(Math.random() * 3);
+            for (let j = 0; j < count; j++) {
+                const puff = new THREE.Mesh(new THREE.SphereGeometry(3 + Math.random() * 2.5, 12, 12), mat);
+                puff.position.set(j * 3.5, Math.random() * 1.5, (Math.random() - 0.5) * 3);
+                group.add(puff);
+            }
+            return group;
+        }
+
+        function randomDir() {
+            return new THREE.Vector3(Math.random()-.5, Math.random()-.5, Math.random()-.5).normalize();
+        }
+
+        function placeOnPlanetSurface(obj, normal, height=0) {
             obj.position.copy(normal.clone().multiplyScalar(CONFIG.planetRadius + height));
             obj.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0), normal);
             scene.add(obj);
         }
 
-        for (let i = 0; i < 15; i++) {
-            const group = new THREE.Group();
-            const mat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 1, transparent: true, opacity: 0.7 });
-            for (let j = 0; j < 3; j++) {
-                const puff = new THREE.Mesh(new THREE.SphereGeometry(3 + Math.random()*2, 10, 10), mat);
-                puff.position.set(j*3, Math.random(), 0);
-                group.add(puff);
-            }
-            placeOnPlanet(group, randomDir(), 15 + Math.random()*5);
-            cloudGroup.add(group);
+        for (let i = 0; i < 18; i++) {
+            const cNorm = randomDir();
+            const cloud = createCloudPuffCluster();
+            cloud.scale.setScalar(0.8 + Math.random() * 1.2);
+            placeOnPlanetSurface(cloud, cNorm, 14 + Math.random() * 8);
+            cloudGroup.add(cloud);
         }
 
         // Sungai (River)
-        for (let i = 0; i <= 30; i++) {
-            const angle = (i / 30) * Math.PI * 2;
+        for (let i = 0; i <= 35; i++) {
+            const angle = (i / 35) * Math.PI * 2;
             const dir = new THREE.Vector3(Math.cos(angle), Math.sin(angle * 0.4), Math.sin(angle)).normalize();
             const patch = new THREE.Mesh(new THREE.BoxGeometry(4.5, 0.05, 12), new THREE.MeshStandardMaterial({ color: 0x2196f3, roughness: 0.2, metalness: 0.8 }));
-            placeOnPlanet(patch, dir, 0.05);
+            placeOnPlanetSurface(patch, dir, 0.05);
         }
 
-        // Obstacles & Collisions (Rumah, Batu, Pokok)
+        /* ==========================================================
+           5. OBSTACLES, INTERACTIVE HOUSES, ROCKS & TREES
+           ========================================================== */
         const obstacleList = [];
         const interactiveHouses = [];
 
         function checkCollision(worldPos, clearance) {
             for (let obs of obstacleList) {
-                if (worldPos.distanceTo(obs.position) < (clearance + obs.radius)) return true;
+                if (worldPos.distanceTo(obs.position) < (clearance + obs.radius)) {
+                    return true;
+                }
             }
             return false;
         }
 
-        // Rumah Interaktif
+        // Rumah Interaktif (Pintu Buka Sendiri)
         for (let i = 0; i < CONFIG.buildingCount / 2; i++) {
             const normal = randomDir();
             const house = new THREE.Group();
@@ -232,7 +271,7 @@
             doorPivot.add(door);
             house.add(doorPivot);
 
-            placeOnPlanet(house, normal, 0);
+            placeOnPlanetSurface(house, normal, 0);
             const worldPos = house.position.clone();
             obstacleList.push({ position: worldPos, radius: 2.2 });
             interactiveHouses.push({ house, doorPivot, isOpen: false, worldPos });
@@ -244,7 +283,7 @@
             const rockH = 1.2 + Math.random() * 1.5;
             const rock = new THREE.Mesh(new THREE.DodecahedronGeometry(rockH, 0), new THREE.MeshStandardMaterial({ color: 0x78909c, roughness: 0.9 }));
             rock.scale.y = 0.6; rock.castShadow = true;
-            placeOnPlanet(rock, normal, rockH * 0.3);
+            placeOnPlanetSurface(rock, normal, rockH * 0.3);
             obstacleList.push({ position: rock.position.clone(), radius: rockH * 0.9, height: rockH * 0.6 });
         }
 
@@ -258,29 +297,54 @@
             const crown = new THREE.Mesh(new THREE.DodecahedronGeometry(2, 1), new THREE.MeshStandardMaterial({ color: 0x2e7d32 }));
             crown.position.y = 3.8; crown.castShadow = true;
             tree.add(crown);
-            placeOnPlanet(tree, normal, 0);
+
+            placeOnPlanetSurface(tree, normal, 0);
             obstacleList.push({ position: tree.position.clone(), radius: 1.1 });
         }
 
-        // Character Factory
+        /* ==========================================================
+           6. CHARACTER FACTORY (PLAYER & ANIMATED LEGS)
+           ========================================================== */
         function createCharacterMesh(hexColor) {
             const container = new THREE.Group();
-            const torso = new THREE.Mesh(new THREE.BoxGeometry(1.0, 1.5, 0.7), new THREE.MeshStandardMaterial({ color: hexColor, roughness: 0.8 }));
-            torso.position.y = 1.1; torso.castShadow = true; container.add(torso);
-            const head = new THREE.Mesh(new THREE.SphereGeometry(0.5, 20, 20), new THREE.MeshStandardMaterial({ color: 0xffd2b5, roughness: 0.9 }));
-            head.position.y = 2.45; head.castShadow = true; container.add(head);
+
+            const torso = new THREE.Mesh(
+                new THREE.BoxGeometry(1.0, 1.5, 0.7),
+                new THREE.MeshStandardMaterial({ color: hexColor, roughness: 0.8 })
+            );
+            torso.position.y = 1.1;
+            torso.castShadow = true;
+            container.add(torso);
+
+            const head = new THREE.Mesh(
+                new THREE.SphereGeometry(0.5, 20, 20),
+                new THREE.MeshStandardMaterial({ color: 0xffd2b5, roughness: 0.9 })
+            );
+            head.position.y = 2.45;
+            head.castShadow = true;
+            container.add(head);
+
             const legMat = new THREE.MeshStandardMaterial({ color: 0x303844, roughness: 0.9 });
             const leftLeg = new THREE.Mesh(new THREE.BoxGeometry(0.35, 0.9, 0.4), legMat);
-            leftLeg.position.set(-0.25, 0.45, 0); leftLeg.castShadow = true; container.add(leftLeg);
+            leftLeg.position.set(-0.25, 0.45, 0);
+            leftLeg.castShadow = true;
+            container.add(leftLeg);
+
             const rightLeg = new THREE.Mesh(new THREE.BoxGeometry(0.35, 0.9, 0.4), legMat);
-            rightLeg.position.set(0.25, 0.45, 0); rightLeg.castShadow = true; container.add(rightLeg);
+            rightLeg.position.set(0.25, 0.45, 0);
+            rightLeg.castShadow = true;
+            container.add(rightLeg);
+
             container.userData = { leftLeg, rightLeg };
             return container;
         }
 
-        // Player Setup
+        /* ==========================================================
+           7. PLAYER SETUP & ORIENTATION SYSTEM
+           ========================================================== */
         const player = new THREE.Group();
         scene.add(player);
+
         const playerMesh = createCharacterMesh(0xe53935);
         player.add(playerMesh);
 
@@ -295,48 +359,92 @@
         function updatePlayerTransform() {
             const radiusTotal = CONFIG.planetRadius + heightOffset;
             player.position.copy(playerNormal.clone().multiplyScalar(radiusTotal));
+            
             const tangentFwd = playerForward.clone().sub(playerNormal.clone().multiplyScalar(playerForward.dot(playerNormal))).normalize();
             const rightVec = new THREE.Vector3().crossVectors(playerNormal, tangentFwd).normalize();
+            
             const matrix = new THREE.Matrix4().makeBasis(rightVec, playerNormal, tangentFwd);
             player.quaternion.setFromRotationMatrix(matrix);
         }
+
         updatePlayerTransform();
 
-        // NPC System
+        /* ==========================================================
+           8. NPC SYSTEM & COLLISION WITH PLAYER
+           ========================================================== */
         const npcList = [];
+
         for (let i = 0; i < CONFIG.npcCount; i++) {
             const group = new THREE.Group();
-            const mesh = createCharacterMesh(0x2196f3);
+            const colors = [0x2196f3, 0xffc107, 0x9c27b0, 0x00acc1, 0xff7043];
+            const mesh = createCharacterMesh(colors[Math.floor(Math.random() * colors.length)]);
             group.add(mesh);
+
             let normal = randomDir();
             while (normal.distanceTo(playerNormal) < 0.3) normal = randomDir();
-            let forward = new THREE.Vector3(0,0,1);
+
+            let forward = new THREE.Vector3(0, 0, 1);
             forward.sub(normal.clone().multiplyScalar(forward.dot(normal))).normalize();
+
             group.position.copy(normal.clone().multiplyScalar(CONFIG.planetRadius));
-            npcList.push({ object: group, mesh, normal, forward, speed: 0.5 + Math.random()*0.6, timer: Math.random()*3, turnTarget: 0, currentTurn: 0, walkCounter: Math.random()*10 });
+
+            const npcData = {
+                object: group,
+                mesh: mesh,
+                normal: normal,
+                forward: forward,
+                speed: 0.6 + Math.random() * 0.8,
+                timer: Math.random() * 3,
+                turnTarget: 0,
+                currentTurn: 0,
+                walkCounter: Math.random() * 10,
+                radius: 1.0
+            };
+
             scene.add(group);
+            npcList.push(npcData);
+            obstacleList.push({ position: group.position, radius: 1.0, isNpc: true, data: npcData });
         }
 
         function updateNPCs(dt) {
             for (let npc of npcList) {
                 npc.timer -= dt;
-                if (npc.timer <= 0) { npc.timer = 2 + Math.random()*3; npc.turnTarget = (Math.random() - 0.5)*1.2; }
+                if (npc.timer <= 0) {
+                    npc.timer = 2 + Math.random() * 4;
+                    npc.turnTarget = (Math.random() - 0.5) * 1.2;
+                }
+
                 npc.currentTurn = THREE.MathUtils.damp(npc.currentTurn, npc.turnTarget, 2.0, dt);
-                const q = new THREE.Quaternion().setFromAxisAngle(npc.normal, npc.currentTurn * dt);
-                npc.forward.applyQuaternion(q);
+                const rotQ = new THREE.Quaternion().setFromAxisAngle(npc.normal, npc.currentTurn * dt);
+                npc.forward.applyQuaternion(rotQ);
                 npc.forward.sub(npc.normal.clone().multiplyScalar(npc.forward.dot(npc.normal))).normalize();
 
                 const step = npc.forward.clone().multiplyScalar(npc.speed * dt);
                 const nextPos = npc.object.position.clone().add(step);
                 const newNormal = nextPos.clone().normalize();
-                npc.normal.copy(newNormal);
-                const nf = npc.forward.clone().sub(newNormal.clone().multiplyScalar(newNormal.dot(npc.forward))).normalize();
-                npc.forward.copy(nf);
-                npc.object.position.copy(newNormal.clone().multiplyScalar(CONFIG.planetRadius));
+                
+                let hitObstacle = false;
+                const testWorldPos = newNormal.clone().multiplyScalar(CONFIG.planetRadius);
+                for (let obs of obstacleList) {
+                    if (!obs.isNpc && testWorldPos.distanceTo(obs.position) < (1.0 + obs.radius)) {
+                        hitObstacle = true;
+                        break;
+                    }
+                }
 
-                const tf = npc.forward.clone().sub(npc.normal.clone().multiplyScalar(npc.normal.dot(npc.forward))).normalize();
-                const rv = new THREE.Vector3().crossVectors(npc.normal, tf).normalize();
-                npc.object.quaternion.setFromRotationMatrix(new THREE.Matrix4().makeBasis(rv, npc.normal, tf));
+                if (!hitObstacle) {
+                    npc.normal.copy(newNormal);
+                    const newFwd = npc.forward.clone().sub(newNormal.clone().multiplyScalar(npc.forward.dot(newNormal))).normalize();
+                    npc.forward.copy(newFwd);
+                    npc.object.position.copy(newNormal.clone().multiplyScalar(CONFIG.planetRadius));
+
+                    const tf = npc.forward.clone().sub(npc.normal.clone().multiplyScalar(npc.forward.dot(npc.normal))).normalize();
+                    const rv = new THREE.Vector3().crossVectors(npc.normal, tf).normalize();
+                    const mat = new THREE.Matrix4().makeBasis(rv, npc.normal, tf);
+                    npc.object.quaternion.setFromRotationMatrix(mat);
+                } else {
+                    npc.turnTarget *= -1;
+                }
 
                 npc.walkCounter += dt * npc.speed * 2.0;
                 const swing = Math.sin(npc.walkCounter * 6) * 0.35;
@@ -345,7 +453,9 @@
             }
         }
 
-        // Controls
+        /* ==========================================================
+           9. INPUT CONTROLS (KEYBOARD, JOYSTICK, JUMP & POV ORBIT)
+           ========================================================== */
         const keys = {};
         window.addEventListener('keydown', e => {
             keys[e.key.toLowerCase()] = true;
@@ -366,10 +476,17 @@
         const knob = document.getElementById('joystick-thumb');
         let joyActive = false, joyPtrId = null, joyX = 0, joyY = 0;
 
-        zone.addEventListener('pointerdown', e => { joyActive = true; joyPtrId = e.pointerId; zone.setPointerCapture(e.pointerId); moveJoy(e.clientX, e.clientY); });
-        zone.addEventListener('pointermove', e => { if (!joyActive || e.pointerId !== joyPtrId) return; moveJoy(e.clientX, e.clientY); });
-        zone.addEventListener('pointerup', resetJoy);
-        zone.addEventListener('pointercancel', resetJoy);
+        zone.addEventListener('pointerdown', e => {
+            joyActive = true; joyPtrId = e.pointerId;
+            zone.setPointerCapture(e.pointerId);
+            moveJoy(e.clientX, e.clientY);
+        });
+        zone.addEventListener('pointermove', e => {
+            if (!joyActive || e.pointerId !== joyPtrId) return;
+            moveJoy(e.clientX, e.clientY);
+        });
+        window.addEventListener('pointerup', resetJoy);
+        window.addEventListener('pointercancel', resetJoy);
 
         function resetJoy() {
             joyActive = false; joyPtrId = null; joyX = 0; joyY = 0;
@@ -385,10 +502,8 @@
             joyX = dx / max; joyY = dy / max;
         }
 
-        // Camera Orbit Controls
-        let isOrbiting = false;
-        let cameraAzimuth = 0;
-        let cameraElevation = 0.5;
+        // Camera POV Orbit Controls
+        let isOrbiting = false, cameraAzimuth = 0, cameraElevation = 0.5;
         let previousMousePosition = { x: 0, y: 0 };
 
         window.addEventListener('pointerdown', e => {
@@ -398,29 +513,37 @@
         });
         window.addEventListener('pointermove', e => {
             if (!isOrbiting) return;
-            const deltaX = e.clientX - previousMousePosition.x;
-            const deltaY = e.clientY - previousMousePosition.y;
-            cameraAzimuth -= deltaX * 0.005;
-            cameraElevation = THREE.MathUtils.clamp(cameraElevation + deltaY * 0.005, 0.1, 1.2);
+            cameraAzimuth -= (e.clientX - previousMousePosition.x) * 0.005;
+            cameraElevation = THREE.MathUtils.clamp(cameraElevation + (e.clientY - previousMousePosition.y) * 0.005, 0.1, 1.2);
             previousMousePosition = { x: e.clientX, y: e.clientY };
         });
         window.addEventListener('pointerup', () => { isOrbiting = false; });
 
+        /* ==========================================================
+           10. PLAYER UPDATE & GAME LOGIC
+           ========================================================== */
         function updatePlayer(dt) {
             let turn = 0, walk = 0;
             if (keys['a'] || keys['arrowleft']) turn = 1;
             if (keys['d'] || keys['arrowright']) turn = -1;
             if (keys['w'] || keys['arrowup']) walk = 1;
             if (keys['s'] || keys['arrowdown']) walk = -1;
-            if (joyActive) { turn = -joyX; walk = -joyY; }
+
+            if (joyActive) {
+                turn = -joyX;
+                walk = -joyY;
+            }
 
             if (Math.abs(turn) > 0.05) {
-                const q = new THREE.Quaternion().setFromAxisAngle(playerNormal, turn * CONFIG.turnSpeed * dt);
+                const q = new THREE.Quaternion().setFromAxisAngle(playerNormal, turn * CONFIG.playerTurnSpeed * dt);
                 playerForward.applyQuaternion(q);
                 playerForward.sub(playerNormal.clone().multiplyScalar(playerForward.dot(playerNormal))).normalize();
             }
 
-            let targetSpeed = walk > 0 ? CONFIG.walkSpeed * walk : walk < 0 ? CONFIG.reverseSpeed * walk : 0;
+            let targetSpeed = 0;
+            if (walk > 0) targetSpeed = CONFIG.playerWalkSpeed * walk;
+            else if (walk < 0) targetSpeed = CONFIG.playerReverseSpeed * walk;
+
             currentSpeed = THREE.MathUtils.damp(currentSpeed, targetSpeed, 6.0, dt);
 
             if (isJumping || heightOffset > 0) {
@@ -445,15 +568,17 @@
 
                 if (!checkCollision(testWorldPos, 1.2)) {
                     playerNormal.copy(testNormal);
-                    const nf = playerForward.clone().sub(playerNormal.clone().multiplyScalar(playerForward.dot(playerNormal))).normalize();
+                    const nf = playerForward.clone().sub(playerNormal.clone().multiplyScalar(playerNormal.dot(playerForward))).normalize();
                     playerForward.copy(nf);
                 } else {
                     currentSpeed *= 0.1;
                 }
             }
             
+            // Sentiasa kemas kini transformasi player agar tidak kaku
             updatePlayerTransform();
 
+            // Pintu Rumah Terbuka Automatik
             for (let hObj of interactiveHouses) {
                 const dist = player.position.distanceTo(hObj.worldPos);
                 if (dist < 5.0 && !hObj.isOpen) {
@@ -478,33 +603,48 @@
             if (Math.abs(currentSpeed) > 0.1 && heightOffset === 0) {
                 walkTime += dt * Math.abs(currentSpeed) * 1.5;
             }
-            const swing = Math.sin(walkTime * 8) * 0.45 * Math.min(1, Math.abs(currentSpeed) / CONFIG.walkSpeed);
+            const swing = Math.sin(walkTime * 8) * 0.45 * Math.min(1, Math.abs(currentSpeed) / CONFIG.playerWalkSpeed);
             playerMesh.userData.leftLeg.rotation.x = swing;
             playerMesh.userData.rightLeg.rotation.x = -swing;
 
             document.getElementById('speed-meter').textContent = `Speed: ${Math.abs(currentSpeed).toFixed(1)} m/s`;
+            const statusEl = document.getElementById('status-text');
+            if (Math.abs(currentSpeed) < 0.05) {
+                statusEl.textContent = "Status: Idle";
+                statusEl.style.color = "#90caf9";
+            } else {
+                statusEl.textContent = "Status: Exploring";
+                statusEl.style.color = "#69f0ae";
+            }
         }
 
-        // Day / Night Smooth Gradient Transition
-        let elapsedTime = CONFIG.dayLengthSec * 0.25; 
+        /* ==========================================================
+           11. DAY / NIGHT & SMOOTH GRADIENT SKY SHIFTING
+           ========================================================== */
+        let elapsedTime = CONFIG.dayLengthSec * 0.25; // Bermula tengah hari
+
         function updateDayNightCycle(dt) {
             elapsedTime += dt;
-            const progress = (elapsedTime % CONFIG.dayLengthSec) / CONFIG.dayLengthSec;
-            const sunAngle = progress * Math.PI * 2 - Math.PI / 2;
-            const orbitR = 450;
-            const sunX = Math.cos(sunAngle) * orbitR, sunY = Math.sin(sunAngle) * orbitR;
+            const cycleProgress = (elapsedTime % CONFIG.dayLengthSec) / CONFIG.dayLengthSec;
+            const sunAngle = cycleProgress * Math.PI * 2 - Math.PI / 2;
 
+            const orbitRadius = 450;
+            const sunX = Math.cos(sunAngle) * orbitRadius;
+            const sunY = Math.sin(sunAngle) * orbitRadius;
+            
             sunLight.position.set(sunX, sunY, 150);
             sunMesh.position.copy(sunLight.position);
             moonLight.position.set(-sunX, -sunY, -150);
             moonMesh.position.copy(moonLight.position);
 
             const elevation = Math.sin(sunAngle);
+            const daylightFactor = THREE.MathUtils.clamp(elevation, 0, 1);
             
-            sunLight.intensity = THREE.MathUtils.lerp(0.1, 2.3, Math.max(0, elevation));
+            sunLight.intensity = THREE.MathUtils.lerp(0.1, 2.3, daylightFactor);
             moonLight.intensity = THREE.MathUtils.lerp(0.05, 0.35, Math.max(0, -elevation));
             hemisphereLight.intensity = THREE.MathUtils.lerp(0.3, 1.4, Math.max(0, elevation + 0.2));
 
+            // Smooth Multi-stop Shifting Sky Color (Pink Peach / Twilight lancar)
             const skyColor = new THREE.Color();
             if (elevation > 0.18) {
                 skyColor.set(0x75c4ff);
@@ -519,14 +659,19 @@
             scene.fog.color.copy(skyColor);
             stars.material.opacity = THREE.MathUtils.clamp(1 - (elevation + 0.2) * 2, 0, 1);
 
-            const totalMins = progress * 24 * 60;
-            const hrs = Math.floor(totalMins / 60), mins = Math.floor(totalMins % 60);
+            const totalMins = cycleProgress * 24 * 60;
+            const hours = Math.floor(totalMins / 60);
+            const mins = Math.floor(totalMins % 60);
             const period = elevation > 0.05 ? "Day" : elevation > -0.05 ? "Twilight" : "Night";
             const icon = period === "Day" ? "☀️" : period === "Night" ? "🌙" : "🌅";
-            document.getElementById('time-display').textContent = `${icon} ${String(hrs).padStart(2,'0')}:${String(mins).padStart(2,'0')} · ${period}`;
+
+            document.getElementById('time-display').textContent = `${icon} ${String(hours).padStart(2,'0')}:${String(mins).padStart(2,'0')} · ${period}`;
         }
 
-        const targetCamPos = new THREE.Vector3();
+        /* ==========================================================
+           12. CAMERA RIG (THIRD-PERSON SMOOTH FOLLOW & POV ORBIT)
+           ========================================================== */
+        const camDesiredPos = new THREE.Vector3();
         const lookAtPos = new THREE.Vector3();
 
         function updateCameraRig(dt) {
@@ -537,16 +682,23 @@
             const rotatedFwd = fwd.clone().applyMatrix4(rotMatrix);
             const back = rotatedFwd.clone().negate();
 
-            targetCamPos.copy(player.position)
+            camDesiredPos.copy(player.position)
                 .add(up.clone().multiplyScalar(CONFIG.cameraHeight + cameraElevation * 4))
                 .add(back.clone().multiplyScalar(CONFIG.cameraDist));
 
-            camera.position.lerp(targetCamPos, 1.0 - Math.exp(-8.0 * dt));
+            const smoothFactor = 1.0 - Math.exp(-CONFIG.cameraLag * dt);
+            camera.position.lerp(camDesiredPos, smoothFactor);
             camera.up.copy(up);
 
             lookAtPos.copy(player.position).add(up.clone().multiplyScalar(1.8));
             camera.lookAt(lookAtPos);
         }
+
+        /* ==========================================================
+           13. MAIN EXECUTION LOOP & FPS COUNTER
+           ========================================================== */
+        let frameCount = 0;
+        let lastFpsTime = performance.now();
 
         window.addEventListener('resize', () => {
             camera.aspect = window.innerWidth / window.innerHeight;
@@ -555,7 +707,6 @@
         });
 
         const clock = new THREE.Clock();
-        let frameCount = 0, lastFpsTime = performance.now();
 
         function mainLoop() {
             requestAnimationFrame(mainLoop);
@@ -571,8 +722,10 @@
             frameCount++;
             const now = performance.now();
             if (now - lastFpsTime >= 500) {
-                document.getElementById('fps-counter').textContent = `FPS: ${Math.round((frameCount * 1000) / (now - lastFpsTime))}`;
-                frameCount = 0; lastFpsTime = now;
+                const fps = Math.round((frameCount * 1000) / (now - lastFpsTime));
+                document.getElementById('fps-counter').textContent = `FPS: ${fps}`;
+                frameCount = 0;
+                lastFpsTime = now;
             }
 
             renderer.render(scene, camera);
