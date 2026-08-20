@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>Tiny World - Fixed Controls</title>
+    <title>Tiny World - Massive Update</title>
     <style>
         body { margin: 0; overflow: hidden; background: #000; touch-action: none; font-family: sans-serif; }
         #ui { position: absolute; top: 10px; left: 20px; color: white; text-shadow: 2px 2px 2px #000; pointer-events: none; z-index: 10; }
@@ -14,7 +14,7 @@
 </head>
 <body>
     <div id="ui">
-        <h2>Dunia 3D: Fixed Movement</h2>
+        <h2>Dunia 3D: Player Moves!</h2>
         <p>PC: W (Jalan Depan), S (Undur), A/D (Pusing Kiri/Kanan) | HP: Joystick</p>
         <p id="status">Status: Sedia Berjalan!</p>
     </div>
@@ -27,10 +27,10 @@
     <script type="module">
         import * as THREE from 'three';
 
-        // 1. SETUP SCENE
+        // 1. SETUP SCENE BERSKALA BESAR
         const scene = new THREE.Scene();
         scene.background = new THREE.Color(0x0a0a1a);
-        scene.fog = new THREE.FogExp2(0x0a0a1a, 0.003);
+        scene.fog = new THREE.FogExp2(0x0a0a1a, 0.003); // Kabus nipis sebab map besar
 
         const camera = new THREE.PerspectiveCamera(60, window.innerWidth/window.innerHeight, 0.1, 1000);
         const renderer = new THREE.WebGLRenderer({ antialias: true });
@@ -44,130 +44,113 @@
         const sun = new THREE.DirectionalLight(0xffffff, 1.2);
         sun.position.set(100, 200, 50);
         sun.castShadow = true;
+        sun.shadow.camera.near = 50;
+        sun.shadow.camera.far = 400;
+        sun.shadow.camera.left = -150;
+        sun.shadow.camera.right = 150;
+        sun.shadow.camera.top = 150;
+        sun.shadow.camera.bottom = -150;
         scene.add(sun);
 
+        // Saiz Glob (Besar Gila)
         const radius = 150; 
 
-        // Bintang
+        // Bintang kaku (Background)
         const starGeo = new THREE.BufferGeometry();
-        const starPos = new Float32Array(5000 * 3);
-        for(let i=0; i<5000*3; i++) starPos[i] = (Math.random() - 0.5) * 1000;
+        const starCount = 5000;
+        const starPos = new Float32Array(starCount * 3);
+        for(let i=0; i<starCount*3; i++) starPos[i] = (Math.random() - 0.5) * 1000;
         starGeo.setAttribute('position', new THREE.BufferAttribute(starPos, 3));
         scene.add(new THREE.Points(starGeo, new THREE.PointsMaterial({color: 0xffffff, size: 1.5})));
 
-        // Glob / Tanah
+        // Glob / Tanah Kaku
         const earth = new THREE.Mesh(new THREE.SphereGeometry(radius, 128, 128), new THREE.MeshLambertMaterial({color: 0x2e8b57}));
         earth.receiveShadow = true;
         scene.add(earth);
 
-        // 2. SISTEM OBJEK & POSISI DUNIA
-        const obstaclePositions = [];
+        // 2. SISTEM LETAK OBJEK (Rigging System)
+        // Cara paling selamat untuk benda lekat di bola. Kita pusingkan "Paksi Tengah" (Rig).
+        const collisionPositions = []; // Simpan koordinat dunia untuk detect langgar dinding
 
-        function placeObject(mesh, lat, lon, isCollidable = false) {
-            const phi = (90 - lat) * (Math.PI / 180);
-            const theta = (lon + 180) * (Math.PI / 180);
+        function placeObject(mesh, r, isCollidable = false) {
+            const rig = new THREE.Group();
+            // Random rotasi dari pusat bumi
+            rig.rotation.set(Math.random() * Math.PI*2, Math.random() * Math.PI*2, Math.random() * Math.PI*2);
             
-            mesh.position.set(
-                -(radius * Math.sin(phi) * Math.cos(theta)),
-                (radius * Math.cos(phi)),
-                (radius * Math.sin(phi) * Math.sin(theta))
-            );
+            // Tolak objek ke permukaan bola
+            mesh.position.set(0, r, 0);
             
-            mesh.lookAt(0, 0, 0);
-            mesh.rotateX(Math.PI / 2);
-            scene.add(mesh);
+            // Random pusingan objek supaya tak pandang satu arah je
+            mesh.rotation.y = Math.random() * Math.PI * 2; 
 
+            rig.add(mesh);
+            scene.add(rig);
+
+            // Dapatkan posisi sebenar (World Position) untuk Collision
             if(isCollidable) {
-                obstaclePositions.push(mesh.position.clone());
+                rig.updateMatrixWorld(true);
+                const wPos = new THREE.Vector3();
+                mesh.getWorldPosition(wPos);
+                collisionPositions.push(wPos);
             }
-            return mesh;
+            return rig;
         }
 
         // Bina Bangunan
-        for(let i=0; i<60; i++) {
+        for(let i=0; i<80; i++) { // Lebih banyak bangunan sebab map besar
             const bldgGroup = new THREE.Group();
             const w = Math.random() * 4 + 2; const h = Math.random() * 8 + 4; const d = Math.random() * 4 + 2;
             const body = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), new THREE.MeshLambertMaterial({color: 0x8899aa}));
             body.position.y = h/2; body.castShadow = true; body.receiveShadow = true;
             bldgGroup.add(body);
-            
-            const lat = (Math.random() - 0.5) * 130;
-            const lon = (Math.random() - 0.5) * 360;
-            placeObject(bldgGroup, lat, lon, true);
+            placeObject(bldgGroup, radius, true);
         }
 
         // Bina Pokok
-        for(let i=0; i<100; i++) {
+        for(let i=0; i<150; i++) {
             const tree = new THREE.Group();
             const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.5, 0.8, 3), new THREE.MeshLambertMaterial({color: 0x5c4033}));
             trunk.position.y = 1.5; trunk.castShadow = true;
             const leaves = new THREE.Mesh(new THREE.DodecahedronGeometry(2.5), new THREE.MeshLambertMaterial({color: 0x228b22}));
             leaves.position.y = 4; leaves.castShadow = true;
             tree.add(trunk); tree.add(leaves);
-            
-            const lat = (Math.random() - 0.5) * 140;
-            const lon = (Math.random() - 0.5) * 360;
-            placeObject(tree, lat, lon, true);
+            placeObject(tree, radius, true);
         }
 
         // 3. WATAK (PLAYER & NPC)
         function createCharacter(color) {
             const group = new THREE.Group();
             const body = new THREE.Mesh(new THREE.BoxGeometry(1.2, 1.8, 0.8), new THREE.MeshLambertMaterial({color: color}));
-            body.position.y = 0.9; body.castShadow = true;
+            body.position.y = 0.9; body.castShadow = true; // Jejak tanah
             const head = new THREE.Mesh(new THREE.SphereGeometry(0.6, 16, 16), new THREE.MeshLambertMaterial({color: 0xffe4c4}));
             head.position.y = 2.4; head.castShadow = true;
             group.add(body); group.add(head);
             return group;
         }
 
-        // Player Setup (Lat/Lon Sistem)
-        const player = createCharacter(0xFF0000);
-        scene.add(player);
+        // Player Rig
+        const playerRig = new THREE.Group();
+        scene.add(playerRig);
+        const playerMesh = createCharacter(0xFF0000); // Merah
+        playerMesh.position.set(0, radius, 0); // Atas permukaan bumi
+        playerRig.add(playerMesh);
 
-        let pLat = 0;
-        let pLon = 0;
-        let pFacingAngle = 0;
+        // Camera Rig (Ikut Player)
+        const cameraRig = new THREE.Group();
+        scene.add(cameraRig);
+        cameraRig.add(camera);
+        camera.position.set(0, radius + 8, 25); // Tinggi & belakang sikit dari player
+        camera.lookAt(new THREE.Vector3(0, radius + 2, 0));
 
-        function updatePlayerCoords() {
-            const phi = (90 - pLat) * (Math.PI / 180);
-            const theta = (pLon + 180) * (Math.PI / 180);
-
-            player.position.set(
-                -(radius * Math.sin(phi) * Math.cos(theta)),
-                (radius * Math.cos(phi)),
-                (radius * Math.sin(phi) * Math.sin(theta))
-            );
-
-            player.lookAt(0, 0, 0);
-            player.rotateX(Math.PI / 2);
-            player.rotateY(pFacingAngle);
-        }
-        updatePlayerCoords();
-
-        // NPC Perlahan & Merayau
+        // Letak NPC yang boleh bergerak
         const npcs = [];
-        for(let i=0; i<25; i++) {
-            const npcMesh = createCharacter(0x00b0ff);
-            let nLat = (Math.random() - 0.5) * 130;
-            let nLon = (Math.random() - 0.5) * 360;
-            let nAngle = Math.random() * Math.PI * 2;
-            
-            const phi = (90 - nLat) * (Math.PI / 180);
-            const theta = (nLon + 180) * (Math.PI / 180);
-            npcMesh.position.set(
-                -(radius * Math.sin(phi) * Math.cos(theta)),
-                (radius * Math.cos(phi)),
-                (radius * Math.sin(phi) * Math.sin(theta))
-            );
-            npcMesh.lookAt(0, 0, 0);
-            npcMesh.rotateX(Math.PI / 2);
-            scene.add(npcMesh);
-
-            npcs.push({ mesh: npcMesh, lat: nLat, lon: nLon, angle: nAngle, speed: 0.005 }); // NPC perlahan
+        for(let i=0; i<40; i++) {
+            const npcMesh = createCharacter(Math.random() * 0xffffff);
+            const npcRig = placeObject(npcMesh, radius, true); // NPC pun keras
+            npcs.push({ rig: npcRig, mesh: npcMesh, turnSpeed: 0, walkSpeed: Math.random() * 0.01 + 0.005 });
         }
 
-        // 4. KAWALAN
+        // 4. KAWALAN PLAYER (Joystick / Keyboard)
         let moveTurn = 0, moveWalk = 0;
         const keys = {};
         window.addEventListener('keydown', e => keys[e.key.toLowerCase()] = true);
@@ -201,24 +184,16 @@
         function animate() {
             requestAnimationFrame(animate);
 
-            // A. UPDATE NPC (Perlahan & Berjalan)
+            // A. UPDATE NPC (Bagi diorang merayau)
             npcs.forEach(npc => {
-                if (Math.random() < 0.02) npc.angle += (Math.random() - 0.5) * 1.0;
-                npc.lat += Math.cos(npc.angle) * npc.speed;
-                npc.lon += Math.sin(npc.angle) * npc.speed;
-
-                const phi = (90 - npc.lat) * (Math.PI / 180);
-                const theta = (npc.lon + 180) * (Math.PI / 180);
-                npc.mesh.position.set(
-                    -(radius * Math.sin(phi) * Math.cos(theta)),
-                    (radius * Math.cos(phi)),
-                    (radius * Math.sin(phi) * Math.sin(theta))
-                );
-                npc.mesh.lookAt(0, 0, 0);
-                npc.mesh.rotateX(Math.PI / 2);
+                if (Math.random() < 0.02) npc.turnSpeed = (Math.random() - 0.5) * 0.1; // Kadang2 tukar arah
+                npc.mesh.rotation.y += npc.turnSpeed;
+                // NPC jalan depan
+                const rightAxis = new THREE.Vector3(1,0,0).applyQuaternion(npc.mesh.quaternion);
+                npc.rig.rotateOnAxis(rightAxis, npc.walkSpeed);
             });
 
-            // B. PLAYER INPUT
+            // B. UPDATE PLAYER KAWALAN
             let intentTurn = 0;
             let intentWalk = 0;
 
@@ -229,57 +204,50 @@
 
             if (isDragging) {
                 intentTurn = -moveTurn;
-                intentWalk = -moveWalk;
+                intentWalk = -moveWalk; // Atas joystick = negatif Y
             }
 
+            // C. PERGERAKAN PLAYER
             if (intentTurn !== 0) {
-                pFacingAngle += intentTurn * 0.04; // Pusing arah perlahan & selesa
+                playerMesh.rotation.y += intentTurn * 0.05; // Pusing badan
             }
 
             if (intentWalk !== 0) {
-                const walkSpeed = 0.08 * intentWalk; // Kelajuan player dikawal elok
-                const prevLat = pLat;
-                const prevLon = pLon;
+                // Cari paksi X lokal watak (sebab dia pandang Z lokal)
+                const rightAxis = new THREE.Vector3(1,0,0).applyQuaternion(playerMesh.quaternion);
+                
+                // Cuba gerak ke depan/belakang
+                const walkSpeed = 0.03;
+                playerRig.rotateOnAxis(rightAxis, intentWalk * walkSpeed);
 
-                pLat += Math.cos(pFacingAngle) * walkSpeed;
-                pLon += Math.sin(pFacingAngle) * walkSpeed;
-                updatePlayerCoords();
-
-                // C. COLLISION CHECK
+                // D. COLLISION CHECK (Check Tembus Dinding)
+                playerRig.updateMatrixWorld(true);
+                const pPos = new THREE.Vector3();
+                playerMesh.getWorldPosition(pPos); // Dapatkan koordinat player sekarang
+                
                 let isHit = false;
-                for(let bPos of obstaclePositions) {
-                    if (player.position.distanceTo(bPos) < 3.0) {
+                for(let bPos of collisionPositions) {
+                    if (pPos.distanceTo(bPos) < 2.8) { // Radius langgar (sesuaikan kalau sangkut)
                         isHit = true; break;
                     }
                 }
 
                 if (isHit) {
-                    pLat = prevLat;
-                    pLon = prevLon;
-                    updatePlayerCoords();
+                    // Kalau langgar, batalkan pergerakan (undur balik)
+                    playerRig.rotateOnAxis(rightAxis, -intentWalk * walkSpeed);
                     uiStatus.innerText = "Status: Terlanggar Dinding!";
                     uiStatus.style.color = "#ff4444";
                 } else {
-                    uiStatus.innerText = "Status: Berjalan Cergas!";
-                    uiStatus.style.color = "#69f0ae";
+                    uiStatus.innerText = "Status: Sedia Berjalan!";
+                    uiStatus.style.color = "#ddd";
                 }
             } else {
                 uiStatus.innerText = "Status: Berhenti";
                 uiStatus.style.color = "#ddd";
             }
 
-            // D. KAMERA STABIL MENGEKOR DI BELAKANG PLAYER
-            const worldUp = player.position.clone().normalize();
-            const backVector = new THREE.Vector3(-Math.sin(pFacingAngle), 0, -Math.cos(pFacingAngle));
-
-            const idealCamPos = player.position.clone()
-                .add(worldUp.clone().multiplyScalar(5))  // Ketinggian kamera
-                .add(backVector.multiplyScalar(-12));    // Jarak ke belakang
-
-            camera.position.lerp(idealCamPos, 0.1);
-            
-            const lookTarget = player.position.clone().add(worldUp.clone().multiplyScalar(1.5));
-            camera.lookAt(lookTarget);
+            // E. KAMERA FOLLOW PLAYER DENGAN SMOOTH
+            cameraRig.quaternion.slerp(playerRig.quaternion, 0.1);
 
             renderer.render(scene, camera);
         }
