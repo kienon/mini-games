@@ -6,7 +6,7 @@
     <title>Tiny World — Ultimate Living Planet Pro</title>
     <style>
         *, ::before, ::after { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-        html, body { margin: 0; width: 100%; height: 100%; overflow: hidden; background: #75c4ff; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; touch-action: none; }
+        html, body { margin: 0; width: 100%; height: 100%; overflow: hidden; background: #020208; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; touch-action: none; }
         canvas { display: block; width: 100%; height: 100%; }
 
         #ui-container {
@@ -61,10 +61,10 @@
 <body>
 
     <div id="ui-container">
-        <h1>🌍 Tiny World: Ultimate Living</h1>
+        <h1>🌍 Tiny World: Pro Explorer</h1>
         <p><b>PC:</b> W/S | A/D | Space (Jump)</p>
         <p><b>Mouse:</b> Drag to rotate POV</p>
-        <p id="status-text" style="color: #69f0ae; font-weight: bold; margin-top: 4px;">Status: Fully Loaded</p>
+        <p id="status-text" style="color: #69f0ae; font-weight: bold; margin-top: 4px;">Status: Active</p>
     </div>
 
     <div id="telemetry-panel">
@@ -91,208 +91,181 @@
     <script type="module">
         import * as THREE from 'three';
 
-        /* ==========================================================
-           1. CONFIGURATION OBJECT
-           ========================================================== */
-        const WORLD_CONFIG = {
+        const CONFIG = {
             planetRadius: 180,
-            playerWalkSpeed: 3.8,
-            playerReverseSpeed: 1.8,
-            playerTurnSpeed: 2.2,
-            jumpForce: 6.5,
-            gravityConstant: 16.0,
-            cameraDistance: 14,
+            walkSpeed: 3.8,
+            reverseSpeed: 1.8,
+            turnSpeed: 2.2,
+            jumpForce: 6.0,
+            gravity: 14.0,
+            cameraDist: 14,
             cameraHeight: 5.2,
-            npcPopulation: 25,
-            housePopulation: 16,
-            treePopulation: 140,
-            rockPopulation: 70,
-            dayCycleDurationSec: 200
+            npcCount: 20,
+            buildingCount: 30,
+            treeCount: 120,
+            rockCount: 50,
+            dayLengthSec: 200
         };
 
-        /* ==========================================================
-           2. SCENE, CAMERA & WEBGL RENDERER
-           ========================================================== */
-        const primaryScene = new THREE.Scene();
-        primaryScene.background = new THREE.Color(0x75c4ff);
-        primaryScene.fog = new THREE.FogExp2(0x75c4ff, 0.0018);
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x75c4ff);
+        scene.fog = new THREE.FogExp2(0x75c4ff, 0.0018);
 
-        const primaryCamera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 3000);
+        const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 3000);
 
-        const webglRenderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
-        webglRenderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.8));
-        webglRenderer.setSize(window.innerWidth, window.innerHeight);
-        webglRenderer.shadowMap.enabled = true;
-        webglRenderer.shadowMap.type = THREE.PCFSoftShadowMap;
-        webglRenderer.outputColorSpace = THREE.SRGBColorSpace;
-        document.body.appendChild(webglRenderer.domElement);
+        const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.8));
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.shadowMap.enabled = true;
+        renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+        renderer.outputColorSpace = THREE.SRGBColorSpace;
+        document.body.appendChild(renderer.domElement);
 
-        /* ==========================================================
-           3. ADVANCED LIGHTING & CELESTIAL BODIES
-           ========================================================== */
-        primaryScene.add(new THREE.AmbientLight(0xffffff, 0.45));
-        const hemisphereEnvironmentLight = new THREE.HemisphereLight(0xbfe9ff, 0x29442a, 1.4);
-        primaryScene.add(hemisphereEnvironmentLight);
+        // Lighting
+        const hemisphereLight = new THREE.HemisphereLight(0xbfe9ff, 0x29442a, 1.4);
+        scene.add(hemisphereLight);
 
-        const directionalSunLight = new THREE.DirectionalLight(0xffffff, 2.2);
-        directionalSunLight.castShadow = true;
-        directionalSunLight.shadow.mapSize.width = 2048;
-        directionalSunLight.shadow.mapSize.height = 2048;
-        directionalSunLight.shadow.camera.near = 50;
-        directionalSunLight.shadow.camera.far = 700;
-        directionalSunLight.shadow.camera.left = -280; 
-        directionalSunLight.shadow.camera.right = 280;
-        directionalSunLight.shadow.camera.top = 280; 
-        directionalSunLight.shadow.camera.bottom = -280;
-        directionalSunLight.shadow.bias = -0.0004;
-        primaryScene.add(directionalSunLight);
+        const sunLight = new THREE.DirectionalLight(0xffffff, 2.0);
+        sunLight.castShadow = true;
+        sunLight.shadow.mapSize.width = 2048;
+        sunLight.shadow.mapSize.height = 2048;
+        sunLight.shadow.camera.near = 50;
+        sunLight.shadow.camera.far = 700;
+        sunLight.shadow.camera.left = -280; sunLight.shadow.camera.right = 280;
+        sunLight.shadow.camera.top = 280; sunLight.shadow.camera.bottom = -280;
+        sunLight.shadow.bias = -0.0004;
+        scene.add(sunLight);
 
-        const directionalMoonLight = new THREE.DirectionalLight(0x8da9ff, 0.3);
-        primaryScene.add(directionalMoonLight);
+        const moonLight = new THREE.DirectionalLight(0x8da9ff, 0.3);
+        scene.add(moonLight);
 
-        const sunVisualMesh = new THREE.Mesh(
-            new THREE.SphereGeometry(12, 32, 32),
-            new THREE.MeshBasicMaterial({ color: 0xffffee })
-        );
-        primaryScene.add(sunVisualMesh);
+        const sunMesh = new THREE.Mesh(new THREE.SphereGeometry(12, 32, 32), new THREE.MeshBasicMaterial({ color: 0xffffee }));
+        scene.add(sunMesh);
+        const moonMesh = new THREE.Mesh(new THREE.SphereGeometry(9, 32, 32), new THREE.MeshStandardMaterial({ color: 0xd9e1ec, roughness: 1 }));
+        scene.add(moonMesh);
 
-        const moonVisualMesh = new THREE.Mesh(
-            new THREE.SphereGeometry(9, 32, 32),
-            new THREE.MeshStandardMaterial({ color: 0xd9e1ec, roughness: 1 })
-        );
-        primaryScene.add(moonVisualMesh);
-
-        /* ==========================================================
-           4. PLANET, ATMOSPHERE, STARS & CLOUDS
-           ========================================================== */
-        const sphericalPlanetMesh = new THREE.Mesh(
-            new THREE.SphereGeometry(WORLD_CONFIG.planetRadius, 128, 128),
+        // Planet
+        const planet = new THREE.Mesh(
+            new THREE.SphereGeometry(CONFIG.planetRadius, 128, 128),
             new THREE.MeshStandardMaterial({ color: 0x3e9850, roughness: 0.95, metalness: 0 })
         );
-        sphericalPlanetMesh.receiveShadow = true;
-        primaryScene.add(sphericalPlanetMesh);
+        planet.receiveShadow = true;
+        scene.add(planet);
 
-        const planetaryAtmosphere = new THREE.Mesh(
-            new THREE.SphereGeometry(WORLD_CONFIG.planetRadius + 4, 64, 64),
+        const atmosphere = new THREE.Mesh(
+            new THREE.SphereGeometry(CONFIG.planetRadius + 4, 64, 64),
             new THREE.MeshBasicMaterial({ color: 0x79cfff, transparent: true, opacity: 0.075, side: THREE.BackSide })
         );
-        primaryScene.add(planetaryAtmosphere);
+        scene.add(atmosphere);
 
-        const starfieldGeometry = new THREE.BufferGeometry();
-        const starCoordinates = new Float32Array(4500 * 3);
+        // Stars & Clouds
+        const starGeo = new THREE.BufferGeometry();
+        const starPos = new Float32Array(4500 * 3);
         for (let i = 0; i < 4500 * 3; i += 3) {
             const u = Math.random(), v = Math.random();
             const theta = u * 2.0 * Math.PI, phi = Math.acos(2.0 * v - 1.0);
-            const r = 850 + Math.random() * 350;
-            starCoordinates[i] = r * Math.sin(phi) * Math.cos(theta);
-            starCoordinates[i+1] = r * Math.sin(phi) * Math.sin(theta);
-            starCoordinates[i+2] = r * Math.cos(phi);
+            const r = 800 + Math.random() * 300;
+            starPos[i] = r * Math.sin(phi) * Math.cos(theta);
+            starPos[i+1] = r * Math.sin(phi) * Math.sin(theta);
+            starPos[i+2] = r * Math.cos(phi);
         }
-        starfieldGeometry.setAttribute('position', new THREE.BufferAttribute(starCoordinates, 3));
-        const backgroundStars = new THREE.Points(starfieldGeometry, new THREE.PointsMaterial({ color: 0xffffff, size: 1.4, transparent: true, opacity: 0 }));
-        primaryScene.add(backgroundStars);
+        starGeo.setAttribute('position', new THREE.BufferAttribute(starPos, 3));
+        const stars = new THREE.Points(starGeo, new THREE.PointsMaterial({ color: 0xffffff, size: 1.4, transparent: true, opacity: 0 }));
+        scene.add(stars);
 
-        const globalCloudGroup = new THREE.Group();
-        primaryScene.add(globalCloudGroup);
-
-        function generateRandomDirectionVector() {
-            return new THREE.Vector3(Math.random() - 0.5, Math.random() - 0.5, Math.random() - 0.5).normalize();
-        }
-
-        function positionObjectOnSurface(targetObject, surfaceNormal, verticalOffset = 0) {
-            targetObject.position.copy(surfaceNormal.clone().multiplyScalar(WORLD_CONFIG.planetRadius + verticalOffset));
-            targetObject.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), surfaceNormal);
-            primaryScene.add(targetObject);
+        const cloudGroup = new THREE.Group();
+        scene.add(cloudGroup);
+        function randomDir() { return new THREE.Vector3(Math.random()-.5, Math.random()-.5, Math.random()-.5).normalize(); }
+        function placeOnPlanet(obj, normal, height=0) {
+            obj.position.copy(normal.clone().multiplyScalar(CONFIG.planetRadius + height));
+            obj.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0), normal);
+            scene.add(obj);
         }
 
-        for (let i = 0; i < 18; i++) {
-            const cloudCluster = new THREE.Group();
-            const cloudMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 1, transparent: true, opacity: 0.72 });
+        for (let i = 0; i < 15; i++) {
+            const group = new THREE.Group();
+            const mat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 1, transparent: true, opacity: 0.7 });
             for (let j = 0; j < 3; j++) {
-                const puff = new THREE.Mesh(new THREE.SphereGeometry(3 + Math.random() * 2.2, 10, 10), cloudMat);
-                puff.position.set(j * 3.5, Math.random() * 1.2, (Math.random() - 0.5) * 2);
-                cloudCluster.add(puff);
+                const puff = new THREE.Mesh(new THREE.SphereGeometry(3 + Math.random()*2, 10, 10), mat);
+                puff.position.set(j*3, Math.random(), 0);
+                group.add(puff);
             }
-            positionObjectOnSurface(cloudCluster, generateRandomDirectionVector(), 16 + Math.random() * 6);
-            globalCloudGroup.add(cloudCluster);
+            placeOnPlanet(group, randomDir(), 15 + Math.random()*5);
+            cloudGroup.add(group);
         }
 
-        /* ==========================================================
-           5. WORLD OBJECTS: RIVER, HOUSES, ROCKS & TREES
-           ========================================================== */
-        const globalObstacleRegistry = [];
-        const interactiveHousesRegistry = [];
+        // Sungai (River)
+        for (let i = 0; i <= 30; i++) {
+            const angle = (i / 30) * Math.PI * 2;
+            const dir = new THREE.Vector3(Math.cos(angle), Math.sin(angle * 0.4), Math.sin(angle)).normalize();
+            const patch = new THREE.Mesh(new THREE.BoxGeometry(4.5, 0.05, 12), new THREE.MeshStandardMaterial({ color: 0x2196f3, roughness: 0.2, metalness: 0.8 }));
+            placeOnPlanet(patch, dir, 0.05);
+        }
 
-        function checkWorldCollision(positionToCheck, clearanceRadius) {
-            for (let obstacle of globalObstacleRegistry) {
-                if (positionToCheck.distanceTo(obstacle.position) < (clearanceRadius + obstacle.radius)) return true;
+        // Obstacles & Collisions (Rumah, Batu, Pokok)
+        const obstacleList = [];
+        const interactiveHouses = [];
+
+        function checkCollision(worldPos, clearance) {
+            for (let obs of obstacleList) {
+                if (worldPos.distanceTo(obs.position) < (clearance + obs.radius)) return true;
             }
             return false;
         }
 
-        // Aliran Sungai (River)
-        for (let i = 0; i <= 35; i++) {
-            const angleVal = (i / 35) * Math.PI * 2;
-            const nodeDir = new THREE.Vector3(Math.cos(angleVal), Math.sin(angleVal * 0.4), Math.sin(angleVal)).normalize();
-            const waterSegment = new THREE.Mesh(new THREE.BoxGeometry(4.5, 0.05, 12), new THREE.MeshStandardMaterial({ color: 0x2196f3, roughness: 0.2, metalness: 0.8 }));
-            positionObjectOnSurface(waterSegment, nodeDir, 0.05);
-        }
-
-        // Rumah Interaktif dengan Pintu Boleh Buka
-        for (let i = 0; i < WORLD_CONFIG.housePopulation; i++) {
-            const normalVec = generateRandomDirectionVector();
-            const houseGroup = new THREE.Group();
+        // Rumah Interaktif
+        for (let i = 0; i < CONFIG.buildingCount / 2; i++) {
+            const normal = randomDir();
+            const house = new THREE.Group();
             const base = new THREE.Mesh(new THREE.BoxGeometry(4, 3, 4), new THREE.MeshStandardMaterial({ color: 0x90a4ae, roughness: 0.8 }));
             base.position.y = 1.5; base.castShadow = true; base.receiveShadow = true;
-            houseGroup.add(base);
+            house.add(base);
 
-            const roof = new THREE.Mesh(new THREE.ConeGeometry(3.2, 2, 4), new THREE.MeshStandardMaterial({ color: 0xbf360c, roughness: 0.7 }));
-            roof.position.y = 4.0; roof.rotation.y = Math.PI / 4; roof.castShadow = true;
-            houseGroup.add(roof);
+            const roof = new THREE.Mesh(new THREE.ConeGeometry(3.2, 2, 4), new THREE.MeshStandardMaterial({ color: 0xbf360c }));
+            roof.position.y = 4.0; roof.rotation.y = Math.PI/4; roof.castShadow = true;
+            house.add(roof);
 
-            const doorPivotContainer = new THREE.Group();
-            doorPivotContainer.position.set(0, 0, 2.01);
-            const doorMesh = new THREE.Mesh(new THREE.BoxGeometry(1.2, 2.2, 0.1), new THREE.MeshStandardMaterial({ color: 0x5d4037 }));
-            doorMesh.position.set(0.6, 1.1, 0); doorMesh.castShadow = true;
-            doorPivotContainer.add(doorMesh);
-            houseGroup.add(doorPivotContainer);
+            const doorPivot = new THREE.Group();
+            doorPivot.position.set(0, 0, 2.01);
+            const door = new THREE.Mesh(new THREE.BoxGeometry(1.2, 2.2, 0.1), new THREE.MeshStandardMaterial({ color: 0x5d4037 }));
+            door.position.set(0.6, 1.1, 0); door.castShadow = true;
+            doorPivot.add(door);
+            house.add(doorPivot);
 
-            positionObjectOnSurface(houseGroup, normalVec, 0);
-            const houseWorldPos = houseGroup.position.clone();
-            globalObstacleRegistry.push({ position: houseWorldPos, radius: 2.3 });
-            interactiveHousesRegistry.push({ houseGroup, doorPivotContainer, isDoorOpen: false, worldPosition: houseWorldPos });
+            placeOnPlanet(house, normal, 0);
+            const worldPos = house.position.clone();
+            obstacleList.push({ position: worldPos, radius: 2.2 });
+            interactiveHouses.push({ house, doorPivot, isOpen: false, worldPos });
         }
 
         // Batu Tinggi Boleh Dipanjat / Dilompat Atas
-        for (let i = 0; i < WORLD_CONFIG.rockPopulation; i++) {
-            const normalVec = generateRandomDirectionVector();
-            const rockH = 1.2 + Math.random() * 1.6;
-            const rockMesh = new THREE.Mesh(new THREE.DodecahedronGeometry(rockH, 0), new THREE.MeshStandardMaterial({ color: 0x78909c, roughness: 0.9 }));
-            rockMesh.scale.y = 0.6; rockMesh.castShadow = true; rockMesh.receiveShadow = true;
-            positionObjectOnSurface(rockMesh, normalVec, rockH * 0.3);
-            globalObstacleRegistry.push({ position: rockMesh.position.clone(), radius: rockH * 0.85, height: rockH * 0.55 });
+        for (let i = 0; i < CONFIG.rockCount; i++) {
+            const normal = randomDir();
+            const rockH = 1.2 + Math.random() * 1.5;
+            const rock = new THREE.Mesh(new THREE.DodecahedronGeometry(rockH, 0), new THREE.MeshStandardMaterial({ color: 0x78909c, roughness: 0.9 }));
+            rock.scale.y = 0.6; rock.castShadow = true;
+            placeOnPlanet(rock, normal, rockH * 0.3);
+            obstacleList.push({ position: rock.position.clone(), radius: rockH * 0.9, height: rockH * 0.6 });
         }
 
-        // Pokok
-        for (let i = 0; i < WORLD_CONFIG.treePopulation; i++) {
-            const normalVec = generateRandomDirectionVector();
-            const treeGroup = new THREE.Group();
-            const trunkMesh = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.5, 3, 8), new THREE.MeshStandardMaterial({ color: 0x62432b }));
-            trunkMesh.position.y = 1.5; trunkMesh.castShadow = true;
-            treeGroup.add(trunkMesh);
-            const crownMesh = new THREE.Mesh(new THREE.DodecahedronGeometry(2, 1), new THREE.MeshStandardMaterial({ color: 0x2e7d32 }));
-            crownMesh.position.y = 3.8; crownMesh.castShadow = true;
-            treeGroup.add(crownMesh);
-            positionObjectOnSurface(treeGroup, normalVec, 0);
-            globalObstacleRegistry.push({ position: treeGroup.position.clone(), radius: 1.1 });
+        // Trees
+        for (let i = 0; i < CONFIG.treeCount; i++) {
+            const normal = randomDir();
+            const tree = new THREE.Group();
+            const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.5, 3, 8), new THREE.MeshStandardMaterial({ color: 0x62432b }));
+            trunk.position.y = 1.5; trunk.castShadow = true;
+            tree.add(trunk);
+            const crown = new THREE.Mesh(new THREE.DodecahedronGeometry(2, 1), new THREE.MeshStandardMaterial({ color: 0x2e7d32 }));
+            crown.position.y = 3.8; crown.castShadow = true;
+            tree.add(crown);
+            placeOnPlanet(tree, normal, 0);
+            obstacleList.push({ position: tree.position.clone(), radius: 1.1 });
         }
 
-        /* ==========================================================
-           6. CHARACTER MODEL FACTORY
-           ========================================================== */
-        function constructCharacterModel(hexColorCode) {
+        // Character Factory
+        function createCharacterMesh(hexColor) {
             const container = new THREE.Group();
-            const torso = new THREE.Mesh(new THREE.BoxGeometry(1.0, 1.5, 0.7), new THREE.MeshStandardMaterial({ color: hexColorCode, roughness: 0.8 }));
+            const torso = new THREE.Mesh(new THREE.BoxGeometry(1.0, 1.5, 0.7), new THREE.MeshStandardMaterial({ color: hexColor, roughness: 0.8 }));
             torso.position.y = 1.1; torso.castShadow = true; container.add(torso);
             const head = new THREE.Mesh(new THREE.SphereGeometry(0.5, 20, 20), new THREE.MeshStandardMaterial({ color: 0xffd2b5, roughness: 0.9 }));
             head.position.y = 2.45; head.castShadow = true; container.add(head);
@@ -305,309 +278,307 @@
             return container;
         }
 
-        /* ==========================================================
-           7. PLAYER SETUP & KINEMATICS
-           ========================================================== */
-        const playerEntity = new THREE.Group();
-        primaryScene.add(playerEntity);
-        const playerVisualMesh = constructCharacterModel(0xe53935);
-        playerEntity.add(playerVisualMesh);
+        // Player Setup
+        const player = new THREE.Group();
+        scene.add(player);
+        const playerMesh = createCharacterMesh(0xe53935);
+        player.add(playerMesh);
 
-        let playerSurfaceNormal = new THREE.Vector3(0, 1, 0);
-        let playerForwardTangent = new THREE.Vector3(0, 0, 1);
-        let currentPlayerSpeed = 0;
-        let playerWalkAnimationTime = 0;
-        let playerVerticalVelocity = 0;
-        let playerHeightOffset = 0;
-        let isPlayerJumping = false;
+        let playerNormal = new THREE.Vector3(0, 1, 0);
+        let playerForward = new THREE.Vector3(0, 0, 1);
+        let currentSpeed = 0;
+        let walkTime = 0;
+        let verticalVelocity = 0;
+        let heightOffset = 0;
+        let isJumping = false;
 
-        function refreshPlayerTransformation() {
-            const totalRadiusDistance = WORLD_CONFIG.planetRadius + playerHeightOffset;
-            playerEntity.position.copy(playerSurfaceNormal.clone().multiplyScalar(totalRadiusDistance));
-            const tangentDir = playerForwardTangent.clone().sub(playerSurfaceNormal.clone().multiplyScalar(playerForwardTangent.dot(playerSurfaceNormal))).normalize();
-            const rightVector = new THREE.Vector3().crossVectors(playerSurfaceNormal, tangentDir).normalize();
-            playerEntity.quaternion.setFromRotationMatrix(new THREE.Matrix4().makeBasis(rightVector, playerSurfaceNormal, tangentDir));
+        function updatePlayerTransform() {
+            const radiusTotal = CONFIG.planetRadius + heightOffset;
+            player.position.copy(playerNormal.clone().multiplyScalar(radiusTotal));
+            const tangentFwd = playerForward.clone().sub(playerNormal.clone().multiplyScalar(playerForward.dot(playerNormal))).normalize();
+            const rightVec = new THREE.Vector3().crossVectors(playerNormal, tangentFwd).normalize();
+            const matrix = new THREE.Matrix4().makeBasis(rightVec, playerNormal, tangentFwd);
+            player.quaternion.setFromRotationMatrix(matrix);
         }
-        refreshPlayerTransformation();
+        updatePlayerTransform();
 
-        /* ==========================================================
-           8. NPC POPULATION & AI
-           ========================================================== */
-        const activeNpcRegistry = [];
-        for (let i = 0; i < WORLD_CONFIG.npcPopulation; i++) {
-            const node = new THREE.Group();
-            const visual = constructCharacterModel(0x2196f3);
-            node.add(visual);
-            let normal = generateRandomDirectionVector();
-            while (normal.distanceTo(playerSurfaceNormal) < 0.3) normal = generateRandomDirectionVector();
+        // NPC System
+        const npcList = [];
+        for (let i = 0; i < CONFIG.npcCount; i++) {
+            const group = new THREE.Group();
+            const mesh = createCharacterMesh(0x2196f3);
+            group.add(mesh);
+            let normal = randomDir();
+            while (normal.distanceTo(playerNormal) < 0.3) normal = randomDir();
             let forward = new THREE.Vector3(0,0,1);
             forward.sub(normal.clone().multiplyScalar(forward.dot(normal))).normalize();
-            node.position.copy(normal.clone().multiplyScalar(WORLD_CONFIG.planetRadius));
-            activeNpcRegistry.push({ node, visualMesh: visual, normal, forward, movementSpeed: 0.5 + Math.random()*0.6, steeringTimer: Math.random()*3, turnTargetAngle: 0, currentTurnAngle: 0, walkCycleCounter: Math.random()*10 });
-            primaryScene.add(node);
+            group.position.copy(normal.clone().multiplyScalar(CONFIG.planetRadius));
+            npcList.push({ object: group, mesh, normal, forward, speed: 0.5 + Math.random()*0.6, timer: Math.random()*3, turnTarget: 0, currentTurn: 0, walkCounter: Math.random()*10 });
+            scene.add(group);
         }
 
-        function updateNpcAutonomousBehaviors(deltaTime) {
-            for (let npc of activeNpcRegistry) {
-                npc.steeringTimer -= deltaTime;
-                if (npc.steeringTimer <= 0) { npc.steeringTimer = 2.0 + Math.random() * 3.5; npc.turnTargetAngle = (Math.random() - 0.5) * 1.3; }
-                npc.currentTurnAngle = THREE.MathUtils.damp(npc.currentTurnAngle, npc.turnTargetAngle, 2.0, deltaTime);
-                const rotQ = new THREE.Quaternion().setFromAxisAngle(npc.normal, npc.currentTurnAngle * deltaTime);
-                npc.forward.applyQuaternion(rotQ);
+        function updateNPCs(dt) {
+            for (let npc of npcList) {
+                npc.timer -= dt;
+                if (npc.timer <= 0) { npc.timer = 2 + Math.random()*3; npc.turnTarget = (Math.random() - 0.5)*1.2; }
+                npc.currentTurn = THREE.MathUtils.damp(npc.currentTurn, npc.turnTarget, 2.0, dt);
+                const q = new THREE.Quaternion().setFromAxisAngle(npc.normal, npc.currentTurn * dt);
+                npc.forward.applyQuaternion(q);
                 npc.forward.sub(npc.normal.clone().multiplyScalar(npc.forward.dot(npc.normal))).normalize();
 
-                const step = npc.forward.clone().multiplyScalar(npc.movementSpeed * deltaTime);
-                const projectedPos = npc.node.position.clone().add(step);
-                const updatedNormal = projectedPos.clone().normalize();
-                npc.normal.copy(updatedNormal);
-                const updatedForward = npc.forward.clone().sub(updatedNormal.clone().multiplyScalar(updatedNormal.dot(npc.forward))).normalize();
-                npc.forward.copy(updatedForward);
-                npc.node.position.copy(updatedNormal.clone().multiplyScalar(WORLD_CONFIG.planetRadius));
+                const step = npc.forward.clone().multiplyScalar(npc.speed * dt);
+                const nextPos = npc.object.position.clone().add(step);
+                const newNormal = nextPos.clone().normalize();
+                npc.normal.copy(newNormal);
+                const nf = npc.forward.clone().sub(newNormal.clone().multiplyScalar(newNormal.dot(npc.forward))).normalize();
+                npc.forward.copy(nf);
+                npc.object.position.copy(newNormal.clone().multiplyScalar(CONFIG.planetRadius));
 
-                const tFwd = npc.forward.clone().sub(npc.normal.clone().multiplyScalar(npc.normal.dot(npc.forward))).normalize();
-                const rVec = new THREE.Vector3().crossVectors(npc.normal, tFwd).normalize();
-                npc.node.quaternion.setFromRotationMatrix(new THREE.Matrix4().makeBasis(rVec, npc.normal, tFwd));
+                const tf = npc.forward.clone().sub(npc.normal.clone().multiplyScalar(npc.normal.dot(npc.forward))).normalize();
+                const rv = new THREE.Vector3().crossVectors(npc.normal, tf).normalize();
+                npc.object.quaternion.setFromRotationMatrix(new THREE.Matrix4().makeBasis(rv, npc.normal, tf));
 
-                npc.walkCycleCounter += deltaTime * npc.movementSpeed * 2.0;
-                const swing = Math.sin(npc.walkCycleCounter * 6) * 0.35;
-                npc.visualMesh.userData.leftLeg.rotation.x = swing;
-                npc.visualMesh.userData.rightLeg.rotation.x = -swing;
+                npc.walkCounter += dt * npc.speed * 2.0;
+                const swing = Math.sin(npc.walkCounter * 6) * 0.35;
+                npc.mesh.userData.leftLeg.rotation.x = swing;
+                npc.mesh.userData.rightLeg.rotation.x = -swing;
             }
         }
 
-        /* ==========================================================
-           9. INPUT CONTROLLERS & CAMERA ORBIT
-           ========================================================== */
-        const activeKeyboardState = {};
+        // Controls
+        const keys = {};
         window.addEventListener('keydown', e => {
-            activeKeyboardState[e.key.toLowerCase()] = true;
-            if (e.code === 'Space' && !isPlayerJumping && playerHeightOffset <= 0.05) executeJump();
+            keys[e.key.toLowerCase()] = true;
+            if (e.code === 'Space' && !isJumping && heightOffset <= 0.05) triggerJump();
         });
-        window.addEventListener('keyup', e => { activeKeyboardState[e.key.toLowerCase()] = false; });
+        window.addEventListener('keyup', e => { keys[e.key.toLowerCase()] = false; });
 
         document.getElementById('jump-btn').addEventListener('click', () => {
-            if (!isPlayerJumping && playerHeightOffset <= 0.05) executeJump();
+            if (!isJumping && heightOffset <= 0.05) triggerJump();
         });
 
-        function executeJump() {
-            playerVerticalVelocity = WORLD_CONFIG.jumpForce;
-            isPlayerJumping = true;
+        function triggerJump() {
+            verticalVelocity = CONFIG.jumpForce;
+            isJumping = true;
         }
 
-        const joystickZoneElement = document.getElementById('virtual-joystick');
-        const joystickThumbElement = document.getElementById('joystick-thumb');
-        let isJoystickActive = false, joystickPointerId = null, joystickAxisX = 0, joystickAxisY = 0;
+        const zone = document.getElementById('virtual-joystick');
+        const knob = document.getElementById('joystick-thumb');
+        let joyActive = false, joyPtrId = null, joyX = 0, joyY = 0;
 
-        joystickZoneElement.addEventListener('pointerdown', e => {
-            isJoystickActive = true; joystickPointerId = e.pointerId;
-            joystickZoneElement.setPointerCapture(e.pointerId);
-            evaluateJoystick(e.clientX, e.clientY);
-        });
-        joystickZoneElement.addEventListener('pointermove', e => {
-            if (!isJoystickActive || e.pointerId !== joystickPointerId) return;
-            evaluateJoystick(e.clientX, e.clientY);
-        });
-        window.addEventListener('pointerup', terminateJoy);
-        window.addEventListener('pointercancel', terminateJoy);
+        zone.addEventListener('pointerdown', e => { joyActive = true; joyPtrId = e.pointerId; zone.setPointerCapture(e.pointerId); moveJoy(e.clientX, e.clientY); });
+        zone.addEventListener('pointermove', e => { if (!joyActive || e.pointerId !== joyPtrId) return; moveJoy(e.clientX, e.clientY); });
+        zone.addEventListener('pointerup', resetJoy);
+        zone.addEventListener('pointercancel', resetJoy);
 
-        function terminateJoy() {
-            isJoystickActive = false; joystickPointerId = null;
-            joystickAxisX = 0; joystickAxisY = 0;
-            joystickThumbElement.style.transform = `translate(0px, 0px)`;
+        function resetJoy() {
+            joyActive = false; joyPtrId = null; joyX = 0; joyY = 0;
+            knob.style.transform = `translate(0px, 0px)`;
         }
 
-        function evaluateJoystick(x, y) {
-            const rect = joystickZoneElement.getBoundingClientRect();
-            let dx = x - (rect.left + rect.width / 2);
-            let dy = y - (rect.top + rect.height / 2);
+        function moveJoy(x, y) {
+            const rect = zone.getBoundingClientRect();
+            let dx = x - (rect.left + rect.width/2), dy = y - (rect.top + rect.height/2);
             const max = 42, dist = Math.hypot(dx, dy);
             if (dist > max) { dx = (dx/dist)*max; dy = (dy/dist)*max; }
-            joystickThumbElement.style.transform = `translate(${dx}px, ${dy}px)`;
-            joystickAxisX = dx / max; joystickAxisY = dy / max;
+            knob.style.transform = `translate(${dx}px,${dy}px)`;
+            joyX = dx / max; joyY = dy / max;
         }
 
-        let isOrbiting = false, camAzimuth = 0, camElevation = 0.5, lastMouse = {x:0, y:0};
+        // Camera Orbit Controls
+        let isOrbiting = false;
+        let cameraAzimuth = 0;
+        let cameraElevation = 0.5;
+        let previousMousePosition = { x: 0, y: 0 };
+
         window.addEventListener('pointerdown', e => {
             if (e.target.closest('#virtual-joystick') || e.target.closest('#jump-btn') || e.target.closest('#ui-container')) return;
-            isOrbiting = true; lastMouse = {x: e.clientX, y: e.clientY};
+            isOrbiting = true;
+            previousMousePosition = { x: e.clientX, y: e.clientY };
         });
         window.addEventListener('pointermove', e => {
             if (!isOrbiting) return;
-            camAzimuth -= (e.clientX - lastMouse.x) * 0.005;
-            camElevation = THREE.MathUtils.clamp(camElevation + (e.clientY - lastMouse.y) * 0.005, 0.1, 1.2);
-            lastMouse = {x: e.clientX, y: e.clientY};
+            const deltaX = e.clientX - previousMousePosition.x;
+            const deltaY = e.clientY - previousMousePosition.y;
+            cameraAzimuth -= deltaX * 0.005;
+            cameraElevation = THREE.MathUtils.clamp(cameraElevation + deltaY * 0.005, 0.1, 1.2);
+            previousMousePosition = { x: e.clientX, y: e.clientY };
         });
         window.addEventListener('pointerup', () => { isOrbiting = false; });
 
-        /* ==========================================================
-           10. PLAYER LOGIC & GAME LOOP
-           ========================================================== */
         function updatePlayer(dt) {
             let turn = 0, walk = 0;
-            if (activeKeyboardState['a'] || activeKeyboardState['arrowleft']) turn = 1;
-            if (activeKeyboardState['d'] || activeKeyboardState['arrowright']) turn = -1;
-            if (activeKeyboardState['w'] || activeKeyboardState['arrowup']) walk = 1;
-            if (activeKeyboardState['s'] || activeKeyboardState['arrowdown']) walk = -1;
-            if (isJoystickActive) { turn = -joystickAxisX; walk = -joystickAxisY; }
+            if (keys['a'] || keys['arrowleft']) turn = 1;
+            if (keys['d'] || keys['arrowright']) turn = -1;
+            if (keys['w'] || keys['arrowup']) walk = 1;
+            if (keys['s'] || keys['arrowdown']) walk = -1;
+            if (joyActive) { turn = -joyX; walk = -joyY; }
 
             if (Math.abs(turn) > 0.05) {
-                const q = new THREE.Quaternion().setFromAxisAngle(playerSurfaceNormal, turn * WORLD_CONFIG.playerTurnSpeed * dt);
-                playerForwardTangent.applyQuaternion(q);
-                playerForwardTangent.sub(playerSurfaceNormal.clone().multiplyScalar(playerForwardTangent.dot(playerSurfaceNormal))).normalize();
+                const q = new THREE.Quaternion().setFromAxisAngle(playerNormal, turn * CONFIG.turnSpeed * dt);
+                playerForward.applyQuaternion(q);
+                playerForward.sub(playerNormal.clone().multiplyScalar(playerForward.dot(playerNormal))).normalize();
             }
 
-            const targetVel = walk > 0 ? WORLD_CONFIG.playerWalkSpeed * walk : walk < 0 ? WORLD_CONFIG.playerReverseSpeed * walk : 0;
-            currentPlayerSpeed = THREE.MathUtils.damp(currentPlayerSpeed, targetVel, 6.0, dt);
+            let targetSpeed = walk > 0 ? CONFIG.walkSpeed * walk : walk < 0 ? CONFIG.reverseSpeed * walk : 0;
+            currentSpeed = THREE.MathUtils.damp(currentSpeed, targetSpeed, 6.0, dt);
 
-            if (isPlayerJumping || playerHeightOffset > 0) {
-                playerVerticalVelocity -= WORLD_CONFIG.gravityConstant * dt;
-                playerHeightOffset += playerVerticalVelocity * dt;
-                if (playerHeightOffset <= 0) { playerHeightOffset = 0; playerVerticalVelocity = 0; isPlayerJumping = false; }
+            if (isJumping || heightOffset > 0) {
+                verticalVelocity -= CONFIG.gravity * dt;
+                heightOffset += verticalVelocity * dt;
+                if (heightOffset <= 0) { heightOffset = 0; verticalVelocity = 0; isJumping = false; }
             }
 
-            let groundH = 0;
-            for (let obs of globalObstacleRegistry) {
-                if (obs.height && playerEntity.position.distanceTo(obs.position) < obs.radius) {
-                    if (playerHeightOffset <= obs.height + 0.2) groundH = obs.height;
+            let targetGroundHeight = 0;
+            for (let obs of obstacleList) {
+                if (obs.height && player.position.distanceTo(obs.position) < obs.radius) {
+                    if (heightOffset <= obs.height + 0.2) targetGroundHeight = obs.height;
                 }
             }
-            if (playerHeightOffset < groundH && !isPlayerJumping) playerHeightOffset = groundH;
+            if (heightOffset < targetGroundHeight && !isJumping) heightOffset = targetGroundHeight;
 
-            if (Math.abs(currentPlayerSpeed) > 0.01) {
-                const step = playerForwardTangent.clone().multiplyScalar(currentPlayerSpeed * dt);
-                const testPos = playerEntity.position.clone().add(step);
+            if (Math.abs(currentSpeed) > 0.01) {
+                const disp = playerForward.clone().multiplyScalar(currentSpeed * dt);
+                const testPos = player.position.clone().add(disp);
                 const testNormal = testPos.clone().normalize();
-                const testWorldPos = testNormal.clone().multiplyScalar(WORLD_CONFIG.planetRadius);
+                const testWorldPos = testNormal.clone().multiplyScalar(CONFIG.planetRadius);
 
-                if (!checkWorldCollision(testWorldPos, 1.2)) {
-                    playerSurfaceNormal.copy(testNormal);
-                    const nf = playerForwardTangent.clone().sub(playerSurfaceNormal.clone().multiplyScalar(playerSurfaceNormal.dot(playerForwardTangent))).normalize();
-                    playerForwardTangent.copy(nf);
+                if (!checkCollision(testWorldPos, 1.2)) {
+                    playerNormal.copy(testNormal);
+                    const nf = playerForward.clone().sub(playerNormal.clone().multiplyScalar(playerForward.dot(playerNormal))).normalize();
+                    playerForward.copy(nf);
                 } else {
-                    currentPlayerSpeed *= 0.1;
+                    currentSpeed *= 0.1;
                 }
             }
             
-            // Sentiasa kemas kini transformasi player tanpa gagal (membaiki bug kaku tak boleh gerak)
-            refreshPlayerTransformation();
+            updatePlayerTransform();
 
-            for (let house of interactiveHousesRegistry) {
-                const dist = playerEntity.position.distanceTo(house.worldPosition);
-                if (dist < 5.0 && !house.isDoorOpen) {
-                    house.isDoorOpen = true;
+            for (let hObj of interactiveHouses) {
+                const dist = player.position.distanceTo(hObj.worldPos);
+                if (dist < 5.0 && !hObj.isOpen) {
+                    hObj.isOpen = true;
                     let p = 0;
                     const intv = setInterval(() => {
                         p += 0.1;
-                        house.doorPivotContainer.rotation.y = Math.min(Math.PI * 0.6, p * Math.PI * 0.6);
+                        hObj.doorPivot.rotation.y = Math.min(Math.PI * 0.6, p * Math.PI * 0.6);
                         if (p >= 1) clearInterval(intv);
                     }, 30);
-                } else if (dist >= 6.0 && house.isDoorOpen) {
-                    house.isDoorOpen = false;
+                } else if (dist >= 6.0 && hObj.isOpen) {
+                    hObj.isOpen = false;
                     let p = 1;
                     const intv = setInterval(() => {
                         p -= 0.1;
-                        house.doorPivotContainer.rotation.y = Math.max(0, p * Math.PI * 0.6);
+                        hObj.doorPivot.rotation.y = Math.max(0, p * Math.PI * 0.6);
                         if (p <= 0) clearInterval(intv);
                     }, 30);
                 }
             }
 
-            if (Math.abs(currentPlayerSpeed) > 0.1 && playerHeightOffset === 0) {
-                playerWalkAnimationTime += dt * Math.abs(currentPlayerSpeed) * 1.5;
+            if (Math.abs(currentSpeed) > 0.1 && heightOffset === 0) {
+                walkTime += dt * Math.abs(currentSpeed) * 1.5;
             }
-            const swing = Math.sin(playerWalkAnimationTime * 8) * 0.45 * Math.min(1, Math.abs(currentPlayerSpeed) / WORLD_CONFIG.playerWalkSpeed);
-            playerVisualMesh.userData.leftLeg.rotation.x = swing;
-            playerVisualMesh.userData.rightLeg.rotation.x = -swing;
+            const swing = Math.sin(walkTime * 8) * 0.45 * Math.min(1, Math.abs(currentSpeed) / CONFIG.walkSpeed);
+            playerMesh.userData.leftLeg.rotation.x = swing;
+            playerMesh.userData.rightLeg.rotation.x = -swing;
 
-            document.getElementById('speed-meter').textContent = `Speed: ${Math.abs(currentPlayerSpeed).toFixed(1)} m/s`;
+            document.getElementById('speed-meter').textContent = `Speed: ${Math.abs(currentSpeed).toFixed(1)} m/s`;
         }
 
-        let gameTime = WORLD_CONFIG.dayCycleDurationSec * 0.25; // Bermula pukul 12 tengah hari
-        function updateDayNight(dt) {
-            gameTime += dt;
-            const frac = (gameTime % WORLD_CONFIG.dayCycleDurationSec) / WORLD_CONFIG.dayCycleDurationSec;
-            const angle = frac * Math.PI * 2 - Math.PI / 2;
+        // Day / Night Smooth Gradient Transition
+        let elapsedTime = CONFIG.dayLengthSec * 0.25; 
+        function updateDayNightCycle(dt) {
+            elapsedTime += dt;
+            const progress = (elapsedTime % CONFIG.dayLengthSec) / CONFIG.dayLengthSec;
+            const sunAngle = progress * Math.PI * 2 - Math.PI / 2;
             const orbitR = 450;
-            const sx = Math.cos(angle) * orbitR, sy = Math.sin(angle) * orbitR;
+            const sunX = Math.cos(sunAngle) * orbitR, sunY = Math.sin(sunAngle) * orbitR;
 
-            directionalSunLight.position.set(sx, sy, 150);
-            sunVisualMesh.position.copy(directionalSunLight.position);
-            directionalMoonLight.position.set(-sx, -sy, -150);
-            moonVisualMesh.position.copy(directionalMoonLight.position);
+            sunLight.position.set(sunX, sunY, 150);
+            sunMesh.position.copy(sunLight.position);
+            moonLight.position.set(-sunX, -sunY, -150);
+            moonMesh.position.copy(moonLight.position);
 
-            const elev = Math.sin(angle);
-            directionalSunLight.intensity = THREE.MathUtils.lerp(0.1, 2.4, Math.max(0, elev));
-            directionalMoonLight.intensity = THREE.MathUtils.lerp(0.02, 0.4, Math.max(0, -elev));
-            hemisphereEnvironmentLight.intensity = THREE.MathUtils.lerp(0.25, 1.4, Math.max(0, elev + 0.2));
+            const elevation = Math.sin(sunAngle);
+            
+            sunLight.intensity = THREE.MathUtils.lerp(0.1, 2.3, Math.max(0, elevation));
+            moonLight.intensity = THREE.MathUtils.lerp(0.05, 0.35, Math.max(0, -elevation));
+            hemisphereLight.intensity = THREE.MathUtils.lerp(0.3, 1.4, Math.max(0, elevation + 0.2));
 
-            // Smooth Multi-stop Shifting Sky Color (Pink peach senja yang sangat lancar)
             const skyColor = new THREE.Color();
-            if (elev > 0.18) {
+            if (elevation > 0.18) {
                 skyColor.set(0x75c4ff);
-            } else if (elev >= -0.18 && elev <= 0.18) {
-                const t = (elev + 0.18) / 0.36;
+            } else if (elevation >= -0.18 && elevation <= 0.18) {
+                const t = (elevation + 0.18) / 0.36;
                 skyColor.set(0x0a0c1b).lerp(new THREE.Color(0xf08a5d), t).lerp(new THREE.Color(0x75c4ff), t * t);
             } else {
                 skyColor.set(0x02030a);
             }
 
-            primaryScene.background.copy(skyColor);
-            primaryScene.fog.color.copy(skyColor);
-            backgroundStars.material.opacity = THREE.MathUtils.clamp(1 - (elev + 0.2) * 2, 0, 1);
+            scene.background.copy(skyColor);
+            scene.fog.color.copy(skyColor);
+            stars.material.opacity = THREE.MathUtils.clamp(1 - (elevation + 0.2) * 2, 0, 1);
 
-            const mins = frac * 24 * 60;
-            const hrs = Math.floor(mins / 60), m = Math.floor(mins % 60);
-            const period = elev > 0.05 ? "Day" : elev > -0.05 ? "Twilight" : "Night";
-            document.getElementById('time-display').textContent = `${period === "Day" ? "☀️" : period === "Night" ? "🌙" : "🌅"} ${String(hrs).padStart(2,'0')}:${String(m).padStart(2,'0')} · ${period}`;
+            const totalMins = progress * 24 * 60;
+            const hrs = Math.floor(totalMins / 60), mins = Math.floor(totalMins % 60);
+            const period = elevation > 0.05 ? "Day" : elevation > -0.05 ? "Twilight" : "Night";
+            const icon = period === "Day" ? "☀️" : period === "Night" ? "🌙" : "🌅";
+            document.getElementById('time-display').textContent = `${icon} ${String(hrs).padStart(2,'0')}:${String(mins).padStart(2,'0')} · ${period}`;
         }
 
-        const targetCamPos = new THREE.Vector3(), lookAtPos = new THREE.Vector3();
-        function updateCamera(dt) {
-            const up = playerSurfaceNormal.clone();
-            const fwd = playerForwardTangent.clone().sub(up.clone().multiplyScalar(playerForwardTangent.dot(up))).normalize();
-            const rotM = new THREE.Matrix4().makeAxisAngle(up, camAzimuth);
-            const back = fwd.clone().applyMatrix4(rotM).negate();
+        const targetCamPos = new THREE.Vector3();
+        const lookAtPos = new THREE.Vector3();
 
-            targetCamPos.copy(playerEntity.position)
-                .add(up.clone().multiplyScalar(WORLD_CONFIG.cameraHeight + camElevation * 4))
-                .add(back.clone().multiplyScalar(WORLD_CONFIG.cameraDistance));
+        function updateCameraRig(dt) {
+            const up = playerNormal.clone();
+            const fwd = playerForward.clone().sub(up.clone().multiplyScalar(playerForward.dot(up))).normalize();
+            
+            const rotMatrix = new THREE.Matrix4().makeAxisAngle(up, cameraAzimuth);
+            const rotatedFwd = fwd.clone().applyMatrix4(rotMatrix);
+            const back = rotatedFwd.clone().negate();
 
-            primaryCamera.position.lerp(targetCamPos, 1.0 - Math.exp(-8.0 * dt));
-            primaryCamera.up.copy(up);
-            lookAtPos.copy(playerEntity.position).add(up.clone().multiplyScalar(1.8));
-            primaryCamera.lookAt(lookAtPos);
+            targetCamPos.copy(player.position)
+                .add(up.clone().multiplyScalar(CONFIG.cameraHeight + cameraElevation * 4))
+                .add(back.clone().multiplyScalar(CONFIG.cameraDist));
+
+            camera.position.lerp(targetCamPos, 1.0 - Math.exp(-8.0 * dt));
+            camera.up.copy(up);
+
+            lookAtPos.copy(player.position).add(up.clone().multiplyScalar(1.8));
+            camera.lookAt(lookAtPos);
         }
 
         window.addEventListener('resize', () => {
-            primaryCamera.aspect = window.innerWidth / window.innerHeight;
-            primaryCamera.updateProjectionMatrix();
-            webglRenderer.setSize(window.innerWidth, window.innerHeight);
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
         });
 
         const clock = new THREE.Clock();
-        let frames = 0, lastFps = performance.now();
+        let frameCount = 0, lastFpsTime = performance.now();
 
-        function loop() {
-            requestAnimationFrame(loop);
+        function mainLoop() {
+            requestAnimationFrame(mainLoop);
             const dt = Math.min(clock.getDelta(), 0.05);
 
             updatePlayer(dt);
-            updateNpcAutonomousBehaviors(dt);
-            updateDayNight(dt);
-            updateCamera(dt);
-            backgroundStars.rotation.y += dt * 0.0008;
+            updateNPCs(dt);
+            updateDayNightCycle(dt);
+            updateCameraRig(dt);
 
-            frames++;
+            stars.rotation.y += dt * 0.0008;
+
+            frameCount++;
             const now = performance.now();
-            if (now - lastFps >= 500) {
-                document.getElementById('fps-counter').textContent = `FPS: ${Math.round((frames * 1000) / (now - lastFps))}`;
-                frames = 0; lastFps = now;
+            if (now - lastFpsTime >= 500) {
+                document.getElementById('fps-counter').textContent = `FPS: ${Math.round((frameCount * 1000) / (now - lastFpsTime))}`;
+                frameCount = 0; lastFpsTime = now;
             }
 
-            webglRenderer.render(primaryScene, primaryCamera);
+            renderer.render(scene, camera);
         }
 
-        loop();
+        mainLoop();
     </script>
 </body>
 </html>
