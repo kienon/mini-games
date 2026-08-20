@@ -1,8 +1,8 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
     <title>Tiny World — Living Planet</title>
 
     <style>
@@ -29,7 +29,6 @@
             width: 100%;
             height: 100%;
         }
-        /* ===== UI ===== */
         #ui-container {
             position: fixed;
             top: max(16px, env(safe-area-inset-top));
@@ -111,7 +110,6 @@
             text-shadow: 0 2px 5px rgba(0, 0, 0, 0.9);
             white-space: nowrap;
         }
-        /* ===== JOYSTICK ===== */
         #virtual-joystick {
             position: fixed;
             left: max(22px, env(safe-area-inset-left));
@@ -137,7 +135,6 @@
             pointer-events: none;
             will-change: transform;
         }
-        /* ===== CAMERA TOUCH ===== */
         #camera-touch-zone {
             position: fixed;
             right: 0;
@@ -148,7 +145,6 @@
             pointer-events: auto;
             touch-action: none;
         }
-        /* ===== MOBILE BUTTONS ===== */
         #mobile-controls {
             position: fixed;
             right: max(20px, env(safe-area-inset-right));
@@ -218,7 +214,6 @@
             border-radius: 16px;
             font-size: 9px;
         }
-        /* ===== PROMPT ===== */
         #interaction-prompt {
             position: fixed;
             left: 50%;
@@ -277,7 +272,6 @@
             text-align: center;
             max-width: 90%;
         }
-        /* ===== LOADING ===== */
         #loading-screen {
             position: fixed;
             inset: 0;
@@ -320,7 +314,16 @@
             background: rgba(255, 255, 255, 0.85);
             transition: width 0.25s ease;
         }
-        /* ===== RESPONSIVE ===== */
+
+        /* Label renderer overlay */
+        .label-renderer {
+            position: fixed;
+            top: 0;
+            left: 0;
+            pointer-events: none;
+            z-index: 30;
+        }
+
         @media (max-width: 700px) {
             #ui-container {
                 top: max(10px, env(safe-area-inset-top));
@@ -398,17 +401,10 @@
                 pointer-events: none;
             }
         }
-        /* Label renderer overlay */
-        .label-renderer {
-            position: fixed;
-            top: 0;
-            left: 0;
-            pointer-events: none;
-            z-index: 30;
-        }
     </style>
 </head>
 <body>
+
     <!-- LOADING -->
     <div id="loading-screen">
         <div id="loading-title">🌍 Tiny World</div>
@@ -492,7 +488,7 @@
             cameraPitchMax: 1.0,
             jumpVelocity: 10.5,
             gravity: 24.0,
-            maxStepHeight: 1.75,
+            maxStepHeight: 2.8, // increased for rocks
             npcCount: 18,
             buildingCount: 28,
             treeCount: 130,
@@ -647,21 +643,32 @@
         scene.add(atmosphere);
 
         // ============================================================
-        // STARS
+        // STARS — brighter, more visible at night
         // ============================================================
-        const starCount = 5000;
+        const starCount = 6000;
         const starGeometry = new THREE.BufferGeometry();
         const starPositions = new Float32Array(starCount * 3);
+        const starSizes = new Float32Array(starCount);
         for (let i = 0; i < starCount; i++) {
             const dir = randomDirection();
-            const radius = 760 + Math.random() * 420;
+            const radius = 700 + Math.random() * 500;
             starPositions[i * 3] = dir.x * radius;
             starPositions[i * 3 + 1] = dir.y * radius;
             starPositions[i * 3 + 2] = dir.z * radius;
+            starSizes[i] = 0.6 + Math.random() * 1.8;
         }
         starGeometry.setAttribute("position", new THREE.BufferAttribute(starPositions, 3));
-        const starMaterial = new THREE.PointsMaterial({ color: 0xffffff, size: 1.25, transparent: true, opacity: 0,
-            depthWrite: false, sizeAttenuation: true });
+        starGeometry.setAttribute("size", new THREE.BufferAttribute(starSizes, 1));
+
+        const starMaterial = new THREE.PointsMaterial({
+            color: 0xffffff,
+            size: 1.6,
+            transparent: true,
+            opacity: 0,
+            depthWrite: false,
+            sizeAttenuation: true,
+            blending: THREE.AdditiveBlending,
+        });
         const stars = new THREE.Points(starGeometry, starMaterial);
         scene.add(stars);
 
@@ -717,7 +724,7 @@
         const doorMaterial = new THREE.MeshStandardMaterial({ color: 0x4c2e21, roughness: 0.82 });
 
         // ============================================================
-        // HOUSE FACTORY (with bed)
+        // HOUSE FACTORY — BIGGER DOOR (3.0 wide, 2.8 tall)
         // ============================================================
         const houses = [];
 
@@ -765,8 +772,9 @@
             rightWall.receiveShadow = true;
             house.add(rightWall);
 
-            // Front wall
-            const fw = (width - 2.0) / 2;
+            // Front wall — wider door opening (3.0)
+            const doorW = 3.0;
+            const fw = (width - doorW) / 2;
             const fl = new THREE.Mesh(new THREE.BoxGeometry(fw, height, 0.65), material);
             fl.position.set(-width / 2 + fw / 2, height / 2, -depth / 2);
             fl.castShadow = true;
@@ -775,8 +783,10 @@
             fr.position.set(width / 2 - fw / 2, height / 2, -depth / 2);
             fr.castShadow = true;
             house.add(fr);
-            const ft = new THREE.Mesh(new THREE.BoxGeometry(2.0, height - 2.3, 0.65), material);
-            ft.position.set(0, 2.3 + (height - 2.3) / 2, -depth / 2);
+            // Top piece above door (taller door = shorter top piece)
+            const doorH = 2.8;
+            const ft = new THREE.Mesh(new THREE.BoxGeometry(doorW, height - doorH, 0.65), material);
+            ft.position.set(0, doorH + (height - doorH) / 2, -depth / 2);
             ft.castShadow = true;
             house.add(ft);
 
@@ -787,24 +797,26 @@
             roof.castShadow = true;
             house.add(roof);
 
-            // Door
+            // Door — bigger (3.0 wide, 2.8 tall)
             const doorPivot = new THREE.Group();
-            doorPivot.position.set(-1.0, 1.15, -depth / 2 - 0.05);
-            const door = new THREE.Mesh(new THREE.BoxGeometry(2.0, 2.3, 0.18), doorMaterial);
-            door.position.x = 1.0;
+            doorPivot.position.set(-doorW / 2 + 0.5, doorH / 2 + 0.1, -depth / 2 - 0.05);
+            const door = new THREE.Mesh(new THREE.BoxGeometry(doorW - 0.2, doorH - 0.2, 0.18), doorMaterial);
+            door.position.x = (doorW - 0.2) / 2;
             door.castShadow = true;
             doorPivot.add(door);
             house.add(doorPivot);
             house.userData.door = doorPivot;
+            house.userData.doorWidth = doorW;
+            house.userData.doorHeight = doorH;
 
             // Windows
             const winMat = new THREE.MeshStandardMaterial({ color: 0x82cde9, emissive: 0x153a4b, emissiveIntensity: 0.3,
                 roughness: 0.25, metalness: 0.1 });
             const wl = new THREE.Mesh(new THREE.BoxGeometry(1.25, 1.25, 0.10), winMat);
-            wl.position.set(-2.0, 2.25, -depth / 2 - 0.06);
+            wl.position.set(-2.2, 2.25, -depth / 2 - 0.06);
             house.add(wl);
             const wr = wl.clone();
-            wr.position.x = 2.0;
+            wr.position.x = 2.2;
             house.add(wr);
 
             // Interior light
@@ -887,29 +899,43 @@
         }
 
         // ============================================================
-        // ROCKS
+        // ROCKS — now walkable (treat as low obstacles with step-up)
         // ============================================================
         const rockMat = new THREE.MeshStandardMaterial({ color: 0x73766f, roughness: 1 });
+        const rockList = [];
         for (let i = 0; i < CONFIG.rockCount; i++) {
             const normal = randomDirection();
             const size = 0.75 + Math.random() * 1.7;
             const rock = new THREE.Mesh(new THREE.DodecahedronGeometry(size, 0), rockMat);
-            rock.scale.y = 0.38 + Math.random() * 0.55;
+            const sy = 0.38 + Math.random() * 0.55;
+            rock.scale.y = sy;
             rock.rotation.set(Math.random() * Math.PI, Math.random() * Math.PI, Math.random() * Math.PI);
             rock.castShadow = true;
             rock.receiveShadow = true;
-            placeOnSurface(rock, normal, size * 0.28);
+            const height = size * sy * 1.4;
+            placeOnSurface(rock, normal, height * 0.3);
             environmentGroup.add(rock);
-            addObstacle(rock, size * 0.85, "rock", { height: size * rock.scale.y * 1.4 });
+            // Store as walkable obstacle
+            const rockData = {
+                object: rock,
+                position: rock.position,
+                radius: size * 0.85,
+                type: "rock",
+                height: height,
+                normal: normal.clone(),
+            };
+            rockList.push(rockData);
+            addObstacle(rock, size * 0.85, "rock", { height: height, rockData });
         }
 
         // ============================================================
-        // ROAD + STREETLIGHTS
+        // ROAD + STREETLIGHTS (more visible)
         // ============================================================
         const roadGroup = new THREE.Group();
         scene.add(roadGroup);
         const roadMaterial = new THREE.MeshStandardMaterial({ color: 0x5a5a5a, roughness: 0.95, metalness: 0 });
         const sidewalkMaterial = new THREE.MeshStandardMaterial({ color: 0x8a8a7a, roughness: 1 });
+        const roadLineMat = new THREE.MeshStandardMaterial({ color: 0xcccccc, emissive: 0x888888, emissiveIntensity: 0.1 });
 
         const roadPoints = [];
         const roadSegments = 60;
@@ -964,6 +990,11 @@
         sidewalk.receiveShadow = true;
         roadGroup.add(sidewalk);
 
+        // Road center line
+        const centerLine = buildRoadRibbon(0.2, 0.25, roadLineMat);
+        centerLine.receiveShadow = true;
+        roadGroup.add(centerLine);
+
         // Streetlights
         const lightPoleMat = new THREE.MeshStandardMaterial({ color: 0x4a4a4a, metalness: 0.6, roughness: 0.3 });
         const lightHeadMat = new THREE.MeshStandardMaterial({ color: 0xffeecc, emissive: 0xffdd77, emissiveIntensity: 0.6 });
@@ -994,12 +1025,19 @@
         }
 
         // ============================================================
-        // RIVER (keep existing)
+        // RIVER (more visible with brighter color)
         // ============================================================
         const riverGroup = new THREE.Group();
         scene.add(riverGroup);
-        const riverMaterial = new THREE.MeshPhysicalMaterial({ color: 0x2b9dd6, roughness: 0.22, metalness: 0.08,
-            transmission: 0.12, transparent: true, opacity: 0.84, side: THREE.DoubleSide });
+        const riverMaterial = new THREE.MeshPhysicalMaterial({
+            color: 0x2b9dd6,
+            roughness: 0.22,
+            metalness: 0.08,
+            transmission: 0.12,
+            transparent: true,
+            opacity: 0.88,
+            side: THREE.DoubleSide,
+        });
         const riverBankMat = new THREE.MeshStandardMaterial({ color: 0x6f7250, roughness: 1 });
         const riverStart = new THREE.Vector3(0.45, 0.55, 0.70).normalize();
         const riverEnd = new THREE.Vector3(-0.75, 0.42, -0.52).normalize();
@@ -1044,12 +1082,60 @@
             geo.computeVertexNormals();
             return new THREE.Mesh(geo, material);
         }
-        const river = buildRibbon(5.4, 0.28, riverMaterial);
+
+        const riverWidth = 5.4;
+        const river = buildRibbon(riverWidth, 0.28, riverMaterial);
         riverGroup.add(river);
-        const riverBankLeft = buildRibbon(6.25, 0.16, riverBankMat);
-        const riverBankRight = buildRibbon(6.9, 0.15, riverBankMat);
+        const riverBankLeft = buildRibbon(riverWidth + 0.8, 0.16, riverBankMat);
+        const riverBankRight = buildRibbon(riverWidth + 0.8, 0.15, riverBankMat);
         riverGroup.add(riverBankLeft);
         riverGroup.add(riverBankRight);
+
+        // ============================================================
+        // BRIDGE over the river
+        // ============================================================
+        const bridgeGroup = new THREE.Group();
+        scene.add(bridgeGroup);
+
+        // Find the midpoint of the river
+        const midIdx = Math.floor(riverPoints.length / 2);
+        const midPoint = riverPoints[midIdx];
+        const bridgePos = midPoint.clone().multiplyScalar(CONFIG.planetRadius + 0.4);
+
+        // Bridge deck
+        const bridgeDeckMat = new THREE.MeshStandardMaterial({ color: 0x8a7a6a, roughness: 0.9 });
+        const bridgeRailMat = new THREE.MeshStandardMaterial({ color: 0x6a5a4a, roughness: 0.8 });
+
+        const bridgeLength = 8;
+        const bridgeWidth = 3.5;
+        const deck = new THREE.Mesh(new THREE.BoxGeometry(bridgeLength, 0.4, bridgeWidth), bridgeDeckMat);
+        deck.position.copy(bridgePos).add(midPoint.clone().multiplyScalar(0.2));
+        deck.castShadow = true;
+        deck.receiveShadow = true;
+        orientToSurface(deck, midPoint);
+        bridgeGroup.add(deck);
+
+        // Rails
+        for (let side = -1; side <= 1; side += 2) {
+            const rail = new THREE.Mesh(new THREE.BoxGeometry(bridgeLength, 0.8, 0.15), bridgeRailMat);
+            const offset = new THREE.Vector3().crossVectors(midPoint, tangentDirection(midPoint)).normalize()
+                .multiplyScalar(side * bridgeWidth / 2);
+            rail.position.copy(bridgePos).add(midPoint.clone().multiplyScalar(0.2)).add(offset);
+            rail.position.add(midPoint.clone().multiplyScalar(0.4));
+            rail.castShadow = true;
+            orientToSurface(rail, midPoint);
+            bridgeGroup.add(rail);
+
+            // Rail posts
+            for (let i = -3; i <= 3; i++) {
+                const post = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.08, 0.8, 6), bridgeRailMat);
+                const along = tangentDirection(midPoint).clone().multiplyScalar(i * 1.0);
+                post.position.copy(bridgePos).add(midPoint.clone().multiplyScalar(0.2)).add(offset).add(along);
+                post.position.add(midPoint.clone().multiplyScalar(0.4));
+                orientToSurface(post, midPoint);
+                bridgeGroup.add(post);
+            }
+        }
 
         // ============================================================
         // CHARACTER FACTORY
@@ -1091,7 +1177,7 @@
             rightArm.castShadow = true;
             container.add(rightArm);
 
-            container.userData = { leftLeg, rightLeg, leftArm, rightArm };
+            container.userData = { leftLeg, rightLeg, leftArm, rightArm, torso, head };
             return container;
         }
 
@@ -1118,6 +1204,7 @@
         let score = 0;
         let isSleeping = false;
         let sleepTimer = 0;
+        let attackAnimTime = 0; // for attack animation
 
         function updatePlayerTransform() {
             player.position.copy(playerNormal).multiplyScalar(CONFIG.planetRadius + jumpHeight);
@@ -1130,7 +1217,7 @@
         updatePlayerTransform();
 
         // ============================================================
-        // NPC SYSTEM (with names, HP, combat)
+        // NPC SYSTEM (with names, HP, combat, death animation)
         // ============================================================
         const npcList = [];
         const npcColors = [0x2196f3, 0xffc107, 0x9c27b0, 0x00acc1, 0xff7043, 0x66bb6a, 0xab47bc, 0x26a69a];
@@ -1138,18 +1225,19 @@
         const labelStyle = `
               color: white;
               font-family: "Segoe UI", sans-serif;
-              font-size: 12px;
-              font-weight: 700;
-              text-shadow: 0 1px 8px rgba(0,0,0,0.9);
-              background: rgba(0,0,0,0.55);
-              padding: 3px 10px;
-              border-radius: 12px;
-              border: 1px solid rgba(255,255,255,0.15);
+              font-size: 10px;
+              font-weight: 600;
+              text-shadow: 0 1px 8px rgba(0,0,0,0.95);
+              background: rgba(0,0,0,0.50);
+              padding: 2px 8px;
+              border-radius: 10px;
+              border: 1px solid rgba(255,255,255,0.10);
               backdrop-filter: blur(4px);
               white-space: nowrap;
               pointer-events: none;
               text-align: center;
-              line-height: 1.4;
+              line-height: 1.3;
+              transition: opacity 0.15s ease;
             `;
 
         for (let i = 0; i < CONFIG.npcCount; i++) {
@@ -1183,22 +1271,28 @@
                 attackCooldown: 0,
                 label: null,
                 labelDiv: null,
+                deathAnimTime: 0,
+                isDying: false,
+                originalY: 0,
             };
 
             npc.position.copy(normal).multiplyScalar(CONFIG.planetRadius);
             orientToSurface(npc, normal);
             environmentGroup.add(npc);
 
-            // Create CSS2D label
+            // Create CSS2D label (smaller)
             const labelDiv = document.createElement("div");
             labelDiv.style.cssText = labelStyle;
             labelDiv.innerHTML =
-                `${name}<br><span style="font-size:10px;color:#ff6b6b;">❤️ ${npcData.hp}/${npcData.maxHP}</span>`;
+                `${name}<br><span style="font-size:8px;color:#ff6b6b;">❤️ ${npcData.hp}/${npcData.maxHP}</span>`;
             const label = new CSS2DObject(labelDiv);
             label.position.set(0, 3.2, 0);
             npc.add(label);
             npcData.label = label;
             npcData.labelDiv = labelDiv;
+            // Initially hide — will be shown only when visible
+            labelDiv.style.opacity = "0";
+            labelDiv.style.transition = "opacity 0.2s ease";
 
             npcList.push(npcData);
         }
@@ -1351,7 +1445,7 @@
         }
 
         // ============================================================
-        // PLAYER MOVEMENT
+        // PLAYER MOVEMENT (with improved rock collision)
         // ============================================================
         function getMovementInput() {
             let turn = 0,
@@ -1378,12 +1472,44 @@
                         const w = house.userData.width,
                             d = house.userData.depth;
                         const inside = Math.abs(local.x) < w * 0.5 && Math.abs(local.z) < d * 0.5;
-                        const nearDoor = Math.abs(local.x) < 1.35 && local.z < -d * 0.5 + 2.0;
+                        // Wider door detection (3.0)
+                        const doorW = house.userData.doorWidth || 3.0;
+                        const nearDoor = Math.abs(local.x) < doorW * 0.6 && local.z < -d * 0.5 + 2.0;
                         if (inside || nearDoor) continue;
                     }
+                    const dist = cp.distanceTo(ob.position);
+                    if (dist < CONFIG.playerRadius + ob.radius) return ob;
+                } else if (ob.type === "rock") {
+                    // Rock: allow walking on top, block from sides
+                    const dist = cp.distanceTo(ob.position);
+                    const rockHeight = ob.height || 1.0;
+                    // Check if player is above the rock
+                    const playerWorldPos = player.position.clone();
+                    const rockPos = ob.position.clone();
+                    const normal = rockPos.clone().normalize();
+                    const heightAboveRock = (playerWorldPos.dot(normal) - rockPos.dot(normal)) * 1.0;
+                    // If player is above the rock center, allow walking on it
+                    if (heightAboveRock > rockHeight * 0.3) {
+                        // Check if player is within the rock's horizontal footprint
+                        const horizontalDist = cp.distanceTo(ob.position);
+                        if (horizontalDist < ob.radius + CONFIG.playerRadius * 0.8) {
+                            // On top of rock — allow
+                            continue;
+                        }
+                    }
+                    if (dist < CONFIG.playerRadius + ob.radius) {
+                        // Check if we're stepping onto the rock from the side
+                        const stepUp = jumpHeight + 0.5;
+                        if (stepUp > rockHeight * 0.6) {
+                            // Allow stepping up
+                            continue;
+                        }
+                        return ob;
+                    }
+                } else {
+                    const dist = cp.distanceTo(ob.position);
+                    if (dist < CONFIG.playerRadius + ob.radius) return ob;
                 }
-                const dist = cp.distanceTo(ob.position);
-                if (dist < CONFIG.playerRadius + ob.radius) return ob;
             }
             return null;
         }
@@ -1393,12 +1519,17 @@
             const cw = player.position.clone().add(movement);
             const cn = cw.normalize();
             const collision = checkObstacleCollision(cn);
-            if (collision && collision.type === "rock" && isGrounded && collision.height <= CONFIG.maxStepHeight) {
-                jumpHeight = Math.max(jumpHeight, 0.65);
-                playerNormal.copy(cn);
-                playerForward = projectOntoTangent(playerForward, playerNormal);
-                updatePlayerTransform();
-                return true;
+            if (collision && collision.type === "rock" && isGrounded) {
+                // Step up onto rock
+                const rockHeight = collision.height || 1.0;
+                if (rockHeight <= CONFIG.maxStepHeight) {
+                    jumpHeight = Math.max(jumpHeight, rockHeight * 0.5);
+                    playerNormal.copy(cn);
+                    playerForward = projectOntoTangent(playerForward, playerNormal);
+                    updatePlayerTransform();
+                    return true;
+                }
+                return false;
             }
             if (collision) return false;
             playerNormal.copy(cn);
@@ -1417,6 +1548,15 @@
                 }
                 elapsedTime += dt * CONFIG.sleepSpeedMultiplier;
                 return;
+            }
+
+            // Attack animation decay
+            if (attackAnimTime > 0) {
+                attackAnimTime -= dt * 6;
+                if (attackAnimTime < 0) attackAnimTime = 0;
+                const swing = Math.sin(attackAnimTime * Math.PI) * 1.2;
+                playerMesh.userData.rightArm.rotation.x = -1.2 + swing * 0.8;
+                playerMesh.userData.leftArm.rotation.x = -1.2 + swing * 0.4;
             }
 
             const input = getMovementInput();
@@ -1449,10 +1589,12 @@
             const wa = Math.min(1, Math.abs(currentSpeed) / CONFIG.playerWalkSpeed);
             const swing = Math.sin(walkTime * 8.5) * 0.42 * wa;
             const pm = playerMesh.userData;
-            pm.leftLeg.rotation.x = swing;
-            pm.rightLeg.rotation.x = -swing;
-            pm.leftArm.rotation.x = -swing * 0.55;
-            pm.rightArm.rotation.x = swing * 0.55;
+            if (attackAnimTime <= 0) {
+                pm.leftLeg.rotation.x = swing;
+                pm.rightLeg.rotation.x = -swing;
+                pm.leftArm.rotation.x = -swing * 0.55;
+                pm.rightArm.rotation.x = swing * 0.55;
+            }
 
             const status = document.getElementById("status-text");
             if (!isGrounded) { status.textContent = "Status: Jumping";
@@ -1473,19 +1615,20 @@
         }
 
         // ============================================================
-        // COMBAT
+        // COMBAT with hit animation
         // ============================================================
         let attackCooldownTimer = 0;
 
         function performAttack() {
             if (attackCooldownTimer > 0 || isSleeping) return;
             attackCooldownTimer = 0.4;
+            attackAnimTime = 1.0; // trigger attack animation
 
             const pPos = player.position.clone();
             let closest = null,
                 closestDist = Infinity;
             for (const npc of npcList) {
-                if (npc.isKO) continue;
+                if (npc.isKO || npc.isDying) continue;
                 const dist = pPos.distanceTo(npc.object.position);
                 if (dist < CONFIG.attackRange && dist < closestDist) {
                     closest = npc;
@@ -1497,7 +1640,7 @@
                 closest.isAggro = true;
                 closest.aggroTimer = 4;
 
-                // Flash effect
+                // Hit flash
                 closest.mesh.children.forEach(child => {
                     if (child.isMesh) {
                         const orig = child.material.color.clone();
@@ -1509,16 +1652,20 @@
                 if (closest.hp <= 0) {
                     closest.hp = 0;
                     closest.isKO = true;
+                    closest.isDying = true;
+                    closest.deathAnimTime = 0;
                     closest.koTimer = CONFIG.respawnDelay;
                     score += 10;
                     updatePlayerUI();
                     const koDiv = closest.labelDiv;
                     koDiv.innerHTML = `${closest.name}<br><span style="color:#ff6b6b;font-weight:900;">💀 KO!</span>`;
                     koDiv.style.borderColor = "#ff4444";
+                    // Death animation: fall over
+                    closest.originalY = closest.object.position.y;
                 } else {
                     const div = closest.labelDiv;
                     div.innerHTML =
-                        `${closest.name}<br><span style="font-size:10px;color:#ff6b6b;">❤️ ${closest.hp}/${closest.maxHP}</span>`;
+                        `${closest.name}<br><span style="font-size:8px;color:#ff6b6b;">❤️ ${closest.hp}/${closest.maxHP}</span>`;
                 }
                 updatePlayerUI();
             }
@@ -1548,24 +1695,42 @@
                         break;
                     }
                 }
-                if (npcData && !npcData.isKO) {
+                if (npcData && !npcData.isKO && !npcData.isDying) {
                     performAttack();
                 }
             }
         });
 
         // ============================================================
-        // NPC UPDATE (AI + combat)
+        // NPC UPDATE (AI + combat + death animation + label visibility)
         // ============================================================
         function updateNPCs(dt) {
             const pPos = player.position.clone();
+
+            // Update camera frustum for label visibility
+            camera.updateMatrixWorld();
+            const frustum = new THREE.Frustum();
+            frustum.setFromProjectionMatrix(new THREE.Matrix4().multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse));
+            const camDir = new THREE.Vector3();
+            camera.getWorldDirection(camDir);
+
             for (const npc of npcList) {
-                // KO respawn
-                if (npc.isKO) {
+                // --- Death animation ---
+                if (npc.isDying && npc.isKO) {
+                    npc.deathAnimTime += dt * 3;
+                    if (npc.deathAnimTime < 1) {
+                        // Fall over
+                        const angle = npc.deathAnimTime * 1.2;
+                        npc.object.rotation.z = angle * 0.6;
+                        npc.object.position.y = npc.originalY - angle * 0.3;
+                    }
+                    // Respawn after KO timer
                     npc.koTimer -= dt;
                     if (npc.koTimer <= 0) {
                         npc.isKO = false;
+                        npc.isDying = false;
                         npc.hp = npc.maxHP;
+                        npc.object.rotation.z = 0;
                         const newNormal = randomDirection();
                         npc.normal.copy(newNormal);
                         npc.object.position.copy(newNormal).multiplyScalar(CONFIG.planetRadius);
@@ -1573,13 +1738,25 @@
                         npc.forward = projectOntoTangent(tangentDirection(newNormal), newNormal);
                         const div = npc.labelDiv;
                         div.innerHTML =
-                            `${npc.name}<br><span style="font-size:10px;color:#ff6b6b;">❤️ ${npc.hp}/${npc.maxHP}</span>`;
-                        div.style.borderColor = "rgba(255,255,255,0.15)";
+                            `${npc.name}<br><span style="font-size:8px;color:#ff6b6b;">❤️ ${npc.hp}/${npc.maxHP}</span>`;
+                        div.style.borderColor = "rgba(255,255,255,0.10)";
                         npc.aggroTimer = 0;
                         npc.isAggro = false;
+                        npc.originalY = npc.object.position.y;
                     }
                     continue;
                 }
+
+                // --- Label visibility: only when in front of camera ---
+                const npcPos = npc.object.position.clone();
+                const toNpc = npcPos.clone().sub(camera.position).normalize();
+                const dot = camDir.dot(toNpc);
+                const visible = dot > 0.25; // in front of camera
+                if (npc.labelDiv) {
+                    npc.labelDiv.style.opacity = visible ? "1" : "0";
+                }
+
+                if (npc.isKO) continue;
 
                 if (npc.attackCooldown > 0) npc.attackCooldown -= dt;
 
@@ -1642,7 +1819,13 @@
                 const testPos = nextNormal.clone().multiplyScalar(CONFIG.planetRadius);
                 for (const ob of obstacleList) {
                     if (ob.type === "house") continue;
-                    if (testPos.distanceTo(ob.position) < 1.0 + ob.radius) { blocked = true; break; }
+                    if (ob.type === "rock") {
+                        // NPCs can also walk on rocks
+                        const dist2 = testPos.distanceTo(ob.position);
+                        if (dist2 < 0.8 + ob.radius) { blocked = true; break; }
+                        continue;
+                    }
+                    if (testPos.distanceTo(ob.position) < 0.8 + ob.radius) { blocked = true; break; }
                 }
                 if (!blocked) {
                     npc.normal.copy(nextNormal);
@@ -1941,8 +2124,10 @@
             hemisphereLight.color.lerp(currentHemisphereSky, 1 - Math.exp(-4 * dt));
             hemisphereLight.groundColor.lerp(currentHemisphereGround, 1 - Math.exp(-4 * dt));
 
+            // Stars: brighter at night
             const starTarget = THREE.MathUtils.smoothstep(-0.10, -0.32, elevation);
             stars.material.opacity = damp(stars.material.opacity, starTarget * 0.95, 3.5, dt);
+
             atmosphere.material.opacity = damp(atmosphere.material.opacity, 0.055 + daylight * 0.045 + twilightPos * 0.045, 3,
                 dt);
 
@@ -2070,6 +2255,9 @@
         console.log("❤️ Player HP: " + playerHP);
         console.log("💤 Find a bed in a house to sleep and heal!");
         console.log("⚔️ Click on NPCs or press J to attack!");
+        console.log("🌉 Bridge crosses the river!");
+        console.log("🪨 Walk on rocks with double jump!");
+        console.log("🚪 Doors are now bigger (3.0 wide)!");
     </script>
 </body>
-</html>
+    </html>
