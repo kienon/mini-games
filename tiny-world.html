@@ -1,0 +1,6919 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+
+    <title>Tiny World — Ultimate Living Planet</title>
+
+    <style>
+        * {
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        html,
+        body {
+            margin: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background: #02030a;
+            font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+            touch-action: none;
+            user-select: none;
+        }
+
+        body {
+            position: relative;
+        }
+
+        canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
+
+        /* =========================================================
+           MAIN UI
+           ========================================================= */
+
+        #ui-container {
+            position: fixed;
+            top: max(16px, env(safe-area-inset-top));
+            left: max(16px, env(safe-area-inset-left));
+            z-index: 50;
+
+            color: #ffffff;
+            text-shadow: 0 2px 5px rgba(0, 0, 0, 0.9);
+
+            pointer-events: none;
+
+            background: rgba(0, 0, 0, 0.30);
+            padding: 13px 17px;
+            border-radius: 14px;
+
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+
+            border: 1px solid rgba(255, 255, 255, 0.13);
+
+            transition:
+                opacity 0.3s ease,
+                transform 0.3s ease;
+        }
+
+        #ui-container h1 {
+            margin: 0 0 6px 0;
+            font-size: 17px;
+            font-weight: 700;
+            letter-spacing: 0.3px;
+        }
+
+        #ui-container p {
+            margin: 3px 0;
+            font-size: 11px;
+            color: rgba(255, 255, 255, 0.82);
+        }
+
+        #status-text {
+            margin-top: 6px !important;
+            font-weight: 700;
+            color: #69f0ae;
+        }
+
+        #score-display {
+            font-weight: 700;
+            color: #ffd54f;
+            font-size: 13px;
+            margin-top: 4px;
+        }
+
+        #player-hp-display {
+            font-weight: 700;
+            color: #ef5350;
+            font-size: 12px;
+            margin-top: 2px;
+        }
+
+        #telemetry-panel {
+            position: fixed;
+            top: max(16px, env(safe-area-inset-top));
+            right: max(16px, env(safe-area-inset-right));
+            z-index: 50;
+
+            color: #ffffff;
+            text-align: right;
+
+            font-size: 11px;
+            line-height: 1.55;
+
+            text-shadow: 0 2px 5px rgba(0, 0, 0, 0.9);
+
+            pointer-events: none;
+
+            background: rgba(0, 0, 0, 0.27);
+            padding: 10px 13px;
+            border-radius: 12px;
+
+            backdrop-filter: blur(9px);
+            -webkit-backdrop-filter: blur(9px);
+
+            border: 1px solid rgba(255, 255, 255, 0.12);
+        }
+
+        #time-display {
+            position: fixed;
+
+            top: max(15px, env(safe-area-inset-top));
+            left: 50%;
+
+            transform: translateX(-50%);
+
+            z-index: 50;
+
+            color: #ffffff;
+
+            background: rgba(0, 0, 0, 0.27);
+
+            padding: 7px 15px;
+
+            border-radius: 20px;
+
+            font-size: 12px;
+            font-weight: 600;
+
+            border: 1px solid rgba(255, 255, 255, 0.15);
+
+            backdrop-filter: blur(9px);
+            -webkit-backdrop-filter: blur(9px);
+
+            pointer-events: none;
+
+            text-shadow: 0 2px 5px rgba(0, 0, 0, 0.9);
+
+            white-space: nowrap;
+        }
+
+        /* =========================================================
+           JOYSTICK
+           ========================================================= */
+
+        #virtual-joystick {
+            position: fixed;
+
+            left: max(22px, env(safe-area-inset-left));
+            bottom: max(22px, env(safe-area-inset-bottom));
+
+            width: 138px;
+            height: 138px;
+
+            z-index: 100;
+
+            border-radius: 50%;
+
+            background:
+                radial-gradient(
+                    circle at center,
+                    rgba(255, 255, 255, 0.07),
+                    rgba(255, 255, 255, 0.025)
+                );
+
+            border: 2px solid rgba(255, 255, 255, 0.22);
+
+            box-shadow:
+                inset 0 0 25px rgba(255, 255, 255, 0.045),
+                0 10px 28px rgba(0, 0, 0, 0.38);
+
+            touch-action: none;
+        }
+
+        #joystick-thumb {
+            position: absolute;
+
+            left: 41px;
+            top: 41px;
+
+            width: 56px;
+            height: 56px;
+
+            border-radius: 50%;
+
+            background:
+                radial-gradient(
+                    circle at 35% 30%,
+                    rgba(255, 255, 255, 0.98),
+                    rgba(220, 230, 235, 0.80)
+                );
+
+            box-shadow:
+                0 5px 16px rgba(0, 0, 0, 0.50),
+                inset 0 1px 2px rgba(255, 255, 255, 0.7);
+
+            pointer-events: none;
+
+            will-change: transform;
+        }
+
+        /* =========================================================
+           RIGHT SIDE TOUCH AREA
+           ========================================================= */
+
+        #camera-touch-zone {
+            position: fixed;
+
+            right: 0;
+            top: 0;
+
+            width: 48%;
+            height: 100%;
+
+            z-index: 20;
+
+            pointer-events: auto;
+
+            touch-action: none;
+        }
+
+        /* =========================================================
+           MOBILE BUTTONS
+           ========================================================= */
+
+        #mobile-controls {
+            position: fixed;
+
+            right: max(20px, env(safe-area-inset-right));
+            bottom: max(24px, env(safe-area-inset-bottom));
+
+            z-index: 110;
+
+            width: 170px;
+            height: 155px;
+
+            pointer-events: none;
+        }
+
+        .mobile-button {
+            position: absolute;
+
+            display: flex;
+            align-items: center;
+            justify-content: center;
+
+            border-radius: 50%;
+
+            color: #ffffff;
+
+            background: rgba(0, 0, 0, 0.34);
+
+            border: 1px solid rgba(255, 255, 255, 0.28);
+
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+
+            box-shadow:
+                0 6px 16px rgba(0, 0, 0, 0.30),
+                inset 0 0 12px rgba(255, 255, 255, 0.04);
+
+            font-size: 12px;
+            font-weight: 700;
+
+            pointer-events: auto;
+
+            touch-action: none;
+
+            transition:
+                transform 0.08s ease,
+                background 0.15s ease,
+                opacity 0.2s ease;
+        }
+
+        .mobile-button:active {
+            transform: scale(0.92);
+            background: rgba(255, 255, 255, 0.18);
+        }
+
+        #jump-button {
+            right: 0;
+            bottom: 35px;
+
+            width: 64px;
+            height: 64px;
+        }
+
+        #attack-button {
+            right: 70px;
+            bottom: 78px;
+
+            width: 56px;
+            height: 56px;
+
+            background: rgba(180, 40, 40, 0.45);
+            border-color: rgba(255, 100, 100, 0.4);
+            font-size: 11px;
+        }
+
+        #interact-button {
+            right: 4px;
+            bottom: 0;
+
+            width: 48px;
+            height: 32px;
+
+            border-radius: 16px;
+
+            font-size: 10px;
+
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        #interact-button.visible {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        #camera-button {
+            right: 55px;
+            bottom: 2px;
+
+            width: 48px;
+            height: 32px;
+
+            border-radius: 16px;
+
+            font-size: 10px;
+        }
+
+        /* =========================================================
+           INTERACTION PROMPT
+           ========================================================= */
+
+        #interaction-prompt {
+            position: fixed;
+
+            left: 50%;
+            bottom: 18%;
+
+            transform: translate(-50%, 10px);
+
+            z-index: 90;
+
+            min-width: 150px;
+
+            padding: 9px 16px;
+
+            border-radius: 22px;
+
+            background: rgba(0, 0, 0, 0.55);
+
+            border: 1px solid rgba(255, 255, 255, 0.22);
+
+            color: white;
+
+            text-align: center;
+
+            font-size: 12px;
+            font-weight: 700;
+
+            opacity: 0;
+
+            pointer-events: none;
+
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+
+            transition:
+                opacity 0.2s ease,
+                transform 0.2s ease;
+        }
+
+        #interaction-prompt.visible {
+            opacity: 1;
+            transform: translate(-50%, 0);
+        }
+
+        /* =========================================================
+           CROSSHAIR
+           ========================================================= */
+
+        #crosshair {
+            position: fixed;
+
+            left: 50%;
+            top: 50%;
+
+            width: 8px;
+            height: 8px;
+
+            margin-left: -4px;
+            margin-top: -4px;
+
+            z-index: 25;
+
+            border: 1px solid rgba(255, 255, 255, 0.75);
+
+            border-radius: 50%;
+
+            opacity: 0;
+
+            pointer-events: none;
+
+            transition: opacity 0.2s ease;
+        }
+
+        #crosshair.visible {
+            opacity: 0.85;
+        }
+
+        /* =========================================================
+           DESKTOP HELP
+           ========================================================= */
+
+        #desktop-help {
+            position: fixed;
+
+            left: 50%;
+            bottom: 17px;
+
+            transform: translateX(-50%);
+
+            z-index: 45;
+
+            color: rgba(255, 255, 255, 0.68);
+
+            font-size: 10px;
+
+            padding: 5px 10px;
+
+            background: rgba(0, 0, 0, 0.20);
+
+            border-radius: 10px;
+
+            pointer-events: none;
+        }
+
+        /* =========================================================
+           LOADING
+           ========================================================= */
+
+        #loading-screen {
+            position: fixed;
+
+            inset: 0;
+
+            z-index: 999;
+
+            display: flex;
+
+            align-items: center;
+            justify-content: center;
+
+            flex-direction: column;
+
+            background:
+                radial-gradient(
+                    circle at center,
+                    #162b38 0%,
+                    #050b12 55%,
+                    #020308 100%
+                );
+
+            color: white;
+
+            transition:
+                opacity 0.7s ease,
+                visibility 0.7s ease;
+        }
+
+        #loading-screen.hidden {
+            opacity: 0;
+            visibility: hidden;
+            pointer-events: none;
+        }
+
+        #loading-title {
+            font-size: 26px;
+            font-weight: 800;
+
+            margin-bottom: 8px;
+
+            letter-spacing: 0.4px;
+        }
+
+        #loading-subtitle {
+            font-size: 12px;
+
+            opacity: 0.65;
+
+            margin-bottom: 20px;
+        }
+
+        #loading-bar {
+            width: 220px;
+            height: 4px;
+
+            overflow: hidden;
+
+            border-radius: 5px;
+
+            background: rgba(255, 255, 255, 0.12);
+        }
+
+        #loading-progress {
+            width: 0%;
+            height: 100%;
+
+            border-radius: 5px;
+
+            background: rgba(255, 255, 255, 0.85);
+
+            transition: width 0.25s ease;
+        }
+
+        /* =========================================================
+           RESPONSIVE
+           ========================================================= */
+
+        @media (max-width: 700px) {
+
+            #ui-container {
+                top: max(10px, env(safe-area-inset-top));
+                left: max(10px, env(safe-area-inset-left));
+
+                padding: 9px 11px;
+            }
+
+            #ui-container h1 {
+                font-size: 13px;
+            }
+
+            #ui-container p {
+                display: none;
+            }
+
+            #status-text {
+                display: block !important;
+                font-size: 10px;
+            }
+
+            #score-display {
+                font-size: 11px;
+            }
+
+            #player-hp-display {
+                font-size: 10px;
+            }
+
+            #telemetry-panel {
+                top: max(10px, env(safe-area-inset-top));
+                right: max(10px, env(safe-area-inset-right));
+
+                padding: 7px 9px;
+            }
+
+            #time-display {
+                top: max(10px, env(safe-area-inset-top));
+                font-size: 10px;
+                padding: 6px 11px;
+            }
+
+            #desktop-help {
+                display: none;
+            }
+
+            #crosshair {
+                display: none;
+            }
+
+            #mobile-controls {
+                width: 155px;
+                height: 145px;
+            }
+
+            #jump-button {
+                width: 56px;
+                height: 56px;
+                font-size: 11px;
+                bottom: 30px;
+            }
+
+            #attack-button {
+                width: 50px;
+                height: 50px;
+                font-size: 10px;
+                right: 64px;
+                bottom: 72px;
+            }
+
+            #interact-button {
+                width: 42px;
+                height: 28px;
+                font-size: 8px;
+            }
+
+            #camera-button {
+                width: 42px;
+                height: 28px;
+                font-size: 8px;
+                right: 50px;
+                bottom: 2px;
+            }
+        }
+
+        @media (min-width: 701px) {
+            #mobile-controls {
+                opacity: 0;
+                pointer-events: none;
+            }
+
+            #virtual-joystick {
+                opacity: 0;
+                pointer-events: none;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- =========================================================
+         LOADING
+         ========================================================= -->
+
+    <div id="loading-screen">
+        <div id="loading-title">🌍 Tiny World</div>
+        <div id="loading-subtitle">Building a living planet...</div>
+
+        <div id="loading-bar">
+            <div id="loading-progress"></div>
+        </div>
+    </div>
+
+
+    <!-- =========================================================
+         UI
+         ========================================================= -->
+
+    <div id="ui-container">
+
+        <h1>🌍 Tiny World</h1>
+
+        <p>
+            <b>PC:</b>
+            WASD Move · SPACE Jump · E Interact · C Camera · J Attack
+        </p>
+
+        <p>
+            <b>Mobile:</b>
+            Joystick · Drag right side to look · Tap buttons
+        </p>
+
+        <div id="score-display">🏆 Score: 0</div>
+        <div id="player-hp-display">❤️ HP: 100 / 100</div>
+        <p id="status-text">Status: Exploring</p>
+
+    </div>
+
+
+    <div id="telemetry-panel">
+
+        <div id="fps-counter">
+            FPS: --
+        </div>
+
+        <div id="speed-meter">
+            Speed: 0.0 m/s
+        </div>
+
+    </div>
+
+
+    <div id="time-display">
+        ☀️ 12:00 · Day
+    </div>
+
+
+    <!-- =========================================================
+         CAMERA TOUCH AREA
+         ========================================================= -->
+
+    <div id="camera-touch-zone"></div>
+
+
+    <!-- =========================================================
+         JOYSTICK
+         ========================================================= -->
+
+    <div id="virtual-joystick">
+
+        <div id="joystick-thumb"></div>
+
+    </div>
+
+
+    <!-- =========================================================
+         MOBILE CONTROLS
+         ========================================================= -->
+
+    <div id="mobile-controls">
+
+        <div id="attack-button" class="mobile-button">
+            ⚔️
+        </div>
+
+        <div id="interact-button" class="mobile-button">
+            USE
+        </div>
+
+        <div id="jump-button" class="mobile-button">
+            JUMP
+        </div>
+
+        <div id="camera-button" class="mobile-button">
+            CAM
+        </div>
+
+    </div>
+
+
+    <!-- =========================================================
+         INTERACTION
+         ========================================================= -->
+
+    <div id="interaction-prompt">
+        E · Interact
+    </div>
+
+
+    <div id="crosshair"></div>
+
+
+    <div id="desktop-help">
+        WASD · SPACE · E · C · J · Click NPC to attack
+    </div>
+
+
+    <!-- =========================================================
+         THREE.JS
+         ========================================================= -->
+
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+                "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+            }
+        }
+    </script>
+
+
+    <script type="module">
+
+        import * as THREE from "three";
+        import { CSS2DRenderer, CSS2DObject } from "three/addons/renderers/CSS2DRenderer.js";
+
+
+        /* =========================================================
+           1. CONFIGURATION
+           ========================================================= */
+
+        const CONFIG = {
+
+            planetRadius: 180,
+
+            playerHeight: 3.0,
+
+            playerRadius: 1.15,
+
+            playerWalkSpeed: 3.8,
+
+            playerReverseSpeed: 2.0,
+
+            playerTurnSpeed: 2.35,
+
+            acceleration: 8.0,
+
+            deceleration: 10.0,
+
+            cameraDistance: 13.5,
+
+            cameraMinDistance: 4.2,
+
+            cameraMaxDistance: 23.0,
+
+            cameraHeight: 4.8,
+
+            cameraLag: 9.0,
+
+            cameraLookHeight: 2.0,
+
+            cameraLookAhead: 3.0,
+
+            cameraSensitivity: 0.005,
+
+            cameraPitchMin: -0.72,
+
+            cameraPitchMax: 1.0,
+
+            jumpVelocity: 10.5,
+
+            gravity: 24.0,
+
+            maxStepHeight: 2.8,
+
+            npcCount: 22,
+
+            buildingCount: 30,
+
+            treeCount: 145,
+
+            rockCount: 85,
+
+            cloudCount: 24,
+
+            dayLengthSec: 180,
+
+            riverSegments: 100,
+
+            shadowMapSize: 1536,
+
+            playerMaxHP: 100,
+
+            npcMaxHP: 40,
+
+            attackDamage: 12,
+
+            attackRange: 5.5,
+
+            respawnDelay: 6.0,
+
+            doubleJumpCount: 2,
+
+            sleepHealRate: 25,
+
+            sleepSpeedMultiplier: 8,
+
+        };
+
+        const npcNames = [
+            "Aria", "Bodhi", "Cleo", "Dax", "Eira", "Finn", "Gwen", "Hugo",
+            "Iris", "Jax", "Kira", "Leo", "Mira", "Noah", "Ora", "Pax",
+            "Quinn", "Rex", "Sage", "Theo", "Uma", "Vera", "Wren", "Xander",
+            "Yuki", "Zara", "Ash", "Briar", "Cade", "Demi", "Eli", "Faye"
+        ];
+
+
+        /* =========================================================
+           2. BASIC HELPERS
+           ========================================================= */
+
+        const UP = new THREE.Vector3(0, 1, 0);
+
+        const WORLD_Y = new THREE.Vector3(0, 1, 0);
+
+        const tempV1 = new THREE.Vector3();
+
+        const tempV2 = new THREE.Vector3();
+
+        const tempV3 = new THREE.Vector3();
+
+        const tempV4 = new THREE.Vector3();
+
+        const tempQ1 = new THREE.Quaternion();
+
+        const tempQ2 = new THREE.Quaternion();
+
+        const tempM1 = new THREE.Matrix4();
+
+
+        function clamp(value, min, max) {
+
+            return Math.max(min, Math.min(max, value));
+
+        }
+
+
+        function damp(current, target, lambda, dt) {
+
+            return THREE.MathUtils.damp(
+                current,
+                target,
+                lambda,
+                dt
+            );
+
+        }
+
+
+        function randomDirection() {
+
+            const v = new THREE.Vector3(
+                Math.random() - 0.5,
+                Math.random() - 0.5,
+                Math.random() - 0.5
+            );
+
+            return v.normalize();
+
+        }
+
+
+        function tangentDirection(normal) {
+
+            let reference = new THREE.Vector3(0, 1, 0);
+
+            if (Math.abs(reference.dot(normal)) > 0.92) {
+
+                reference.set(1, 0, 0);
+
+            }
+
+            const tangent = new THREE.Vector3()
+                .crossVectors(reference, normal)
+                .normalize();
+
+            return tangent;
+
+        }
+
+
+        function projectOntoTangent(vector, normal) {
+
+            return vector
+                .clone()
+                .sub(
+                    normal.clone().multiplyScalar(
+                        vector.dot(normal)
+                    )
+                )
+                .normalize();
+
+        }
+
+
+        function orientToSurface(object, normal) {
+
+            const tangent = tangentDirection(normal);
+
+            const right = new THREE.Vector3()
+                .crossVectors(normal, tangent)
+                .normalize();
+
+            const matrix = new THREE.Matrix4();
+
+            matrix.makeBasis(
+                right,
+                normal,
+                tangent
+            );
+
+            object.quaternion.setFromRotationMatrix(matrix);
+
+        }
+
+
+        function placeOnSurface(
+            object,
+            normal,
+            height = 0
+        ) {
+
+            object.position
+                .copy(normal)
+                .multiplyScalar(
+                    CONFIG.planetRadius + height
+                );
+
+            orientToSurface(
+                object,
+                normal
+            );
+
+        }
+
+
+        function slerpDirection(a, b, t) {
+            const qa = new THREE.Quaternion();
+            const qb = new THREE.Quaternion();
+            const q = new THREE.Quaternion();
+            qa.setFromUnitVectors(new THREE.Vector3(0, 0, 1), a);
+            qb.setFromUnitVectors(new THREE.Vector3(0, 0, 1), b);
+            q.slerpQuaternions(qa, qb, t);
+            return new THREE.Vector3(0, 0, 1).applyQuaternion(q).normalize();
+        }
+
+
+        /* =========================================================
+           3. SCENE
+           ========================================================= */
+
+        const scene = new THREE.Scene();
+
+
+        scene.background =
+            new THREE.Color(0x78caff);
+
+
+        scene.fog =
+            new THREE.FogExp2(
+                0x78caff,
+                0.00155
+            );
+
+
+        /* =========================================================
+           4. CAMERA
+           ========================================================= */
+
+        const camera =
+            new THREE.PerspectiveCamera(
+                62,
+                window.innerWidth / window.innerHeight,
+                0.05,
+                3000
+            );
+
+
+        camera.position.set(
+            0,
+            8,
+            18
+        );
+
+
+        /* =========================================================
+           5. RENDERER
+           ========================================================= */
+
+        const renderer =
+            new THREE.WebGLRenderer({
+
+                antialias: true,
+
+                powerPreference:
+                    "high-performance"
+
+            });
+
+
+        renderer.setPixelRatio(
+            Math.min(
+                window.devicePixelRatio || 1,
+                1.65
+            )
+        );
+
+
+        renderer.setSize(
+            window.innerWidth,
+            window.innerHeight
+        );
+
+
+        renderer.shadowMap.enabled = true;
+
+        renderer.shadowMap.type =
+            THREE.PCFSoftShadowMap;
+
+
+        renderer.outputColorSpace =
+            THREE.SRGBColorSpace;
+
+
+        renderer.toneMapping =
+            THREE.ACESFilmicToneMapping;
+
+
+        renderer.toneMappingExposure =
+            1.08;
+
+
+        renderer.domElement.id =
+            "tiny-world-canvas";
+
+
+        document.body.appendChild(
+            renderer.domElement
+        );
+
+
+        /* =========================================================
+           5.5 CSS2D RENDERER FOR LABELS
+           ========================================================= */
+
+        const labelRenderer = new CSS2DRenderer();
+        labelRenderer.setSize(window.innerWidth, window.innerHeight);
+        labelRenderer.domElement.style.position = "fixed";
+        labelRenderer.domElement.style.top = "0";
+        labelRenderer.domElement.style.left = "0";
+        labelRenderer.domElement.style.pointerEvents = "none";
+        labelRenderer.domElement.style.zIndex = "30";
+        document.body.appendChild(labelRenderer.domElement);
+
+
+        /* =========================================================
+           6. LIGHTING
+           ========================================================= */
+
+        const hemisphereLight =
+            new THREE.HemisphereLight(
+                0xbfeaff,
+                0x263d29,
+                1.35
+            );
+
+
+        scene.add(
+            hemisphereLight
+        );
+
+
+        const sunLight =
+            new THREE.DirectionalLight(
+                0xffffff,
+                2.2
+            );
+
+
+        sunLight.castShadow = true;
+
+
+        sunLight.shadow.mapSize.width =
+            CONFIG.shadowMapSize;
+
+
+        sunLight.shadow.mapSize.height =
+            CONFIG.shadowMapSize;
+
+
+        sunLight.shadow.camera.near = 30;
+
+        sunLight.shadow.camera.far = 750;
+
+        sunLight.shadow.camera.left = -260;
+
+        sunLight.shadow.camera.right = 260;
+
+        sunLight.shadow.camera.top = 260;
+
+        sunLight.shadow.camera.bottom = -260;
+
+        sunLight.shadow.bias = -0.0005;
+
+
+        scene.add(
+            sunLight
+        );
+
+
+        const moonLight =
+            new THREE.DirectionalLight(
+                0x91aaff,
+                0.35
+            );
+
+
+        scene.add(
+            moonLight
+        );
+
+
+        /* =========================================================
+           7. SUN
+           ========================================================= */
+
+        const sunGroup =
+            new THREE.Group();
+
+
+        const sunCore =
+            new THREE.Mesh(
+
+                new THREE.SphereGeometry(
+                    13,
+                    32,
+                    32
+                ),
+
+                new THREE.MeshBasicMaterial({
+                    color: 0xffffe6
+                })
+
+            );
+
+
+        sunGroup.add(
+            sunCore
+        );
+
+
+        const sunGlow =
+            new THREE.Mesh(
+
+                new THREE.SphereGeometry(
+                    17,
+                    24,
+                    24
+                ),
+
+                new THREE.MeshBasicMaterial({
+
+                    color: 0xffd58a,
+
+                    transparent: true,
+
+                    opacity: 0.18,
+
+                    depthWrite: false
+
+                })
+
+            );
+
+
+        sunGroup.add(
+            sunGlow
+        );
+
+
+        scene.add(
+            sunGroup
+        );
+
+
+        /* =========================================================
+           8. MOON
+           ========================================================= */
+
+        const moon =
+            new THREE.Mesh(
+
+                new THREE.SphereGeometry(
+                    8,
+                    32,
+                    32
+                ),
+
+                new THREE.MeshStandardMaterial({
+
+                    color: 0xdce6f4,
+
+                    roughness: 1,
+
+                    metalness: 0
+
+                })
+
+            );
+
+
+        scene.add(
+            moon
+        );
+
+
+        /* =========================================================
+           9. PLANET
+           ========================================================= */
+
+        const planetMaterial =
+            new THREE.MeshStandardMaterial({
+
+                color: 0x4b9d55,
+
+                roughness: 0.96,
+
+                metalness: 0
+
+            });
+
+
+        const planet =
+            new THREE.Mesh(
+
+                new THREE.SphereGeometry(
+                    CONFIG.planetRadius,
+                    96,
+                    96
+                ),
+
+                planetMaterial
+
+            );
+
+
+        planet.receiveShadow = true;
+
+        scene.add(
+            planet
+        );
+
+
+        /* =========================================================
+           10. ATMOSPHERE
+           ========================================================= */
+
+        const atmosphere =
+            new THREE.Mesh(
+
+                new THREE.SphereGeometry(
+                    CONFIG.planetRadius + 4.5,
+                    64,
+                    64
+                ),
+
+                new THREE.MeshBasicMaterial({
+
+                    color: 0x79cfff,
+
+                    transparent: true,
+
+                    opacity: 0.085,
+
+                    side: THREE.BackSide,
+
+                    depthWrite: false
+
+                })
+
+            );
+
+
+        scene.add(
+            atmosphere
+        );
+
+
+        /* =========================================================
+           11. STARS
+           ========================================================= */
+
+        const starCount = 5000;
+
+
+        const starGeometry =
+            new THREE.BufferGeometry();
+
+
+        const starPositions =
+            new Float32Array(
+                starCount * 3
+            );
+
+
+        for (
+            let i = 0;
+            i < starCount;
+            i++
+        ) {
+
+            const direction =
+                randomDirection();
+
+
+            const radius =
+                760 +
+                Math.random() * 420;
+
+
+            starPositions[i * 3] =
+                direction.x * radius;
+
+
+            starPositions[i * 3 + 1] =
+                direction.y * radius;
+
+
+            starPositions[i * 3 + 2] =
+                direction.z * radius;
+
+        }
+
+
+        starGeometry.setAttribute(
+
+            "position",
+
+            new THREE.BufferAttribute(
+                starPositions,
+                3
+            )
+
+        );
+
+
+        const starMaterial =
+            new THREE.PointsMaterial({
+
+                color: 0xffffff,
+
+                size: 1.25,
+
+                transparent: true,
+
+                opacity: 0,
+
+                depthWrite: false,
+
+                sizeAttenuation: true
+
+            });
+
+
+        const stars =
+            new THREE.Points(
+                starGeometry,
+                starMaterial
+            );
+
+
+        scene.add(
+            stars
+        );
+
+
+        /* =========================================================
+           12. CLOUD SYSTEM
+           ========================================================= */
+
+        const cloudGroup =
+            new THREE.Group();
+
+
+        scene.add(
+            cloudGroup
+        );
+
+
+        const cloudMaterial =
+            new THREE.MeshStandardMaterial({
+
+                color: 0xffffff,
+
+                roughness: 1,
+
+                transparent: true,
+
+                opacity: 0.78,
+
+                depthWrite: false
+
+            });
+
+
+        function createCloud() {
+
+            const cloud =
+                new THREE.Group();
+
+
+            const puffs =
+                4 +
+                Math.floor(
+                    Math.random() * 4
+                );
+
+
+            for (
+                let i = 0;
+                i < puffs;
+                i++
+            ) {
+
+                const radius =
+                    2.7 +
+                    Math.random() * 3.1;
+
+
+                const puff =
+                    new THREE.Mesh(
+
+                        new THREE.SphereGeometry(
+                            radius,
+                            14,
+                            10
+                        ),
+
+                        cloudMaterial
+
+                    );
+
+
+                puff.position.set(
+
+                    i * 3.2,
+
+                    Math.random() * 1.6,
+
+                    (Math.random() - 0.5) * 3.5
+
+                );
+
+
+                puff.scale.y =
+                    0.65 +
+                    Math.random() * 0.3;
+
+
+                cloud.add(
+                    puff
+                );
+
+            }
+
+
+            return cloud;
+
+        }
+
+
+        for (
+            let i = 0;
+            i < CONFIG.cloudCount;
+            i++
+        ) {
+
+            const cloud =
+                createCloud();
+
+
+            const normal =
+                randomDirection();
+
+
+            const cloudAltitude =
+                20 +
+                Math.random() * 12;
+
+
+            cloud.userData.normal =
+                normal.clone();
+
+
+            cloud.userData.altitude =
+                cloudAltitude;
+
+
+            cloud.userData.speed =
+                0.003 +
+                Math.random() * 0.003;
+
+
+            cloud.scale.setScalar(
+                0.45 +
+                Math.random() * 0.55
+            );
+
+
+            placeOnSurface(
+                cloud,
+                normal,
+                cloudAltitude
+            );
+
+
+            cloudGroup.add(
+                cloud
+            );
+
+        }
+
+
+        /* =========================================================
+           13. ENVIRONMENT GROUPS
+           ========================================================= */
+
+        const environmentGroup =
+            new THREE.Group();
+
+
+        scene.add(
+            environmentGroup
+        );
+
+
+        const obstacleList = [];
+
+
+        function addObstacle(
+            object,
+            radius,
+            type = "obstacle",
+            extra = {}
+        ) {
+
+            obstacleList.push({
+
+                object,
+
+                position:
+                    object.position,
+
+                radius,
+
+                type,
+
+                ...extra
+
+            });
+
+        }
+
+
+        /* =========================================================
+           14. BUILDING MATERIALS
+           ========================================================= */
+
+        const buildingColors = [
+
+            0x89939b,
+            0xa79b87,
+            0x8b7768,
+            0xb1a99a,
+            0x6f7c88,
+            0x9d6f56
+
+        ];
+
+
+        const wallMaterials =
+            buildingColors.map(
+
+                color =>
+
+                    new THREE.MeshStandardMaterial({
+
+                        color,
+
+                        roughness: 0.88
+
+                    })
+
+            );
+
+
+        const roofMaterial =
+            new THREE.MeshStandardMaterial({
+
+                color: 0x56423a,
+
+                roughness: 0.92
+
+            });
+
+
+        const doorMaterial =
+            new THREE.MeshStandardMaterial({
+
+                color: 0x4c2e21,
+
+                roughness: 0.82
+
+            });
+
+
+        /* =========================================================
+           15. HOUSE FACTORY — BIGGER DOOR
+           ========================================================= */
+
+        const houses = [];
+
+
+        function createHouse(index) {
+
+            const house =
+                new THREE.Group();
+
+
+            house.userData.isHouse =
+                true;
+
+
+            house.userData.isOpen =
+                false;
+
+
+            house.userData.doorAngle =
+                0;
+
+
+            house.userData.targetDoorAngle =
+                0;
+
+
+            house.userData.hasBed = Math.random() < 0.5;
+            house.userData.isSleeping = false;
+            house.userData.sleepTimer = 0;
+
+
+            const width =
+                7 +
+                Math.random() * 2.5;
+
+
+            const depth =
+                7 +
+                Math.random() * 2.5;
+
+
+            const height =
+                4.8 +
+                Math.random() * 1.8;
+
+
+            const wallThickness =
+                0.65;
+
+
+            const material =
+                wallMaterials[
+                    Math.floor(
+                        Math.random() *
+                        wallMaterials.length
+                    )
+                ];
+
+
+            /* -----------------------------------------------------
+               FLOOR
+               ----------------------------------------------------- */
+
+            const floor =
+                new THREE.Mesh(
+
+                    new THREE.BoxGeometry(
+                        width,
+                        0.35,
+                        depth
+                    ),
+
+                    new THREE.MeshStandardMaterial({
+
+                        color: 0x776653,
+
+                        roughness: 0.95
+
+                    })
+
+                );
+
+
+            floor.position.y =
+                0.18;
+
+
+            floor.receiveShadow = true;
+
+            floor.castShadow = true;
+
+            house.add(
+                floor
+            );
+
+
+            /* -----------------------------------------------------
+               BACK WALL
+               ----------------------------------------------------- */
+
+            const backWall =
+                new THREE.Mesh(
+
+                    new THREE.BoxGeometry(
+                        width,
+                        height,
+                        wallThickness
+                    ),
+
+                    material
+
+                );
+
+
+            backWall.position.set(
+
+                0,
+
+                height / 2,
+
+                depth / 2
+
+            );
+
+
+            backWall.castShadow = true;
+
+            backWall.receiveShadow = true;
+
+            house.add(
+                backWall
+            );
+
+
+            /* -----------------------------------------------------
+               LEFT WALL
+               ----------------------------------------------------- */
+
+            const leftWall =
+                new THREE.Mesh(
+
+                    new THREE.BoxGeometry(
+                        wallThickness,
+                        height,
+                        depth
+                    ),
+
+                    material
+
+                );
+
+
+            leftWall.position.set(
+
+                -width / 2,
+
+                height / 2,
+
+                0
+
+            );
+
+
+            leftWall.castShadow = true;
+
+            leftWall.receiveShadow = true;
+
+            house.add(
+                leftWall
+            );
+
+
+            /* -----------------------------------------------------
+               RIGHT WALL
+               ----------------------------------------------------- */
+
+            const rightWall =
+                new THREE.Mesh(
+
+                    new THREE.BoxGeometry(
+                        wallThickness,
+                        height,
+                        depth
+                    ),
+
+                    material
+
+                );
+
+
+            rightWall.position.set(
+
+                width / 2,
+
+                height / 2,
+
+                0
+
+            );
+
+
+            rightWall.castShadow = true;
+
+            rightWall.receiveShadow = true;
+
+            house.add(
+                rightWall
+            );
+
+
+            /* -----------------------------------------------------
+               FRONT WALL — BIGGER DOOR (3.2 wide, 2.8 tall)
+               ----------------------------------------------------- */
+
+            const doorW = 3.2;
+            const doorH = 2.8;
+            const frontLeftWidth = (width - doorW) / 2;
+
+
+            const frontLeft =
+                new THREE.Mesh(
+
+                    new THREE.BoxGeometry(
+                        frontLeftWidth,
+                        height,
+                        wallThickness
+                    ),
+
+                    material
+
+                );
+
+
+            frontLeft.position.set(
+
+                -(width / 2) +
+                frontLeftWidth / 2,
+
+                height / 2,
+
+                -depth / 2
+
+            );
+
+
+            frontLeft.castShadow = true;
+
+            house.add(
+                frontLeft
+            );
+
+
+            const frontRight =
+                new THREE.Mesh(
+
+                    new THREE.BoxGeometry(
+                        frontLeftWidth,
+                        height,
+                        wallThickness
+                    ),
+
+                    material
+
+                );
+
+
+            frontRight.position.set(
+
+                (width / 2) -
+                frontLeftWidth / 2,
+
+                height / 2,
+
+                -depth / 2
+
+            );
+
+
+            frontRight.castShadow = true;
+
+            house.add(
+                frontRight
+            );
+
+
+            /* -----------------------------------------------------
+               FRONT TOP ABOVE DOOR
+               ----------------------------------------------------- */
+
+            const frontTop =
+                new THREE.Mesh(
+
+                    new THREE.BoxGeometry(
+                        doorW,
+                        height - doorH,
+                        wallThickness
+                    ),
+
+                    material
+
+                );
+
+
+            frontTop.position.set(
+
+                0,
+
+                doorH + (height - doorH) / 2,
+
+                -depth / 2
+
+            );
+
+
+            frontTop.castShadow = true;
+
+            house.add(
+                frontTop
+            );
+
+
+            /* -----------------------------------------------------
+               ROOF
+               ----------------------------------------------------- */
+
+            const roof =
+                new THREE.Mesh(
+
+                    new THREE.ConeGeometry(
+                        Math.max(
+                            width,
+                            depth
+                        ) * 0.76,
+
+                        2.4,
+
+                        4
+                    ),
+
+                    roofMaterial
+
+                );
+
+
+            roof.position.y =
+                height + 1.2;
+
+
+            roof.rotation.y =
+                Math.PI / 4;
+
+
+            roof.castShadow = true;
+
+            house.add(
+                roof
+            );
+
+
+            /* -----------------------------------------------------
+               DOOR — BIGGER
+               ----------------------------------------------------- */
+
+            const doorPivot =
+                new THREE.Group();
+
+
+            doorPivot.position.set(
+                -doorW / 2 + 0.5,
+                doorH / 2 + 0.1,
+                -depth / 2 - 0.05
+            );
+
+
+            const door =
+                new THREE.Mesh(
+
+                    new THREE.BoxGeometry(
+                        doorW - 0.2,
+                        doorH - 0.2,
+                        0.18
+                    ),
+
+                    doorMaterial
+
+                );
+
+
+            door.position.x =
+                (doorW - 0.2) / 2;
+
+
+            door.castShadow = true;
+
+
+            doorPivot.add(
+                door
+            );
+
+
+            house.add(
+                doorPivot
+            );
+
+
+            /* -----------------------------------------------------
+               WINDOWS
+               ----------------------------------------------------- */
+
+            const windowMaterial =
+                new THREE.MeshStandardMaterial({
+
+                    color: 0x82cde9,
+
+                    emissive: 0x153a4b,
+
+                    emissiveIntensity: 0.3,
+
+                    roughness: 0.25,
+
+                    metalness: 0.1
+
+                });
+
+
+            const windowLeft =
+                new THREE.Mesh(
+
+                    new THREE.BoxGeometry(
+                        1.25,
+                        1.25,
+                        0.10
+                    ),
+
+                    windowMaterial
+
+                );
+
+
+            windowLeft.position.set(
+
+                -2.2,
+
+                2.25,
+
+                -depth / 2 -
+                0.06
+
+            );
+
+
+            house.add(
+                windowLeft
+            );
+
+
+            const windowRight =
+                windowLeft.clone();
+
+
+            windowRight.position.x =
+                2.2;
+
+
+            house.add(
+                windowRight
+            );
+
+
+            /* -----------------------------------------------------
+               INTERIOR LIGHT
+               ----------------------------------------------------- */
+
+            const interiorLight =
+                new THREE.PointLight(
+                    0xffd39a,
+                    0.0,
+                    15
+                );
+
+
+            interiorLight.position.set(
+                0,
+                3.1,
+                0
+            );
+
+
+            house.add(
+                interiorLight
+            );
+
+
+            /* -----------------------------------------------------
+               INTERIOR FURNITURE
+               ----------------------------------------------------- */
+
+            const furnitureMaterial =
+                new THREE.MeshStandardMaterial({
+
+                    color: 0x634633,
+
+                    roughness: 0.9
+
+                });
+
+
+            const table =
+                new THREE.Mesh(
+
+                    new THREE.BoxGeometry(
+                        2.2,
+                        0.65,
+                        1.2
+                    ),
+
+                    furnitureMaterial
+
+                );
+
+
+            table.position.set(
+                0,
+                0.65,
+                1.0
+            );
+
+
+            table.castShadow = true;
+
+            house.add(
+                table
+            );
+
+
+            /* -----------------------------------------------------
+               BED — for sleeping
+               ----------------------------------------------------- */
+
+            const bedMat = new THREE.MeshStandardMaterial({
+                color: 0x58738b,
+                roughness: 0.9
+            });
+
+            const bedGroup = new THREE.Group();
+
+            const bedFrame =
+                new THREE.Mesh(
+
+                    new THREE.BoxGeometry(
+                        2.6,
+                        0.5,
+                        1.8
+                    ),
+
+                    bedMat
+
+                );
+
+            bedFrame.position.y = 0.25;
+            bedFrame.castShadow = true;
+            bedGroup.add(bedFrame);
+
+            const pillowMat = new THREE.MeshStandardMaterial({
+                color: 0xd4c9b8,
+                roughness: 0.95
+            });
+
+            const pillow =
+                new THREE.Mesh(
+
+                    new THREE.BoxGeometry(
+                        0.8,
+                        0.2,
+                        0.5
+                    ),
+
+                    pillowMat
+
+                );
+
+            pillow.position.set(-0.8, 0.6, 0);
+            bedGroup.add(pillow);
+
+            const blanketMat = new THREE.MeshStandardMaterial({
+                color: 0x6d8b9e,
+                roughness: 0.9
+            });
+
+            const blanket =
+                new THREE.Mesh(
+
+                    new THREE.BoxGeometry(
+                        1.8,
+                        0.15,
+                        1.2
+                    ),
+
+                    blanketMat
+
+                );
+
+            blanket.position.set(0.3, 0.55, 0);
+            bedGroup.add(blanket);
+
+            bedGroup.position.set(-1.8, 0.3, 1.6);
+            house.add(bedGroup);
+
+            house.userData.bedGroup = bedGroup;
+            house.userData.bedPos = new THREE.Vector3(-1.8, 0.3, 1.6);
+
+
+            house.userData.door =
+                doorPivot;
+
+
+            house.userData.interiorLight =
+                interiorLight;
+
+
+            house.userData.width =
+                width;
+
+
+            house.userData.depth =
+                depth;
+
+
+            house.userData.doorWidth = doorW;
+            house.userData.doorHeight = doorH;
+
+
+            house.userData.doorWorldNormal =
+                new THREE.Vector3();
+
+
+            return house;
+
+        }
+
+
+        /* =========================================================
+           16. SPAWN HOUSES
+           ========================================================= */
+
+        for (
+            let i = 0;
+            i < CONFIG.buildingCount;
+            i++
+        ) {
+
+            const normal =
+                randomDirection();
+
+
+            const house =
+                createHouse(i);
+
+
+            house.userData.normal =
+                normal.clone();
+
+
+            placeOnSurface(
+                house,
+                normal,
+                0
+            );
+
+
+            environmentGroup.add(
+                house
+            );
+
+
+            houses.push(
+                house
+            );
+
+
+            addObstacle(
+                house,
+                4.8,
+                "house",
+                {
+                    house
+                }
+            );
+
+        }
+
+
+        /* =========================================================
+           17. TREES
+           ========================================================= */
+
+        const treeTrunkMaterial =
+            new THREE.MeshStandardMaterial({
+
+                color: 0x60432d,
+
+                roughness: 1
+
+            });
+
+
+        const treeLeafMaterial =
+            new THREE.MeshStandardMaterial({
+
+                color: 0x247d3a,
+
+                roughness: 0.95
+
+            });
+
+
+        for (
+            let i = 0;
+            i < CONFIG.treeCount;
+            i++
+        ) {
+
+            const normal =
+                randomDirection();
+
+
+            const tree =
+                new THREE.Group();
+
+
+            const trunk =
+                new THREE.Mesh(
+
+                    new THREE.CylinderGeometry(
+                        0.25,
+                        0.48,
+                        3.1,
+                        8
+                    ),
+
+                    treeTrunkMaterial
+
+                );
+
+
+            trunk.position.y =
+                1.55;
+
+
+            trunk.castShadow = true;
+
+            trunk.receiveShadow = true;
+
+            tree.add(
+                trunk
+            );
+
+
+            const crown =
+                new THREE.Mesh(
+
+                    new THREE.DodecahedronGeometry(
+                        2.1,
+                        1
+                    ),
+
+                    treeLeafMaterial
+
+                );
+
+
+            crown.position.y =
+                4.0;
+
+
+            crown.scale.y =
+                1.05;
+
+
+            crown.castShadow = true;
+
+            crown.receiveShadow = true;
+
+            tree.add(
+                crown
+            );
+
+
+            tree.scale.setScalar(
+                0.75 +
+                Math.random() * 0.55
+            );
+
+
+            placeOnSurface(
+                tree,
+                normal,
+                0
+            );
+
+
+            environmentGroup.add(
+                tree
+            );
+
+
+            addObstacle(
+                tree,
+                1.35,
+                "tree"
+            );
+
+        }
+
+
+        /* =========================================================
+           18. ROCKS — WALKABLE
+           ========================================================= */
+
+        const rockMaterial =
+            new THREE.MeshStandardMaterial({
+
+                color: 0x73766f,
+
+                roughness: 1
+
+            });
+
+
+        for (
+            let i = 0;
+            i < CONFIG.rockCount;
+            i++
+        ) {
+
+            const normal =
+                randomDirection();
+
+
+            const size =
+                0.75 +
+                Math.random() * 1.7;
+
+
+            const rock =
+                new THREE.Mesh(
+
+                    new THREE.DodecahedronGeometry(
+                        size,
+                        0
+                    ),
+
+                    rockMaterial
+
+                );
+
+
+            const sy = 0.38 + Math.random() * 0.55;
+            rock.scale.y = sy;
+
+
+            rock.rotation.set(
+
+                Math.random() * Math.PI,
+
+                Math.random() * Math.PI,
+
+                Math.random() * Math.PI
+
+            );
+
+
+            rock.castShadow = true;
+
+            rock.receiveShadow = true;
+
+            const height = size * sy * 1.4;
+
+            placeOnSurface(
+                rock,
+                normal,
+                height * 0.3
+            );
+
+
+            environmentGroup.add(
+                rock
+            );
+
+
+            addObstacle(
+                rock,
+                size * 0.85,
+                "rock",
+                {
+                    height: height
+                }
+            );
+
+        }
+
+
+        /* =========================================================
+           19. RIVER — BIGGER, BRIGHTER, USING ORIGINAL COORDINATES
+           ========================================================= */
+
+        const riverGroup =
+            new THREE.Group();
+
+
+        scene.add(
+            riverGroup
+        );
+
+
+        const riverMaterial =
+            new THREE.MeshPhysicalMaterial({
+
+                color: 0x2b9dd6,
+
+                roughness: 0.15,
+
+                metalness: 0.05,
+
+                transmission: 0.08,
+
+                transparent: true,
+
+                opacity: 0.92,
+
+                side: THREE.DoubleSide,
+
+                envMapIntensity: 0.3,
+
+            });
+
+
+        const riverBankMaterial =
+            new THREE.MeshStandardMaterial({
+
+                color: 0x6f7250,
+
+                roughness: 1
+
+            });
+
+
+        // ORIGINAL COORDINATES — sama macam code asal kau
+        const riverStart =
+            new THREE.Vector3(
+                0.45,
+                0.55,
+                0.70
+            ).normalize();
+
+
+        const riverEnd =
+            new THREE.Vector3(
+                -0.75,
+                0.42,
+                -0.52
+            ).normalize();
+
+
+        const riverPoints = [];
+
+
+        for (
+            let i = 0;
+            i < CONFIG.riverSegments;
+            i++
+        ) {
+
+            const t =
+                i /
+                (CONFIG.riverSegments - 1);
+
+
+            let direction =
+                slerpDirection(
+                    riverStart,
+                    riverEnd,
+                    t
+                );
+
+
+            const side =
+                tangentDirection(
+                    direction
+                );
+
+
+            const wave =
+                Math.sin(
+                    t * Math.PI * 8
+                ) * 0.025;
+
+
+            direction.add(
+                side.multiplyScalar(
+                    wave
+                )
+            );
+
+
+            direction.normalize();
+
+
+            riverPoints.push(
+                direction
+            );
+
+        }
+
+
+        function buildRibbon(
+            width,
+            heightOffset,
+            material
+        ) {
+
+            const vertices = [];
+
+            const indices = [];
+
+
+            for (
+                let i = 0;
+                i < riverPoints.length;
+                i++
+            ) {
+
+                const p =
+                    riverPoints[i];
+
+
+                const prev =
+                    riverPoints[
+                        Math.max(0, i - 1)
+                    ];
+
+
+                const next =
+                    riverPoints[
+                        Math.min(
+                            riverPoints.length - 1,
+                            i + 1
+                        )
+                    ];
+
+
+                const tangent =
+                    next.clone()
+                        .sub(prev)
+                        .normalize();
+
+
+                const side =
+                    new THREE.Vector3()
+                        .crossVectors(
+                            p,
+                            tangent
+                        )
+                        .normalize();
+
+
+                const left =
+                    p.clone()
+                        .add(
+                            side.clone()
+                                .multiplyScalar(width)
+                        )
+                        .normalize();
+
+
+                const right =
+                    p.clone()
+                        .add(
+                            side.clone()
+                                .multiplyScalar(-width)
+                        )
+                        .normalize();
+
+
+                left.multiplyScalar(
+                    CONFIG.planetRadius +
+                    heightOffset
+                );
+
+
+                right.multiplyScalar(
+                    CONFIG.planetRadius +
+                    heightOffset
+                );
+
+
+                vertices.push(
+                    left.x,
+                    left.y,
+                    left.z
+                );
+
+
+                vertices.push(
+                    right.x,
+                    right.y,
+                    right.z
+                );
+
+            }
+
+
+            for (
+                let i = 0;
+                i <
+                riverPoints.length - 1;
+                i++
+            ) {
+
+                const a = i * 2;
+
+                const b = a + 1;
+
+                const c = a + 2;
+
+                const d = a + 3;
+
+
+                indices.push(
+                    a,
+                    b,
+                    c
+                );
+
+
+                indices.push(
+                    b,
+                    d,
+                    c
+                );
+
+            }
+
+
+            const geometry =
+                new THREE.BufferGeometry();
+
+
+            geometry.setAttribute(
+
+                "position",
+
+                new THREE.Float32BufferAttribute(
+                    vertices,
+                    3
+                )
+
+            );
+
+
+            geometry.setIndex(
+                indices
+            );
+
+
+            geometry.computeVertexNormals();
+
+
+            const mesh =
+                new THREE.Mesh(
+                    geometry,
+                    material
+                );
+
+
+            return mesh;
+
+        }
+
+
+        const riverWidth = 6.5; // LEBIH LEBAR
+        const river = buildRibbon(
+            riverWidth,
+            0.28,
+            riverMaterial
+        );
+
+
+        riverGroup.add(
+            river
+        );
+
+
+        const riverBankLeft =
+            buildRibbon(
+                riverWidth + 1.0,
+                0.16,
+                riverBankMaterial
+            );
+
+
+        const riverBankRight =
+            buildRibbon(
+                riverWidth + 1.0,
+                0.15,
+                riverBankMaterial
+            );
+
+
+        riverGroup.add(
+            riverBankLeft
+        );
+
+
+        riverGroup.add(
+            riverBankRight
+        );
+
+
+        /* =========================================================
+           19.5 BRIDGE OVER RIVER
+           ========================================================= */
+
+        const bridgeGroup = new THREE.Group();
+        scene.add(bridgeGroup);
+
+        const midIdx = Math.floor(riverPoints.length / 2);
+        const midPoint = riverPoints[midIdx];
+        const bridgePos = midPoint.clone().multiplyScalar(CONFIG.planetRadius + 0.4);
+
+        const bridgeDeckMat = new THREE.MeshStandardMaterial({ color: 0x8a7a6a, roughness: 0.9 });
+        const bridgeRailMat = new THREE.MeshStandardMaterial({ color: 0x6a5a4a, roughness: 0.8 });
+
+        const bridgeLen = 9;
+        const bridgeW = 4.0;
+
+        const deck = new THREE.Mesh(new THREE.BoxGeometry(bridgeLen, 0.4, bridgeW), bridgeDeckMat);
+        deck.position.copy(bridgePos).add(midPoint.clone().multiplyScalar(0.2));
+        deck.castShadow = true;
+        deck.receiveShadow = true;
+        orientToSurface(deck, midPoint);
+        bridgeGroup.add(deck);
+
+        for (let side = -1; side <= 1; side += 2) {
+            const rail = new THREE.Mesh(new THREE.BoxGeometry(bridgeLen, 0.8, 0.15), bridgeRailMat);
+            const offset = new THREE.Vector3().crossVectors(midPoint, tangentDirection(midPoint)).normalize()
+                .multiplyScalar(side * bridgeW / 2);
+            rail.position.copy(bridgePos).add(midPoint.clone().multiplyScalar(0.2)).add(offset);
+            rail.position.add(midPoint.clone().multiplyScalar(0.4));
+            rail.castShadow = true;
+            orientToSurface(rail, midPoint);
+            bridgeGroup.add(rail);
+
+            for (let j = -3; j <= 3; j++) {
+                const post = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.08, 0.8, 6), bridgeRailMat);
+                const along = tangentDirection(midPoint).clone().multiplyScalar(j * 1.0);
+                post.position.copy(bridgePos).add(midPoint.clone().multiplyScalar(0.2)).add(offset).add(along);
+                post.position.add(midPoint.clone().multiplyScalar(0.4));
+                orientToSurface(post, midPoint);
+                bridgeGroup.add(post);
+            }
+        }
+
+
+        /* =========================================================
+           20. CHARACTER FACTORY
+           ========================================================= */
+
+        function createCharacter(
+            bodyColor
+        ) {
+
+            const container =
+                new THREE.Group();
+
+
+            const bodyMaterial =
+                new THREE.MeshStandardMaterial({
+
+                    color: bodyColor,
+
+                    roughness: 0.82
+
+                });
+
+
+            const skinMaterial =
+                new THREE.MeshStandardMaterial({
+
+                    color: 0xffd1b3,
+
+                    roughness: 0.9
+
+                });
+
+
+            const pantsMaterial =
+                new THREE.MeshStandardMaterial({
+
+                    color: 0x303844,
+
+                    roughness: 0.95
+
+                });
+
+
+            /* -----------------------------------------------------
+               BODY
+               ----------------------------------------------------- */
+
+            const torso =
+                new THREE.Mesh(
+
+                    new THREE.BoxGeometry(
+                        1.0,
+                        1.5,
+                        0.72
+                    ),
+
+                    bodyMaterial
+
+                );
+
+
+            torso.position.y =
+                1.25;
+
+
+            torso.castShadow = true;
+
+
+            container.add(
+                torso
+            );
+
+
+            /* -----------------------------------------------------
+               HEAD
+               ----------------------------------------------------- */
+
+            const head =
+                new THREE.Mesh(
+
+                    new THREE.SphereGeometry(
+                        0.5,
+                        18,
+                        18
+                    ),
+
+                    skinMaterial
+
+                );
+
+
+            head.position.y =
+                2.52;
+
+
+            head.castShadow = true;
+
+
+            container.add(
+                head
+            );
+
+
+            /* -----------------------------------------------------
+               LEGS
+               ----------------------------------------------------- */
+
+            const leftLeg =
+                new THREE.Mesh(
+
+                    new THREE.BoxGeometry(
+                        0.35,
+                        0.9,
+                        0.42
+                    ),
+
+                    pantsMaterial
+
+                );
+
+
+            leftLeg.position.set(
+                -0.25,
+                0.45,
+                0
+            );
+
+
+            leftLeg.castShadow = true;
+
+
+            container.add(
+                leftLeg
+            );
+
+
+            const rightLeg =
+                new THREE.Mesh(
+
+                    new THREE.BoxGeometry(
+                        0.35,
+                        0.9,
+                        0.42
+                    ),
+
+                    pantsMaterial
+
+                );
+
+
+            rightLeg.position.set(
+                0.25,
+                0.45,
+                0
+            );
+
+
+            rightLeg.castShadow = true;
+
+
+            container.add(
+                rightLeg
+            );
+
+
+            /* -----------------------------------------------------
+               ARMS
+               ----------------------------------------------------- */
+
+            const armMaterial =
+                bodyMaterial;
+
+
+            const leftArm =
+                new THREE.Mesh(
+
+                    new THREE.BoxGeometry(
+                        0.25,
+                        1.15,
+                        0.28
+                    ),
+
+                    armMaterial
+
+                );
+
+
+            leftArm.position.set(
+                -0.65,
+                1.35,
+                0
+            );
+
+
+            leftArm.castShadow = true;
+
+
+            container.add(
+                leftArm
+            );
+
+
+            const rightArm =
+                new THREE.Mesh(
+
+                    new THREE.BoxGeometry(
+                        0.25,
+                        1.15,
+                        0.28
+                    ),
+
+                    armMaterial
+
+                );
+
+
+            rightArm.position.set(
+                0.65,
+                1.35,
+                0
+            );
+
+
+            rightArm.castShadow = true;
+
+
+            container.add(
+                rightArm
+            );
+
+
+            container.userData = {
+
+                leftLeg,
+
+                rightLeg,
+
+                leftArm,
+
+                rightArm,
+
+                torso,
+
+                head
+
+            };
+
+
+            return container;
+
+        }
+
+
+        /* =========================================================
+           21. PLAYER
+           ========================================================= */
+
+        const player =
+            new THREE.Group();
+
+
+        scene.add(
+            player
+        );
+
+
+        const playerMesh =
+            createCharacter(
+                0xe53935
+            );
+
+
+        player.add(
+            playerMesh
+        );
+
+
+        let playerNormal =
+            new THREE.Vector3(
+                0,
+                1,
+                0
+            );
+
+
+        let playerForward =
+            new THREE.Vector3(
+                0,
+                0,
+                1
+            );
+
+
+        playerForward =
+            projectOntoTangent(
+                playerForward,
+                playerNormal
+            );
+
+
+        let currentSpeed = 0;
+
+        let walkTime = 0;
+
+        let verticalVelocity = 0;
+
+        let jumpHeight = 0;
+
+        let isGrounded = true;
+
+        let jumpCount = 0;
+
+        let currentWaterFactor = 1.0;
+
+        let playerHP = CONFIG.playerMaxHP;
+        let score = 0;
+        let isSleeping = false;
+        let sleepTimer = 0;
+        let attackAnimTime = 0;
+
+
+        function updatePlayerTransform() {
+
+            player.position
+                .copy(playerNormal)
+                .multiplyScalar(
+                    CONFIG.planetRadius +
+                    jumpHeight
+                );
+
+
+            const forward =
+                projectOntoTangent(
+                    playerForward,
+                    playerNormal
+                );
+
+
+            const right =
+                new THREE.Vector3()
+                    .crossVectors(
+                        playerNormal,
+                        forward
+                    )
+                    .normalize();
+
+
+            const matrix =
+                new THREE.Matrix4();
+
+
+            matrix.makeBasis(
+                right,
+                playerNormal,
+                forward
+            );
+
+
+            player.quaternion
+                .setFromRotationMatrix(
+                    matrix
+                );
+
+        }
+
+
+        updatePlayerTransform();
+
+
+        /* =========================================================
+           22. NPC SYSTEM — with labels, HP, combat, death anim
+           ========================================================= */
+
+        const npcList = [];
+
+
+        const npcColors = [
+
+            0x2196f3,
+            0xffc107,
+            0x9c27b0,
+            0x00acc1,
+            0xff7043,
+            0x66bb6a,
+            0xab47bc,
+            0x26a69a
+
+        ];
+
+
+        // Small, clean label — only visible when NPC is in front
+        const labelStyle = `
+              color: #fff;
+              font-family: "Segoe UI", system-ui, sans-serif;
+              font-size: 8px;
+              font-weight: 600;
+              text-shadow: 0 1px 4px rgba(0,0,0,0.95);
+              background: rgba(0,0,0,0.35);
+              padding: 1px 5px;
+              border-radius: 6px;
+              border: 1px solid rgba(255,255,255,0.06);
+              backdrop-filter: blur(2px);
+              -webkit-backdrop-filter: blur(2px);
+              white-space: nowrap;
+              pointer-events: none;
+              text-align: center;
+              line-height: 1.2;
+              transition: opacity 0.2s ease;
+              letter-spacing: 0.2px;
+            `;
+
+
+        for (
+            let i = 0;
+            i < CONFIG.npcCount;
+            i++
+        ) {
+
+            const normal =
+                randomDirection();
+
+
+            const npc =
+                new THREE.Group();
+
+
+            const color =
+                npcColors[
+                    Math.floor(
+                        Math.random() *
+                        npcColors.length
+                    )
+                ];
+
+
+            const mesh =
+                createCharacter(color);
+
+
+            npc.add(
+                mesh
+            );
+
+
+            const forward =
+                projectOntoTangent(
+                    tangentDirection(
+                        normal
+                    ),
+                    normal
+                );
+
+
+            const name = npcNames[Math.floor(Math.random() * npcNames.length)];
+
+
+            const npcData = {
+
+                object: npc,
+
+                mesh,
+
+                normal:
+                    normal.clone(),
+
+                forward:
+                    forward.clone(),
+
+                speed:
+                    0.55 +
+                    Math.random() *
+                    0.8,
+
+                timer:
+                    1 +
+                    Math.random() *
+                    4,
+
+                turnTarget: 0,
+
+                currentTurn: 0,
+
+                walkCounter:
+                    Math.random() *
+                    10,
+
+                radius: 1.05,
+
+                name: name,
+
+                maxHP: CONFIG.npcMaxHP + Math.floor(Math.random() * 15),
+
+                hp: CONFIG.npcMaxHP + Math.floor(Math.random() * 15),
+
+                isKO: false,
+
+                koTimer: 0,
+
+                isAggro: false,
+
+                aggroTimer: 0,
+
+                attackCooldown: 0,
+
+                label: null,
+
+                labelDiv: null,
+
+                deathAnimTime: 0,
+
+                isDying: false,
+
+                originalY: 0,
+
+            };
+
+
+            npc.position
+                .copy(normal)
+                .multiplyScalar(
+                    CONFIG.planetRadius
+                );
+
+
+            orientToSurface(
+                npc,
+                normal
+            );
+
+
+            environmentGroup.add(
+                npc
+            );
+
+
+            // Create label
+            const labelDiv = document.createElement("div");
+            labelDiv.style.cssText = labelStyle;
+            labelDiv.innerHTML = `${name} <span style="color:#ff6b6b;font-size:7px;">❤️${npcData.hp}</span>`;
+            const label = new CSS2DObject(labelDiv);
+            label.position.set(0, 3.0, 0);
+            npc.add(label);
+            npcData.label = label;
+            npcData.labelDiv = labelDiv;
+            labelDiv.style.opacity = "0";
+
+
+            npcList.push(
+                npcData
+            );
+
+        }
+
+
+        /* =========================================================
+           23. INPUT STATE
+           ========================================================= */
+
+        const keys = {};
+
+
+        window.addEventListener(
+            "keydown",
+            event => {
+
+                const key =
+                    event.key.toLowerCase();
+
+
+                keys[key] = true;
+
+
+                if (
+                    key === " " ||
+                    key === "spacebar"
+                ) {
+
+                    event.preventDefault();
+
+                    jump();
+
+                }
+
+
+                if (
+                    key === "e"
+                ) {
+
+                    interact();
+
+                }
+
+
+                if (
+                    key === "c"
+                ) {
+
+                    cycleCameraMode();
+
+                }
+
+
+                if (
+                    key === "j"
+                ) {
+
+                    performAttack();
+
+                }
+
+            },
+            {
+                passive: false
+            }
+        );
+
+
+        window.addEventListener(
+            "keyup",
+            event => {
+
+                keys[
+                    event.key.toLowerCase()
+                ] = false;
+
+            }
+        );
+
+
+        /* =========================================================
+           24. JOYSTICK
+           ========================================================= */
+
+        const joystick =
+            document.getElementById(
+                "virtual-joystick"
+            );
+
+
+        const joystickThumb =
+            document.getElementById(
+                "joystick-thumb"
+            );
+
+
+        let joystickActive = false;
+
+        let joystickPointerId = null;
+
+        let joystickX = 0;
+
+        let joystickY = 0;
+
+
+        function resetJoystick() {
+
+            joystickActive =
+                false;
+
+
+            joystickPointerId =
+                null;
+
+
+            joystickX = 0;
+
+            joystickY = 0;
+
+
+            joystickThumb.style.transform =
+                "translate(0px, 0px)";
+
+        }
+
+
+        function updateJoystick(
+            clientX,
+            clientY
+        ) {
+
+            const rect =
+                joystick.getBoundingClientRect();
+
+
+            const centerX =
+                rect.left +
+                rect.width / 2;
+
+
+            const centerY =
+                rect.top +
+                rect.height / 2;
+
+
+            let dx =
+                clientX -
+                centerX;
+
+
+            let dy =
+                clientY -
+                centerY;
+
+
+            const max =
+                41;
+
+
+            const distance =
+                Math.hypot(
+                    dx,
+                    dy
+                );
+
+
+            if (
+                distance > max
+            ) {
+
+                dx =
+                    dx / distance *
+                    max;
+
+
+                dy =
+                    dy / distance *
+                    max;
+
+            }
+
+
+            joystickThumb.style.transform =
+                `translate(${dx}px, ${dy}px)`;
+
+
+            joystickX =
+                dx / max;
+
+
+            joystickY =
+                dy / max;
+
+        }
+
+
+        joystick.addEventListener(
+            "pointerdown",
+            event => {
+
+                event.preventDefault();
+
+                joystickActive =
+                    true;
+
+
+                joystickPointerId =
+                    event.pointerId;
+
+
+                joystick.setPointerCapture(
+                    event.pointerId
+                );
+
+
+                updateJoystick(
+                    event.clientX,
+                    event.clientY
+                );
+
+            },
+            {
+                passive: false
+            }
+        );
+
+
+        joystick.addEventListener(
+            "pointermove",
+            event => {
+
+                if (
+                    !joystickActive ||
+                    event.pointerId !==
+                    joystickPointerId
+                ) {
+
+                    return;
+
+                }
+
+
+                updateJoystick(
+                    event.clientX,
+                    event.clientY
+                );
+
+            }
+        );
+
+
+        joystick.addEventListener(
+            "pointerup",
+            resetJoystick
+        );
+
+
+        joystick.addEventListener(
+            "pointercancel",
+            resetJoystick
+        );
+
+
+        /* =========================================================
+           25. CAMERA INPUT
+           ========================================================= */
+
+        const cameraTouchZone =
+            document.getElementById(
+                "camera-touch-zone"
+            );
+
+
+        let cameraDragging = false;
+
+        let cameraPointerId = null;
+
+        let lastCameraX = 0;
+
+        let lastCameraY = 0;
+
+
+        let cameraYaw = 0;
+
+        let cameraPitch =
+            0.22;
+
+
+        let cameraDistance =
+            CONFIG.cameraDistance;
+
+
+        let cameraMode = 0;
+
+
+        const cameraModeNames = [
+
+            "Third Person",
+
+            "Close",
+
+            "First Person"
+
+        ];
+
+
+        cameraTouchZone.addEventListener(
+            "pointerdown",
+            event => {
+
+                if (
+                    event.pointerType ===
+                    "mouse" &&
+                    event.button !== 0
+                ) {
+
+                    return;
+
+                }
+
+
+                cameraDragging =
+                    true;
+
+
+                cameraPointerId =
+                    event.pointerId;
+
+
+                lastCameraX =
+                    event.clientX;
+
+
+                lastCameraY =
+                    event.clientY;
+
+
+                cameraTouchZone.setPointerCapture(
+                    event.pointerId
+                );
+
+            }
+        );
+
+
+        cameraTouchZone.addEventListener(
+            "pointermove",
+            event => {
+
+                if (
+                    !cameraDragging ||
+                    event.pointerId !==
+                    cameraPointerId
+                ) {
+
+                    return;
+
+                }
+
+
+                const dx =
+                    event.clientX -
+                    lastCameraX;
+
+
+                const dy =
+                    event.clientY -
+                    lastCameraY;
+
+
+                lastCameraX =
+                    event.clientX;
+
+
+                lastCameraY =
+                    event.clientY;
+
+
+                cameraYaw -=
+                    dx *
+                    CONFIG.cameraSensitivity;
+
+
+                cameraPitch +=
+                    dy *
+                    CONFIG.cameraSensitivity;
+
+
+                cameraPitch =
+                    clamp(
+                        cameraPitch,
+                        CONFIG.cameraPitchMin,
+                        CONFIG.cameraPitchMax
+                    );
+
+            }
+        );
+
+
+        cameraTouchZone.addEventListener(
+            "pointerup",
+            () => {
+
+                cameraDragging =
+                    false;
+
+            }
+        );
+
+
+        cameraTouchZone.addEventListener(
+            "pointercancel",
+            () => {
+
+                cameraDragging =
+                    false;
+
+            }
+        );
+
+
+        window.addEventListener(
+            "wheel",
+            event => {
+
+                cameraDistance +=
+                    event.deltaY *
+                    0.015;
+
+
+                cameraDistance =
+                    clamp(
+                        cameraDistance,
+                        CONFIG.cameraMinDistance,
+                        CONFIG.cameraMaxDistance
+                    );
+
+            },
+            {
+                passive: true
+            }
+        );
+
+
+        /* =========================================================
+           26. MOBILE BUTTONS
+           ========================================================= */
+
+        const jumpButton =
+            document.getElementById(
+                "jump-button"
+            );
+
+
+        const interactButton =
+            document.getElementById(
+                "interact-button"
+            );
+
+
+        const cameraButton =
+            document.getElementById(
+                "camera-button"
+            );
+
+
+        const attackButton =
+            document.getElementById(
+                "attack-button"
+            );
+
+
+        jumpButton.addEventListener(
+            "pointerdown",
+            event => {
+
+                event.preventDefault();
+
+                jump();
+
+            },
+            {
+                passive: false
+            }
+        );
+
+
+        interactButton.addEventListener(
+            "pointerdown",
+            event => {
+
+                event.preventDefault();
+
+                interact();
+
+            },
+            {
+                passive: false
+            }
+        );
+
+
+        cameraButton.addEventListener(
+            "pointerdown",
+            event => {
+
+                event.preventDefault();
+
+                cycleCameraMode();
+
+            },
+            {
+                passive: false
+            }
+        );
+
+
+        attackButton.addEventListener(
+            "pointerdown",
+            event => {
+
+                event.preventDefault();
+
+                performAttack();
+
+            },
+            {
+                passive: false
+            }
+        );
+
+
+        /* =========================================================
+           27. JUMP — DOUBLE JUMP
+           ========================================================= */
+
+        function jump() {
+
+            if (isSleeping) return;
+
+            if (isGrounded) {
+
+                verticalVelocity =
+                    CONFIG.jumpVelocity;
+
+                isGrounded =
+                    false;
+
+                jumpCount = 1;
+
+                return;
+
+            }
+
+            if (jumpCount < CONFIG.doubleJumpCount) {
+
+                verticalVelocity = CONFIG.jumpVelocity * 0.85;
+
+                jumpCount++;
+
+            }
+
+        }
+
+
+        function updateJump(
+            dt
+        ) {
+
+            if (isGrounded) {
+
+                jumpHeight = 0;
+
+                verticalVelocity = 0;
+
+                jumpCount = 0;
+
+                return;
+
+            }
+
+
+            verticalVelocity -=
+                CONFIG.gravity *
+                dt;
+
+
+            jumpHeight +=
+                verticalVelocity *
+                dt;
+
+
+            if (
+                jumpHeight <= 0
+            ) {
+
+                jumpHeight = 0;
+
+                verticalVelocity = 0;
+
+                isGrounded = true;
+
+                jumpCount = 0;
+
+            }
+
+
+            updatePlayerTransform();
+
+        }
+
+
+        /* =========================================================
+           28. PLAYER MOVEMENT
+           ========================================================= */
+
+        function getMovementInput() {
+
+            let turn = 0;
+
+            let walk = 0;
+
+
+            if (
+                keys["a"] ||
+                keys["arrowleft"]
+            ) {
+
+                turn += 1;
+
+            }
+
+
+            if (
+                keys["d"] ||
+                keys["arrowright"]
+            ) {
+
+                turn -= 1;
+
+            }
+
+
+            if (
+                keys["w"] ||
+                keys["arrowup"]
+            ) {
+
+                walk += 1;
+
+            }
+
+
+            if (
+                keys["s"] ||
+                keys["arrowdown"]
+            ) {
+
+                walk -= 1;
+
+            }
+
+
+            if (
+                joystickActive
+            ) {
+
+                turn =
+                    -joystickX;
+
+
+                walk =
+                    -joystickY;
+
+            }
+
+
+            return {
+                turn,
+                walk
+            };
+
+        }
+
+
+        function checkObstacleCollision(
+            candidateNormal
+        ) {
+
+            const candidatePosition =
+                candidateNormal
+                    .clone()
+                    .multiplyScalar(
+                        CONFIG.planetRadius
+                    );
+
+
+            for (
+                const obstacle
+                of obstacleList
+            ) {
+
+                if (
+                    obstacle.type ===
+                    "house"
+                ) {
+
+                    const house =
+                        obstacle.house;
+
+
+                    if (
+                        house.userData.isOpen
+                    ) {
+
+                        const local =
+                            candidatePosition
+                                .clone();
+
+
+                        house.worldToLocal(
+                            local
+                        );
+
+
+                        const width =
+                            house.userData.width;
+
+
+                        const depth =
+                            house.userData.depth;
+
+
+                        const inside =
+                            Math.abs(local.x) <
+                            width * 0.4 &&
+                            Math.abs(local.z) <
+                            depth * 0.4;
+
+
+                        const doorW = house.userData.doorWidth || 3.2;
+
+                        const nearDoor =
+                            Math.abs(local.x) <
+                            doorW * 0.8 &&
+                            local.z <
+                            -depth * 0.5 +
+                            3.0;
+
+
+                        if (
+                            inside ||
+                            nearDoor
+                        ) {
+
+                            continue;
+
+                        }
+
+                    }
+
+                }
+
+
+                if (obstacle.type === "rock") {
+
+                    const dist = candidatePosition.distanceTo(obstacle.position);
+                    const rockHeight = obstacle.height || 1.0;
+
+                    const pWorld = player.position.clone();
+                    const rPos = obstacle.position.clone();
+                    const normal = rPos.clone().normalize();
+                    const heightAbove = (pWorld.dot(normal) - rPos.dot(normal)) * 1.0;
+
+                    if (heightAbove > rockHeight * 0.3) {
+                        const horizDist = candidatePosition.distanceTo(obstacle.position);
+                        if (horizDist < obstacle.radius + CONFIG.playerRadius * 0.8) {
+                            continue;
+                        }
+                    }
+
+                    if (dist < CONFIG.playerRadius + obstacle.radius) {
+                        const stepUp = jumpHeight + 0.5;
+                        if (stepUp > rockHeight * 0.6) {
+                            continue;
+                        }
+                        return obstacle;
+                    }
+                    continue;
+                }
+
+
+                const distance =
+                    candidatePosition.distanceTo(
+                        obstacle.position
+                    );
+
+
+                if (
+                    distance <
+                    CONFIG.playerRadius +
+                    obstacle.radius
+                ) {
+
+                    return obstacle;
+
+                }
+
+            }
+
+
+            return null;
+
+        }
+
+
+        function attemptMove(
+            distance
+        ) {
+
+            const movement =
+                playerForward
+                    .clone()
+                    .multiplyScalar(
+                        distance
+                    );
+
+
+            const candidateWorld =
+                player.position
+                    .clone()
+                    .add(
+                        movement
+                    );
+
+
+            const candidateNormal =
+                candidateWorld
+                    .normalize();
+
+
+            const collision =
+                checkObstacleCollision(
+                    candidateNormal
+                );
+
+
+            if (
+                collision &&
+                collision.type ===
+                "rock" &&
+                isGrounded
+            ) {
+
+                const rockHeight = collision.height || 1.0;
+
+                if (rockHeight <= CONFIG.maxStepHeight) {
+
+                    jumpHeight =
+                        Math.max(
+                            jumpHeight,
+                            rockHeight * 0.5
+                        );
+
+
+                    playerNormal.copy(
+                        candidateNormal
+                    );
+
+
+                    playerForward =
+                        projectOntoTangent(
+                            playerForward,
+                            playerNormal
+                        );
+
+
+                    updatePlayerTransform();
+
+                    return true;
+
+                }
+
+                return false;
+
+            }
+
+
+            if (
+                collision
+            ) {
+
+                return false;
+
+            }
+
+
+            playerNormal.copy(
+                candidateNormal
+            );
+
+
+            playerForward =
+                projectOntoTangent(
+                    playerForward,
+                    playerNormal
+                );
+
+
+            updatePlayerTransform();
+
+
+            return true;
+
+        }
+
+
+        function updatePlayerUI() {
+            document.getElementById("player-hp-display").textContent = `❤️ HP: ${Math.floor(playerHP)} / ${CONFIG.playerMaxHP}`;
+            document.getElementById("score-display").textContent = `🏆 Score: ${score}`;
+        }
+
+
+        function updatePlayer(
+            dt
+        ) {
+
+            // Sleep handling
+            if (isSleeping) {
+                sleepTimer += dt;
+                if (sleepTimer > 1.0) {
+                    sleepTimer = 0;
+                    playerHP = Math.min(playerHP + CONFIG.sleepHealRate, CONFIG.playerMaxHP);
+                    updatePlayerUI();
+                }
+                elapsedTime += dt * CONFIG.sleepSpeedMultiplier;
+                return;
+            }
+
+            // Attack animation — smooth punch
+            if (attackAnimTime > 0) {
+                attackAnimTime -= dt * 7;
+                if (attackAnimTime < 0) attackAnimTime = 0;
+                const progress = 1 - attackAnimTime;
+                const swing = Math.sin(progress * Math.PI) * 1.5;
+                const pm = playerMesh.userData;
+                pm.rightArm.rotation.x = -1.2 + swing * 0.9;
+                pm.rightArm.rotation.z = swing * 0.3;
+                pm.leftArm.rotation.x = -0.8 + swing * 0.2;
+            }
+
+
+            const input =
+                getMovementInput();
+
+
+            let turn =
+                input.turn;
+
+
+            let walk =
+                input.walk;
+
+
+            if (
+                Math.abs(turn) >
+                0.03
+            ) {
+
+                const rotation =
+                    new THREE.Quaternion()
+                        .setFromAxisAngle(
+
+                            playerNormal,
+
+                            turn *
+                            CONFIG.playerTurnSpeed *
+                            dt
+
+                        );
+
+
+                playerForward
+                    .applyQuaternion(
+                        rotation
+                    );
+
+
+                playerForward =
+                    projectOntoTangent(
+                        playerForward,
+                        playerNormal
+                    );
+
+            }
+
+
+            let targetSpeed = 0;
+
+
+            if (
+                walk > 0
+            ) {
+
+                targetSpeed =
+                    CONFIG.playerWalkSpeed *
+                    walk;
+
+            }
+            else if (
+                walk < 0
+            ) {
+
+                targetSpeed =
+                    CONFIG.playerReverseSpeed *
+                    walk;
+
+            }
+
+
+            if (
+                currentWaterFactor <
+                1
+            ) {
+
+                targetSpeed *=
+                    currentWaterFactor;
+
+            }
+
+
+            const rate =
+                Math.abs(targetSpeed) >
+                Math.abs(currentSpeed)
+
+                    ? CONFIG.acceleration
+
+                    : CONFIG.deceleration;
+
+
+            currentSpeed =
+                damp(
+                    currentSpeed,
+                    targetSpeed,
+                    rate,
+                    dt
+                );
+
+
+            if (
+                Math.abs(currentSpeed) >
+                0.005
+            ) {
+
+                const moved =
+                    attemptMove(
+                        currentSpeed *
+                        dt
+                    );
+
+
+                if (
+                    !moved
+                ) {
+
+                    currentSpeed =
+                        damp(
+                            currentSpeed,
+                            0,
+                            18,
+                            dt
+                        );
+
+                }
+
+            }
+
+
+            if (
+                Math.abs(currentSpeed) >
+                0.08 &&
+                isGrounded
+            ) {
+
+                walkTime +=
+                    dt *
+                    Math.abs(
+                        currentSpeed
+                    ) *
+                    1.55;
+
+            }
+
+
+            const walkAmount =
+                Math.min(
+                    1,
+                    Math.abs(
+                        currentSpeed
+                    ) /
+                    CONFIG.playerWalkSpeed
+                );
+
+
+            const legSwing =
+                Math.sin(
+                    walkTime * 8.5
+                ) *
+                0.42 *
+                walkAmount;
+
+
+            const pm = playerMesh.userData;
+
+            if (attackAnimTime <= 0) {
+                pm.leftLeg.rotation.x = legSwing;
+                pm.rightLeg.rotation.x = -legSwing;
+                pm.leftArm.rotation.x = -legSwing * 0.55;
+                pm.rightArm.rotation.x = legSwing * 0.55;
+            }
+
+
+            const status =
+                document.getElementById(
+                    "status-text"
+                );
+
+
+            if (isSleeping) {
+                status.textContent = "💤 Sleeping...";
+                status.style.color = "#b39ddb";
+            } else if (
+                !isGrounded
+            ) {
+
+                status.textContent =
+                    "Status: Jumping";
+
+                status.style.color =
+                    "#fff59d";
+
+            }
+            else if (
+                currentWaterFactor <
+                1
+            ) {
+
+                status.textContent =
+                    "Status: In Water";
+
+                status.style.color =
+                    "#81d4fa";
+
+            }
+            else if (
+                Math.abs(currentSpeed) <
+                0.05
+            ) {
+
+                status.textContent =
+                    "Status: Idle";
+
+                status.style.color =
+                    "#90caf9";
+
+            }
+            else {
+
+                status.textContent =
+                    "Status: Exploring";
+
+                status.style.color =
+                    "#69f0ae";
+
+            }
+
+
+            document.getElementById(
+                "speed-meter"
+            ).textContent =
+                `Speed: ${Math.abs(currentSpeed).toFixed(1)} m/s`;
+
+        }
+
+
+        /* =========================================================
+           29. NPC UPDATE — with combat, death anim, label visibility
+           ========================================================= */
+
+        let attackCooldownTimer = 0;
+
+
+        function performAttack() {
+
+            if (attackCooldownTimer > 0 || isSleeping) return;
+
+            attackCooldownTimer = 0.35;
+
+            attackAnimTime = 1.0;
+
+
+            const pPos = player.position.clone();
+
+            let closest = null;
+
+            let closestDist = Infinity;
+
+
+            for (const npc of npcList) {
+
+                if (npc.isKO || npc.isDying) continue;
+
+                const dist = pPos.distanceTo(npc.object.position);
+
+                if (dist < CONFIG.attackRange && dist < closestDist) {
+
+                    closest = npc;
+
+                    closestDist = dist;
+
+                }
+
+            }
+
+
+            if (closest) {
+
+                closest.hp -= CONFIG.attackDamage;
+
+                closest.isAggro = true;
+
+                closest.aggroTimer = 4;
+
+
+                // Hit flash
+                closest.mesh.children.forEach(child => {
+                    if (child.isMesh) {
+                        const orig = child.material.color.clone();
+                        child.material.color.set(0xff4444);
+                        setTimeout(() => { child.material.color.copy(orig); }, 150);
+                    }
+                });
+
+
+                if (closest.hp <= 0) {
+
+                    closest.hp = 0;
+
+                    closest.isKO = true;
+
+                    closest.isDying = true;
+
+                    closest.deathAnimTime = 0;
+
+                    closest.koTimer = CONFIG.respawnDelay;
+
+                    score += 10;
+
+                    updatePlayerUI();
+
+                    const koDiv = closest.labelDiv;
+
+                    koDiv.innerHTML = `${closest.name} 💀`;
+
+                    koDiv.style.borderColor = "#ff4444";
+
+                } else {
+
+                    const div = closest.labelDiv;
+
+                    div.innerHTML = `${closest.name} <span style="color:#ff6b6b;font-size:7px;">❤️${closest.hp}</span>`;
+
+                }
+
+                updatePlayerUI();
+
+            }
+
+        }
+
+
+        // Click on NPC to attack (desktop)
+        const raycaster = new THREE.Raycaster();
+        const mouse = new THREE.Vector2();
+
+        renderer.domElement.addEventListener("click", (e) => {
+
+            if (e.button !== 0) return;
+
+            mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
+
+            mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
+
+            raycaster.setFromCamera(mouse, camera);
+
+            const targets = [];
+
+            for (const npc of npcList) {
+
+                if (npc.isKO) continue;
+
+                targets.push(npc.object);
+
+            }
+
+            const hits = raycaster.intersectObjects(targets, true);
+
+            if (hits.length > 0) {
+
+                let hitObj = hits[0].object;
+
+                let npcData = null;
+
+                for (const npc of npcList) {
+
+                    if (npc.object === hitObj || npc.object.children.includes(hitObj) ||
+                        npc.mesh === hitObj || npc.mesh.children.includes(hitObj)) {
+
+                        npcData = npc;
+
+                        break;
+
+                    }
+
+                }
+
+                if (npcData && !npcData.isKO && !npcData.isDying) {
+
+                    performAttack();
+
+                }
+
+            }
+
+        });
+
+
+        function updateNPCs(
+            dt
+        ) {
+
+            const pPos = player.position.clone();
+
+            // Update camera frustum for label visibility
+            camera.updateMatrixWorld();
+            const frustum = new THREE.Frustum();
+            frustum.setFromProjectionMatrix(new THREE.Matrix4().multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse));
+            const camDir = new THREE.Vector3();
+            camera.getWorldDirection(camDir);
+
+
+            for (
+                const npc of npcList
+            ) {
+
+                // Death animation
+                if (npc.isDying && npc.isKO) {
+                    npc.deathAnimTime += dt * 3;
+                    if (npc.deathAnimTime < 1) {
+                        const angle = npc.deathAnimTime * 1.2;
+                        npc.object.rotation.z = angle * 0.6;
+                        npc.object.position.y = npc.originalY - angle * 0.3;
+                    }
+                    npc.koTimer -= dt;
+                    if (npc.koTimer <= 0) {
+                        npc.isKO = false;
+                        npc.isDying = false;
+                        npc.hp = npc.maxHP;
+                        npc.object.rotation.z = 0;
+                        const newNormal = randomDirection();
+                        npc.normal.copy(newNormal);
+                        npc.object.position.copy(newNormal).multiplyScalar(CONFIG.planetRadius);
+                        orientToSurface(npc.object, newNormal);
+                        npc.forward = projectOntoTangent(tangentDirection(newNormal), newNormal);
+                        const div = npc.labelDiv;
+                        div.innerHTML = `${npc.name} <span style="color:#ff6b6b;font-size:7px;">❤️${npc.hp}</span>`;
+                        div.style.borderColor = "rgba(255,255,255,0.06)";
+                        npc.aggroTimer = 0;
+                        npc.isAggro = false;
+                        npc.originalY = npc.object.position.y;
+                    }
+                    continue;
+                }
+
+                // Label visibility: only when in front of camera AND within frustum
+                const npcPos = npc.object.position.clone();
+                const toNpc = npcPos.clone().sub(camera.position).normalize();
+                const dot = camDir.dot(toNpc);
+                const visible = dot > 0.15 && frustum.containsPoint(npcPos);
+
+                if (npc.labelDiv) {
+                    npc.labelDiv.style.opacity = visible ? "1" : "0";
+                }
+
+
+                if (npc.isKO) continue;
+
+
+                if (npc.attackCooldown > 0) npc.attackCooldown -= dt;
+
+
+                if (npc.isAggro) {
+                    npc.aggroTimer -= dt;
+                    if (npc.aggroTimer <= 0) npc.isAggro = false;
+                }
+
+
+                npc.timer -= dt;
+
+
+                if (
+                    npc.timer <= 0
+                ) {
+
+                    npc.timer =
+                        2 +
+                        Math.random() *
+                        4;
+
+
+                    npc.turnTarget =
+                        (
+                            Math.random() -
+                            0.5
+                        ) *
+                        1.2;
+
+                }
+
+
+                let targetForward = npc.forward.clone();
+
+                if (npc.isAggro) {
+                    const toPlayer = pPos.clone().sub(npc.object.position).normalize();
+                    const proj = projectOntoTangent(toPlayer, npc.normal);
+                    if (proj.length() > 0.1) {
+                        targetForward = proj;
+                        npc.turnTarget = 0;
+                    }
+                    const dist = pPos.distanceTo(npc.object.position);
+                    if (dist < 2.5 && npc.attackCooldown <= 0) {
+                        npc.attackCooldown = 1.2;
+                        playerHP = Math.max(0, playerHP - 8);
+                        updatePlayerUI();
+                        if (playerHP <= 0) {
+                            playerHP = CONFIG.playerMaxHP;
+                            const newNormal = randomDirection();
+                            playerNormal.copy(newNormal);
+                            playerForward = projectOntoTangent(tangentDirection(newNormal), newNormal);
+                            updatePlayerTransform();
+                            updatePlayerUI();
+                            document.getElementById("status-text").textContent = "Status: Respawned";
+                            document.getElementById("status-text").style.color = "#ff6b6b";
+                            setTimeout(() => {
+                                document.getElementById("status-text").textContent = "Status: Exploring";
+                                document.getElementById("status-text").style.color = "#69f0ae";
+                            }, 1500);
+                        }
+                    }
+                }
+
+
+                npc.currentTurn =
+                    damp(
+                        npc.currentTurn,
+                        npc.turnTarget,
+                        2.5,
+                        dt
+                    );
+
+
+                const rotation =
+                    new THREE.Quaternion()
+                        .setFromAxisAngle(
+
+                            npc.normal,
+
+                            npc.currentTurn *
+                            dt
+
+                        );
+
+
+                npc.forward
+                    .applyQuaternion(
+                        rotation
+                    );
+
+
+                npc.forward =
+                    projectOntoTangent(
+                        npc.forward,
+                        npc.normal
+                    );
+
+
+                if (npc.isAggro) {
+                    npc.forward.lerp(targetForward, dt * 2);
+                    npc.forward = projectOntoTangent(npc.forward, npc.normal);
+                }
+
+
+                const speed = npc.isAggro ? npc.speed * 1.5 : npc.speed;
+
+                const movement =
+                    npc.forward
+                        .clone()
+                        .multiplyScalar(
+                            speed *
+                            dt
+                        );
+
+
+                const nextWorld =
+                    npc.object.position
+                        .clone()
+                        .add(
+                            movement
+                        );
+
+
+                const nextNormal =
+                    nextWorld.normalize();
+
+
+                let blocked =
+                    false;
+
+
+                const testPosition =
+                    nextNormal
+                        .clone()
+                        .multiplyScalar(
+                            CONFIG.planetRadius
+                        );
+
+
+                for (
+                    const obstacle
+                    of obstacleList
+                ) {
+
+                    if (
+                        obstacle.type ===
+                        "house"
+                    ) {
+
+                        continue;
+
+                    }
+
+                    if (obstacle.type === "rock") {
+                        const d2 = testPosition.distanceTo(obstacle.position);
+                        if (d2 < 0.8 + obstacle.radius) { blocked = true; break; }
+                        continue;
+                    }
+
+
+                    if (
+                        testPosition.distanceTo(
+                            obstacle.position
+                        ) <
+                        0.8 +
+                        obstacle.radius
+                    ) {
+
+                        blocked = true;
+
+                        break;
+
+                    }
+
+                }
+
+
+                if (
+                    !blocked
+                ) {
+
+                    npc.normal.copy(
+                        nextNormal
+                    );
+
+
+                    npc.forward =
+                        projectOntoTangent(
+                            npc.forward,
+                            npc.normal
+                        );
+
+
+                    npc.object.position
+                        .copy(
+                            npc.normal
+                        )
+                        .multiplyScalar(
+                            CONFIG.planetRadius
+                        );
+
+
+                    orientToSurface(
+                        npc.object,
+                        npc.normal
+                    );
+
+                }
+                else {
+
+                    npc.turnTarget *=
+                        -1;
+
+                }
+
+
+                npc.walkCounter +=
+                    dt *
+                    speed *
+                    2.1;
+
+
+                const swing =
+                    Math.sin(
+                        npc.walkCounter *
+                        6
+                    ) *
+                    0.34;
+
+
+                const nm = npc.mesh.userData;
+                if (nm) {
+                    nm.leftLeg.rotation.x = swing;
+                    nm.rightLeg.rotation.x = -swing;
+                }
+
+
+                if (npc.label) {
+                    npc.label.position.set(0, 3.0 + (npc.isKO ? 0.5 : 0), 0);
+                }
+
+            }
+
+        }
+
+
+        /* =========================================================
+           30. HOUSE DOOR SYSTEM + SLEEP
+           ========================================================= */
+
+        let nearbyHouse = null;
+
+
+        function getPlayerWorldPosition() {
+
+            return player.position.clone();
+
+        }
+
+
+        function updateHouseDoors(
+            dt
+        ) {
+
+            for (
+                const house
+                of houses
+            ) {
+
+                const target =
+                    house.userData
+                        .targetDoorAngle;
+
+
+                house.userData
+                    .doorAngle =
+                    damp(
+
+                        house.userData
+                            .doorAngle,
+
+                        target,
+
+                        7,
+
+                        dt
+
+                    );
+
+
+                house.userData
+                    .door.rotation.y =
+                    house.userData
+                        .doorAngle;
+
+
+                const targetLight =
+                    house.userData
+                        .isOpen
+
+                        ? 1.8
+
+                        : 0;
+
+
+                house.userData
+                    .interiorLight
+                    .intensity =
+                    damp(
+
+                        house.userData
+                            .interiorLight
+                            .intensity,
+
+                        targetLight,
+
+                        5,
+
+                        dt
+
+                    );
+
+
+                // Check if player is on bed
+                if (house.userData.hasBed && house.userData.bedGroup) {
+                    const bedWorld = new THREE.Vector3();
+                    house.userData.bedGroup.getWorldPosition(bedWorld);
+                    const dist = player.position.distanceTo(bedWorld);
+
+                    if (dist < 2.5 && house.userData.isOpen) {
+                        house.userData.isSleeping = true;
+                        if (!isSleeping) {
+                            isSleeping = true;
+                            sleepTimer = 0;
+                            document.getElementById("status-text").textContent = "💤 Sleeping...";
+                            document.getElementById("status-text").style.color = "#b39ddb";
+                        }
+                    } else {
+                        house.userData.isSleeping = false;
+                        if (isSleeping) {
+                            let onAnyBed = false;
+                            for (const h of houses) {
+                                if (h.userData.hasBed && h.userData.bedGroup && h.userData.isOpen) {
+                                    const bw = new THREE.Vector3();
+                                    h.userData.bedGroup.getWorldPosition(bw);
+                                    if (player.position.distanceTo(bw) < 2.5) {
+                                        onAnyBed = true;
+                                        break;
+                                    }
+                                }
+                            }
+                            if (!onAnyBed) {
+                                isSleeping = false;
+                                document.getElementById("status-text").textContent = "Status: Awake";
+                                document.getElementById("status-text").style.color = "#69f0ae";
+                            }
+                        }
+                    }
+                }
+
+            }
+
+            if (isSleeping) {
+                let onAnyBed = false;
+                for (const house of houses) {
+                    if (house.userData.hasBed && house.userData.bedGroup && house.userData.isOpen) {
+                        const bw = new THREE.Vector3();
+                        house.userData.bedGroup.getWorldPosition(bw);
+                        if (player.position.distanceTo(bw) < 2.5) {
+                            onAnyBed = true;
+                            break;
+                        }
+                    }
+                }
+                if (!onAnyBed) {
+                    isSleeping = false;
+                    document.getElementById("status-text").textContent = "Status: Awake";
+                    document.getElementById("status-text").style.color = "#69f0ae";
+                }
+            }
+
+        }
+
+
+        function findNearestInteraction() {
+
+            const playerPosition =
+                getPlayerWorldPosition();
+
+
+            let closest = null;
+
+            let closestDistance =
+                Infinity;
+
+
+            for (
+                const house
+                of houses
+            ) {
+
+                const distance =
+                    playerPosition.distanceTo(
+                        house.position
+                    );
+
+
+                if (
+                    distance <
+                    8.5 &&
+                    distance <
+                    closestDistance
+                ) {
+
+                    closest =
+                        house;
+
+                    closestDistance =
+                        distance;
+
+                }
+
+            }
+
+
+            return {
+                house: closest,
+                distance: closestDistance
+            };
+
+        }
+
+
+        function updateInteractionUI() {
+
+            const result =
+                findNearestInteraction();
+
+
+            nearbyHouse =
+                result.house;
+
+
+            const prompt =
+                document.getElementById(
+                    "interaction-prompt"
+                );
+
+
+            const mobileButton =
+                document.getElementById(
+                    "interact-button"
+                );
+
+
+            if (isSleeping) {
+                prompt.textContent = "💤 Press E to wake up";
+                prompt.classList.add("visible");
+                mobileButton.textContent = "WAKE";
+                mobileButton.classList.add("visible");
+                return;
+            }
+
+
+            if (
+                nearbyHouse &&
+                result.distance < 8.5
+            ) {
+
+                const action =
+                    nearbyHouse.userData.isOpen
+                        ? "CLOSE DOOR"
+                        : "OPEN DOOR";
+
+
+                prompt.textContent =
+                    `E · ${action}`;
+
+
+                prompt.classList.add(
+                    "visible"
+                );
+
+
+                mobileButton.textContent =
+                    nearbyHouse.userData.isOpen
+                        ? "CLOSE"
+                        : "USE";
+
+
+                mobileButton.classList.add(
+                    "visible"
+                );
+
+            }
+            else {
+
+                prompt.classList.remove(
+                    "visible"
+                );
+
+
+                mobileButton.classList.remove(
+                    "visible"
+                );
+
+
+                nearbyHouse =
+                    null;
+
+            }
+
+        }
+
+
+        function interact() {
+
+            if (isSleeping) {
+                isSleeping = false;
+                document.getElementById("status-text").textContent = "Status: Awake";
+                document.getElementById("status-text").style.color = "#69f0ae";
+                return;
+            }
+
+            if (
+                !nearbyHouse
+            ) {
+
+                return;
+
+            }
+
+
+            nearbyHouse.userData.isOpen =
+                !nearbyHouse.userData.isOpen;
+
+
+            nearbyHouse.userData
+                .targetDoorAngle =
+                nearbyHouse.userData.isOpen
+                    ? -Math.PI * 0.52
+                    : 0;
+
+        }
+
+
+        /* =========================================================
+           31. CAMERA MODE
+           ========================================================= */
+
+        function cycleCameraMode() {
+
+            cameraMode =
+                (
+                    cameraMode + 1
+                ) % 3;
+
+
+            if (
+                cameraMode === 0
+            ) {
+
+                cameraDistance =
+                    CONFIG.cameraDistance;
+
+            }
+            else if (
+                cameraMode === 1
+            ) {
+
+                cameraDistance =
+                    7.0;
+
+            }
+            else {
+
+                cameraDistance =
+                    0.15;
+
+            }
+
+
+            const help =
+                document.getElementById(
+                    "desktop-help"
+                );
+
+
+            if (
+                cameraMode === 2
+            ) {
+
+                document.getElementById(
+                    "crosshair"
+                ).classList.add(
+                    "visible"
+                );
+
+            }
+            else {
+
+                document.getElementById(
+                    "crosshair"
+                ).classList.remove(
+                    "visible"
+                );
+
+            }
+
+
+            if (
+                help
+            ) {
+
+                help.textContent =
+                    `Camera: ${cameraModeNames[cameraMode]} · C to switch`;
+
+            }
+
+        }
+
+
+        /* =========================================================
+           32. CAMERA RIG
+           ========================================================= */
+
+        const desiredCameraPosition =
+            new THREE.Vector3();
+
+
+        const desiredLookAt =
+            new THREE.Vector3();
+
+
+        function updateCamera(
+            dt
+        ) {
+
+            const up =
+                playerNormal.clone();
+
+
+            const forward =
+                projectOntoTangent(
+                    playerForward,
+                    up
+                );
+
+
+            const right =
+                new THREE.Vector3()
+                    .crossVectors(
+                        up,
+                        forward
+                    )
+                    .normalize();
+
+
+            const yawQuaternion =
+                new THREE.Quaternion()
+                    .setFromAxisAngle(
+                        up,
+                        cameraYaw
+                    );
+
+
+            let cameraBack =
+                forward.clone()
+                    .negate()
+                    .applyQuaternion(
+                        yawQuaternion
+                    );
+
+
+            cameraBack =
+                projectOntoTangent(
+                    cameraBack,
+                    up
+                );
+
+
+            const cameraRight =
+                new THREE.Vector3()
+                    .crossVectors(
+                        up,
+                        cameraBack
+                    )
+                    .normalize();
+
+
+            const pitchQuaternion =
+                new THREE.Quaternion()
+                    .setFromAxisAngle(
+                        cameraRight,
+                        cameraPitch
+                    );
+
+
+            cameraBack
+                .applyQuaternion(
+                    pitchQuaternion
+                );
+
+
+            cameraBack =
+                cameraBack.normalize();
+
+
+            let distance =
+                cameraDistance;
+
+
+            if (
+                cameraMode === 2
+            ) {
+
+                distance = 0.08;
+
+            }
+
+
+            if (
+                cameraMode === 2
+            ) {
+
+                desiredCameraPosition
+                    .copy(
+                        player.position
+                    )
+                    .add(
+                        up.clone()
+                            .multiplyScalar(
+                                2.35
+                            )
+                    )
+                    .add(
+                        forward.clone()
+                            .multiplyScalar(
+                                0.05
+                            )
+                    );
+
+            }
+            else {
+
+                desiredCameraPosition
+                    .copy(
+                        player.position
+                    )
+                    .add(
+                        up.clone()
+                            .multiplyScalar(
+                                CONFIG.cameraHeight
+                            )
+                    )
+                    .add(
+                        cameraBack
+                            .multiplyScalar(
+                                distance
+                            )
+                    );
+
+            }
+
+
+            const smoothing =
+                1 -
+                Math.exp(
+                    -CONFIG.cameraLag *
+                    dt
+                );
+
+
+            camera.position.lerp(
+                desiredCameraPosition,
+                smoothing
+            );
+
+
+            camera.up.copy(
+                up
+            );
+
+
+            if (
+                cameraMode === 2
+            ) {
+
+                desiredLookAt
+                    .copy(
+                        player.position
+                    )
+                    .add(
+                        up.clone()
+                            .multiplyScalar(
+                                2.25
+                            )
+                    )
+                    .add(
+                        forward.clone()
+                            .multiplyScalar(
+                                7
+                            )
+                    );
+
+            }
+            else {
+
+                desiredLookAt
+                    .copy(
+                        player.position
+                    )
+                    .add(
+                        up.clone()
+                            .multiplyScalar(
+                                CONFIG.cameraLookHeight
+                            )
+                    )
+                    .add(
+                        forward.clone()
+                            .multiplyScalar(
+                                CONFIG.cameraLookAhead
+                            )
+                    );
+
+            }
+
+
+            camera.lookAt(
+                desiredLookAt
+            );
+
+        }
+
+
+        /* =========================================================
+           33. RIVER WATER DETECTION
+           ========================================================= */
+
+        function updateWaterState() {
+
+            let closestDistance =
+                Infinity;
+
+
+            const playerDirection =
+                playerNormal.clone();
+
+
+            for (
+                const point
+                of riverPoints
+            ) {
+
+                const angle =
+                    Math.acos(
+                        clamp(
+                            playerDirection.dot(
+                                point
+                            ),
+                            -1,
+                            1
+                        )
+                    );
+
+
+                const arcDistance =
+                    angle *
+                    CONFIG.planetRadius;
+
+
+                if (
+                    arcDistance <
+                    closestDistance
+                ) {
+
+                    closestDistance =
+                        arcDistance;
+
+                }
+
+            }
+
+
+            if (
+                closestDistance <
+                riverWidth
+            ) {
+
+                currentWaterFactor =
+                    0.58;
+
+            }
+            else {
+
+                currentWaterFactor =
+                    1.0;
+
+            }
+
+        }
+
+
+        /* =========================================================
+           34. RIVER ANIMATION
+           ========================================================= */
+
+        let riverTime = 0;
+
+
+        function updateRiver(
+            dt
+        ) {
+
+            riverTime += dt;
+
+
+            const position =
+                river.geometry
+                    .attributes
+                    .position;
+
+
+            for (
+                let i = 0;
+                i < riverPoints.length;
+                i++
+            ) {
+
+                const point =
+                    riverPoints[i];
+
+
+                const prev =
+                    riverPoints[
+                        Math.max(
+                            0,
+                            i - 1
+                        )
+                    ];
+
+
+                const next =
+                    riverPoints[
+                        Math.min(
+                            riverPoints.length - 1,
+                            i + 1
+                        )
+                    ];
+
+
+                const tangent =
+                    next.clone()
+                        .sub(prev)
+                        .normalize();
+
+
+                const side =
+                    new THREE.Vector3()
+                        .crossVectors(
+                            point,
+                            tangent
+                        )
+                        .normalize();
+
+
+                const wave =
+                    Math.sin(
+                        riverTime * 2.1 +
+                        i * 0.34
+                    ) *
+                    0.16;
+
+
+                const left =
+                    point.clone()
+                        .add(
+                            side.clone()
+                                .multiplyScalar(
+                                    riverWidth
+                                )
+                        )
+                        .normalize()
+                        .multiplyScalar(
+                            CONFIG.planetRadius +
+                            0.28 +
+                            wave
+                        );
+
+
+                const right =
+                    point.clone()
+                        .add(
+                            side.clone()
+                                .multiplyScalar(
+                                    -riverWidth
+                                )
+                        )
+                        .normalize()
+                        .multiplyScalar(
+                            CONFIG.planetRadius +
+                            0.28 +
+                            wave
+                        );
+
+
+                position.setXYZ(
+                    i * 2,
+                    left.x,
+                    left.y,
+                    left.z
+                );
+
+
+                position.setXYZ(
+                    i * 2 + 1,
+                    right.x,
+                    right.y,
+                    right.z
+                );
+
+            }
+
+
+            position.needsUpdate =
+                true;
+
+
+            river.geometry
+                .computeVertexNormals();
+
+        }
+
+
+        /* =========================================================
+           35. DAY NIGHT SYSTEM
+           ========================================================= */
+
+        let elapsedTime = 0;
+
+
+        const skyColors = {
+
+            night:
+                new THREE.Color(
+                    0x02040e
+                ),
+
+            deepBlue:
+                new THREE.Color(
+                    0x101f4b
+                ),
+
+            purple:
+                new THREE.Color(
+                    0x513a78
+                ),
+
+            pink:
+                new THREE.Color(
+                    0xd36d7f
+                ),
+
+            peach:
+                new THREE.Color(
+                    0xf39b72
+                ),
+
+            orange:
+                new THREE.Color(
+                    0xf0a052
+                ),
+
+            golden:
+                new THREE.Color(
+                    0xf6c878
+                ),
+
+            day:
+                new THREE.Color(
+                    0x78caff
+                )
+
+        };
+
+
+        const currentSky =
+            new THREE.Color();
+
+
+        const currentSunColor =
+            new THREE.Color();
+
+
+        const currentHemisphereSky =
+            new THREE.Color();
+
+
+        const currentHemisphereGround =
+            new THREE.Color();
+
+
+        function interpolateColorStops(
+            stops,
+            value
+        ) {
+
+            if (
+                value <=
+                stops[0].position
+            ) {
+
+                return stops[0].color.clone();
+
+            }
+
+
+            if (
+                value >=
+                stops[
+                    stops.length - 1
+                ].position
+            ) {
+
+                return stops[
+                    stops.length - 1
+                ].color.clone();
+
+            }
+
+
+            for (
+                let i = 0;
+                i < stops.length - 1;
+                i++
+            ) {
+
+                const a =
+                    stops[i];
+
+
+                const b =
+                    stops[i + 1];
+
+
+                if (
+                    value >= a.position &&
+                    value <= b.position
+                ) {
+
+                    const range =
+                        b.position -
+                        a.position;
+
+
+                    let t =
+                        (
+                            value -
+                            a.position
+                        ) /
+                        range;
+
+
+                    t =
+                        THREE.MathUtils.smootherstep(
+                            t,
+                            0,
+                            1
+                        );
+
+
+                    return a.color
+                        .clone()
+                        .lerp(
+                            b.color,
+                            t
+                        );
+
+                }
+
+            }
+
+
+            return stops[
+                stops.length - 1
+            ].color.clone();
+
+        }
+
+
+        const skyStops = [
+
+            {
+                position: 0.00,
+                color: skyColors.night
+            },
+
+            {
+                position: 0.18,
+                color: skyColors.deepBlue
+            },
+
+            {
+                position: 0.32,
+                color: skyColors.purple
+            },
+
+            {
+                position: 0.42,
+                color: skyColors.pink
+            },
+
+            {
+                position: 0.49,
+                color: skyColors.peach
+            },
+
+            {
+                position: 0.55,
+                color: skyColors.golden
+            },
+
+            {
+                position: 0.64,
+                color: skyColors.day
+            },
+
+            {
+                position: 1.00,
+                color: skyColors.day
+            }
+
+        ];
+
+
+        function getSkyForElevation(
+            elevation
+        ) {
+
+            let normalized =
+                (elevation + 1) /
+                2;
+
+
+            normalized =
+                clamp(
+                    normalized,
+                    0,
+                    1
+                );
+
+
+            return interpolateColorStops(
+                skyStops,
+                normalized
+            );
+
+        }
+
+
+        function updateDayNight(
+            dt
+        ) {
+
+            if (!isSleeping) elapsedTime += dt;
+
+
+            const progress =
+                (
+                    elapsedTime %
+                    CONFIG.dayLengthSec
+                ) /
+                CONFIG.dayLengthSec;
+
+
+            const angle =
+                progress *
+                Math.PI *
+                2 -
+                Math.PI / 2;
+
+
+            const orbitRadius =
+                460;
+
+
+            const sunX =
+                Math.cos(angle) *
+                orbitRadius;
+
+
+            const sunY =
+                Math.sin(angle) *
+                orbitRadius;
+
+
+            const sunZ =
+                170;
+
+
+            sunLight.position.set(
+                sunX,
+                sunY,
+                sunZ
+            );
+
+
+            sunGroup.position.set(
+                sunX,
+                sunY,
+                sunZ
+            );
+
+
+            moonLight.position.set(
+                -sunX,
+                -sunY,
+                -sunZ
+            );
+
+
+            moon.position.set(
+                -sunX,
+                -sunY,
+                -sunZ
+            );
+
+
+            const elevation =
+                Math.sin(angle);
+
+
+            const daylight =
+                THREE.MathUtils.smoothstep(
+                    elevation,
+                    -0.18,
+                    0.25
+                );
+
+
+            const nightFactor =
+                1 -
+                daylight;
+
+
+            const twilight =
+                1 -
+                Math.min(
+                    1,
+                    Math.abs(
+                        elevation
+                    ) / 0.24
+                );
+
+
+            const twilightPositive =
+                Math.max(
+                    0,
+                    twilight
+                );
+
+
+            currentSky.copy(
+                getSkyForElevation(
+                    elevation
+                )
+            );
+
+
+            scene.background.lerp(
+                currentSky,
+                1 -
+                Math.exp(
+                    -7 * dt
+                )
+            );
+
+
+            scene.fog.color.lerp(
+                currentSky,
+                1 -
+                Math.exp(
+                    -7 * dt
+                )
+            );
+
+
+            const daylightIntensity =
+                0.10 +
+                daylight *
+                2.15;
+
+
+            sunLight.intensity =
+                damp(
+                    sunLight.intensity,
+                    daylightIntensity,
+                    5,
+                    dt
+                );
+
+
+            const moonIntensity =
+                0.025 +
+                nightFactor *
+                0.38;
+
+
+            moonLight.intensity =
+                damp(
+                    moonLight.intensity,
+                    moonIntensity,
+                    4,
+                    dt
+                );
+
+
+            const hemisphereIntensity =
+                0.28 +
+                daylight *
+                1.22 +
+                twilightPositive *
+                0.12;
+
+
+            hemisphereLight.intensity =
+                damp(
+                    hemisphereLight.intensity,
+                    hemisphereIntensity,
+                    4,
+                    dt
+                );
+
+
+            const sunWarm =
+                clamp(
+                    twilightPositive *
+                    1.25,
+                    0,
+                    1
+                );
+
+
+            currentSunColor
+                .setRGB(
+                    1.0,
+                    0.78 +
+                    0.18 *
+                    daylight,
+                    0.43 +
+                    0.52 *
+                    daylight
+                );
+
+
+            sunLight.color.lerp(
+                currentSunColor,
+                1 -
+                Math.exp(
+                    -5 * dt
+                )
+            );
+
+
+            sunCore.material.color
+                .lerp(
+                    currentSunColor,
+                    1 -
+                    Math.exp(
+                        -5 * dt
+                    )
+                );
+
+
+            sunGlow.material.color
+                .copy(
+                    currentSunColor
+                );
+
+
+            currentHemisphereSky
+                .setRGB(
+
+                    0.22 +
+                    daylight * 0.52,
+
+                    0.28 +
+                    daylight * 0.63,
+
+                    0.48 +
+                    daylight * 0.49
+
+                );
+
+
+            currentHemisphereGround
+                .setRGB(
+
+                    0.025 +
+                    daylight * 0.12,
+
+                    0.045 +
+                    daylight * 0.18,
+
+                    0.035 +
+                    daylight * 0.08
+
+                );
+
+
+            hemisphereLight.color.lerp(
+                currentHemisphereSky,
+                1 -
+                Math.exp(
+                    -4 * dt
+                )
+            );
+
+
+            hemisphereLight.groundColor.lerp(
+                currentHemisphereGround,
+                1 -
+                Math.exp(
+                    -4 * dt
+                )
+            );
+
+
+            const starTarget =
+                THREE.MathUtils.smoothstep(
+                    -0.10,
+                    -0.32,
+                    elevation
+                );
+
+
+            stars.material.opacity =
+                damp(
+                    stars.material.opacity,
+                    starTarget *
+                    0.95,
+                    3.5,
+                    dt
+                );
+
+
+            atmosphere.material.opacity =
+                damp(
+
+                    atmosphere.material.opacity,
+
+                    0.055 +
+                    daylight *
+                    0.045 +
+                    twilightPositive *
+                    0.045,
+
+                    3,
+
+                    dt
+
+                );
+
+
+            const cloudWarm =
+                twilightPositive *
+                0.5;
+
+
+            cloudMaterial.color.setRGB(
+
+                1.0,
+
+                1.0 -
+                cloudWarm * 0.12,
+
+                1.0 -
+                cloudWarm * 0.22
+
+            );
+
+
+            const totalMinutes =
+                progress *
+                24 *
+                60;
+
+
+            const hours =
+                Math.floor(
+                    totalMinutes / 60
+                );
+
+
+            const minutes =
+                Math.floor(
+                    totalMinutes % 60
+                );
+
+
+            let period;
+
+
+            if (
+                elevation > 0.10
+            ) {
+
+                period =
+                    "Day";
+
+            }
+            else if (
+                elevation >
+                -0.12
+            ) {
+
+                period =
+                    "Twilight";
+
+            }
+            else {
+
+                period =
+                    "Night";
+
+            }
+
+
+            let icon;
+
+
+            if (
+                period === "Day"
+            ) {
+
+                icon = "☀️";
+
+            }
+            else if (
+                period === "Night"
+            ) {
+
+                icon = "🌙";
+
+            }
+            else {
+
+                icon = "🌅";
+
+            }
+
+
+            document.getElementById(
+                "time-display"
+            ).textContent =
+
+                `${icon} ` +
+                `${String(hours).padStart(2, "0")}:` +
+                `${String(minutes).padStart(2, "0")} · ` +
+                period;
+
+        }
+
+
+        /* =========================================================
+           36. CLOUD MOTION
+           ========================================================= */
+
+        function updateClouds(
+            dt
+        ) {
+
+            for (
+                const cloud
+                of cloudGroup.children
+            ) {
+
+                const normal =
+                    cloud.userData.normal;
+
+
+                const rotation =
+                    cloud.userData.speed *
+                    dt;
+
+
+                normal.applyAxisAngle(
+                    tangentDirection(
+                        normal
+                    ),
+                    rotation
+                );
+
+
+                normal.normalize();
+
+
+                cloud.userData.normal =
+                    normal;
+
+
+                placeOnSurface(
+                    cloud,
+                    normal,
+                    cloud.userData.altitude
+                );
+
+            }
+
+        }
+
+
+        /* =========================================================
+           37. ENVIRONMENT MICRO MOTION
+           ========================================================= */
+
+        let worldAnimationTime = 0;
+
+
+        function updateEnvironment(
+            dt
+        ) {
+
+            worldAnimationTime +=
+                dt;
+
+
+            for (
+                const cloud
+                of cloudGroup.children
+            ) {
+
+                const scaleWave =
+                    1 +
+                    Math.sin(
+                        worldAnimationTime *
+                        0.45 +
+                        cloud.id
+                    ) *
+                    0.008;
+
+
+                cloud.scale.multiplyScalar(
+                    scaleWave
+                );
+
+            }
+
+
+            stars.rotation.y +=
+                dt *
+                0.001;
+
+        }
+
+
+        /* =========================================================
+           38. MAIN LOOP
+           ========================================================= */
+
+        const clock =
+            new THREE.Clock();
+
+
+        let frameCount = 0;
+
+        let fpsTimer =
+            performance.now();
+
+
+        function mainLoop() {
+
+            requestAnimationFrame(
+                mainLoop
+            );
+
+
+            const dt =
+                Math.min(
+                    clock.getDelta(),
+                    0.05
+                );
+
+
+            if (attackCooldownTimer > 0) attackCooldownTimer -= dt;
+
+
+            updatePlayer(
+                dt
+            );
+
+
+            updateJump(
+                dt
+            );
+
+
+            updateNPCs(
+                dt
+            );
+
+
+            updateHouseDoors(
+                dt
+            );
+
+
+            updateWaterState();
+
+
+            updateRiver(
+                dt
+            );
+
+
+            updateDayNight(
+                dt
+            );
+
+
+            updateClouds(
+                dt
+            );
+
+
+            updateEnvironment(
+                dt
+            );
+
+
+            updateInteractionUI();
+
+
+            updateCamera(
+                dt
+            );
+
+
+            updatePlayerUI();
+
+
+            frameCount++;
+
+
+            const now =
+                performance.now();
+
+
+            if (
+                now -
+                fpsTimer >=
+                500
+            ) {
+
+                const fps =
+                    Math.round(
+
+                        frameCount *
+                        1000 /
+                        (
+                            now -
+                            fpsTimer
+                        )
+
+                    );
+
+
+                document.getElementById(
+                    "fps-counter"
+                ).textContent =
+                    `FPS: ${fps}`;
+
+
+                frameCount = 0;
+
+                fpsTimer = now;
+
+            }
+
+
+            renderer.render(
+                scene,
+                camera
+            );
+
+            labelRenderer.render(
+                scene,
+                camera
+            );
+
+        }
+
+
+        /* =========================================================
+           39. RESIZE
+           ========================================================= */
+
+        window.addEventListener(
+            "resize",
+            () => {
+
+                camera.aspect =
+                    window.innerWidth /
+                    window.innerHeight;
+
+
+                camera.updateProjectionMatrix();
+
+
+                renderer.setSize(
+                    window.innerWidth,
+                    window.innerHeight
+                );
+
+
+                renderer.setPixelRatio(
+                    Math.min(
+                        window.devicePixelRatio || 1,
+                        1.65
+                    )
+                );
+
+                labelRenderer.setSize(
+                    window.innerWidth,
+                    window.innerHeight
+                );
+
+            }
+        );
+
+
+        /* =========================================================
+           40. INITIAL CAMERA
+           ========================================================= */
+
+        cameraMode = 0;
+
+        cameraYaw = 0;
+
+        cameraPitch = 0.22;
+
+        cameraDistance =
+            CONFIG.cameraDistance;
+
+
+        /* =========================================================
+           41. LOADING
+           ========================================================= */
+
+        const loadingProgress =
+            document.getElementById(
+                "loading-progress"
+            );
+
+
+        let fakeProgress = 0;
+
+
+        const loadingInterval =
+            setInterval(
+                () => {
+
+                    fakeProgress +=
+                        8 +
+                        Math.random() *
+                        10;
+
+
+                    fakeProgress =
+                        Math.min(
+                            fakeProgress,
+                            100
+                        );
+
+
+                    loadingProgress.style.width =
+                        `${fakeProgress}%`;
+
+
+                    if (
+                        fakeProgress >=
+                        100
+                    ) {
+
+                        clearInterval(
+                            loadingInterval
+                        );
+
+
+                        setTimeout(
+                            () => {
+
+                                document
+                                    .getElementById(
+                                        "loading-screen"
+                                    )
+                                    .classList.add(
+                                        "hidden"
+                                    );
+
+                            },
+                            300
+                        );
+
+                    }
+
+                },
+                90
+            );
+
+
+        /* =========================================================
+           42. START
+           ========================================================= */
+
+        mainLoop();
+
+
+        console.log("🌍 Tiny World loaded!");
+        console.log("🎮 WASD · SPACE · E · C · J");
+        console.log("🚪 Bigger doors (3.2 wide) — you can enter!");
+        console.log("🏷️ NPC labels are small and only show when visible");
+        console.log("🌊 River is back — wider (6.5) and brighter!");
+        console.log("🌉 Bridge over the river!");
+        console.log("⚔️ Smooth hit animation on attack (J or tap ⚔️)");
+        console.log("🛏️ Sleep on beds inside houses to heal!");
+
+    </script>
+
+</body>
+    </html>
