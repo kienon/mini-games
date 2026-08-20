@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Tiny World — Ultimate Production Edition Pro</title>
+    <title>Tiny World — Ultimate Living Planet Pro</title>
     <style>
         *, ::before, ::after { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
         html, body { margin: 0; width: 100%; height: 100%; overflow: hidden; background: #75c4ff; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; touch-action: none; }
@@ -61,7 +61,7 @@
 <body>
 
     <div id="ui-container">
-        <h1>🌍 Tiny World: Pro Explorer</h1>
+        <h1>🌍 Tiny World: Ultimate Living</h1>
         <p><b>PC:</b> W/S | A/D | Space (Jump)</p>
         <p><b>Mouse:</b> Drag to rotate POV</p>
         <p id="status-text" style="color: #69f0ae; font-weight: bold; margin-top: 4px;">Status: Fully Loaded</p>
@@ -103,15 +103,15 @@
             gravityConstant: 16.0,
             cameraDistance: 14,
             cameraHeight: 5.2,
-            npcPopulation: 22,
-            housePopulation: 14,
-            treePopulation: 110,
-            rockPopulation: 55,
+            npcPopulation: 25,
+            housePopulation: 16,
+            treePopulation: 140,
+            rockPopulation: 70,
             dayCycleDurationSec: 200
         };
 
         /* ==========================================================
-           2. SCENE, CAMERA & RENDERER SETUP
+           2. SCENE, CAMERA & WEBGL RENDERER
            ========================================================== */
         const primaryScene = new THREE.Scene();
         primaryScene.background = new THREE.Color(0x75c4ff);
@@ -128,7 +128,7 @@
         document.body.appendChild(webglRenderer.domElement);
 
         /* ==========================================================
-           3. LIGHTING & CELESTIAL BODIES
+           3. ADVANCED LIGHTING & CELESTIAL BODIES
            ========================================================== */
         primaryScene.add(new THREE.AmbientLight(0xffffff, 0.45));
         const hemisphereEnvironmentLight = new THREE.HemisphereLight(0xbfe9ff, 0x29442a, 1.4);
@@ -150,9 +150,16 @@
         const directionalMoonLight = new THREE.DirectionalLight(0x8da9ff, 0.3);
         primaryScene.add(directionalMoonLight);
 
-        const sunVisualMesh = new THREE.Mesh(new THREE.SphereGeometry(12, 32, 32), new THREE.MeshBasicMaterial({ color: 0xffffee }));
+        const sunVisualMesh = new THREE.Mesh(
+            new THREE.SphereGeometry(12, 32, 32),
+            new THREE.MeshBasicMaterial({ color: 0xffffee })
+        );
         primaryScene.add(sunVisualMesh);
-        const moonVisualMesh = new THREE.Mesh(new THREE.SphereGeometry(9, 32, 32), new THREE.MeshStandardMaterial({ color: 0xd9e1ec, roughness: 1 }));
+
+        const moonVisualMesh = new THREE.Mesh(
+            new THREE.SphereGeometry(9, 32, 32),
+            new THREE.MeshStandardMaterial({ color: 0xd9e1ec, roughness: 1 })
+        );
         primaryScene.add(moonVisualMesh);
 
         /* ==========================================================
@@ -198,7 +205,7 @@
             primaryScene.add(targetObject);
         }
 
-        for (let i = 0; i < 15; i++) {
+        for (let i = 0; i < 18; i++) {
             const cloudCluster = new THREE.Group();
             const cloudMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 1, transparent: true, opacity: 0.72 });
             for (let j = 0; j < 3; j++) {
@@ -223,15 +230,15 @@
             return false;
         }
 
-        // Sungai (River)
-        for (let i = 0; i <= 30; i++) {
-            const angleVal = (i / 30) * Math.PI * 2;
+        // Aliran Sungai (River)
+        for (let i = 0; i <= 35; i++) {
+            const angleVal = (i / 35) * Math.PI * 2;
             const nodeDir = new THREE.Vector3(Math.cos(angleVal), Math.sin(angleVal * 0.4), Math.sin(angleVal)).normalize();
             const waterSegment = new THREE.Mesh(new THREE.BoxGeometry(4.5, 0.05, 12), new THREE.MeshStandardMaterial({ color: 0x2196f3, roughness: 0.2, metalness: 0.8 }));
             positionObjectOnSurface(waterSegment, nodeDir, 0.05);
         }
 
-        // Rumah Interaktif
+        // Rumah Interaktif dengan Pintu Boleh Buka
         for (let i = 0; i < WORLD_CONFIG.housePopulation; i++) {
             const normalVec = generateRandomDirectionVector();
             const houseGroup = new THREE.Group();
@@ -256,7 +263,7 @@
             interactiveHousesRegistry.push({ houseGroup, doorPivotContainer, isDoorOpen: false, worldPosition: houseWorldPos });
         }
 
-        // Batu (Climbable Rocks)
+        // Batu Tinggi Boleh Dipanjat / Dilompat Atas
         for (let i = 0; i < WORLD_CONFIG.rockPopulation; i++) {
             const normalVec = generateRandomDirectionVector();
             const rockH = 1.2 + Math.random() * 1.6;
@@ -476,13 +483,13 @@
                     playerSurfaceNormal.copy(testNormal);
                     const nf = playerForwardTangent.clone().sub(playerSurfaceNormal.clone().multiplyScalar(playerSurfaceNormal.dot(playerForwardTangent))).normalize();
                     playerForwardTangent.copy(nf);
-                    refreshPlayerTransformation();
                 } else {
                     currentPlayerSpeed *= 0.1;
                 }
-            } else {
-                refreshPlayerTransformation();
             }
+            
+            // Sentiasa kemas kini transformasi player tanpa gagal (membaiki bug kaku tak boleh gerak)
+            refreshPlayerTransformation();
 
             for (let house of interactiveHousesRegistry) {
                 const dist = playerEntity.position.distanceTo(house.worldPosition);
@@ -515,7 +522,7 @@
             document.getElementById('speed-meter').textContent = `Speed: ${Math.abs(currentPlayerSpeed).toFixed(1)} m/s`;
         }
 
-        let gameTime = WORLD_CONFIG.dayCycleDurationSec * 0.25; // Mulakan pukul 12 tengah hari (cerah)
+        let gameTime = WORLD_CONFIG.dayCycleDurationSec * 0.25; // Bermula pukul 12 tengah hari
         function updateDayNight(dt) {
             gameTime += dt;
             const frac = (gameTime % WORLD_CONFIG.dayCycleDurationSec) / WORLD_CONFIG.dayCycleDurationSec;
@@ -533,12 +540,16 @@
             directionalMoonLight.intensity = THREE.MathUtils.lerp(0.02, 0.4, Math.max(0, -elev));
             hemisphereEnvironmentLight.intensity = THREE.MathUtils.lerp(0.25, 1.4, Math.max(0, elev + 0.2));
 
+            // Smooth Multi-stop Shifting Sky Color (Pink peach senja yang sangat lancar)
             const skyColor = new THREE.Color();
-            if (elev > 0.18) skyColor.set(0x75c4ff);
-            else if (elev >= -0.18 && elev <= 0.18) {
+            if (elev > 0.18) {
+                skyColor.set(0x75c4ff);
+            } else if (elev >= -0.18 && elev <= 0.18) {
                 const t = (elev + 0.18) / 0.36;
                 skyColor.set(0x0a0c1b).lerp(new THREE.Color(0xf08a5d), t).lerp(new THREE.Color(0x75c4ff), t * t);
-            } else skyColor.set(0x02030a);
+            } else {
+                skyColor.set(0x02030a);
+            }
 
             primaryScene.background.copy(skyColor);
             primaryScene.fog.color.copy(skyColor);
