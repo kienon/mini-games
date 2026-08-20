@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Tiny World — Ultimate Production Edition</title>
+    <title>Tiny World — Ultimate Production Edition Pro</title>
     <style>
         *, ::before, ::after { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
         html, body { margin: 0; width: 100%; height: 100%; overflow: hidden; background: #75c4ff; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; touch-action: none; }
@@ -61,7 +61,7 @@
 <body>
 
     <div id="ui-container">
-        <h1>🌍 Tiny World: Ultimate Pro</h1>
+        <h1>🌍 Tiny World: Pro Explorer</h1>
         <p><b>PC:</b> W/S | A/D | Space (Jump)</p>
         <p><b>Mouse:</b> Drag to rotate POV</p>
         <p id="status-text" style="color: #69f0ae; font-weight: bold; margin-top: 4px;">Status: Fully Loaded</p>
@@ -96,9 +96,9 @@
            ========================================================== */
         const WORLD_CONFIG = {
             planetRadius: 180,
-            walkSpeed: 3.8,
-            reverseSpeed: 1.8,
-            turnSpeed: 2.2,
+            playerWalkSpeed: 3.8,
+            playerReverseSpeed: 1.8,
+            playerTurnSpeed: 2.2,
             jumpForce: 6.5,
             gravityConstant: 16.0,
             cameraDistance: 14,
@@ -130,7 +130,7 @@
         /* ==========================================================
            3. LIGHTING & CELESTIAL BODIES
            ========================================================== */
-        primaryScene.add(new THREE.AmbientLight(0xffffff, 0.5));
+        primaryScene.add(new THREE.AmbientLight(0xffffff, 0.45));
         const hemisphereEnvironmentLight = new THREE.HemisphereLight(0xbfe9ff, 0x29442a, 1.4);
         primaryScene.add(hemisphereEnvironmentLight);
 
@@ -223,7 +223,7 @@
             return false;
         }
 
-        // Sungai
+        // Sungai (River)
         for (let i = 0; i <= 30; i++) {
             const angleVal = (i / 30) * Math.PI * 2;
             const nodeDir = new THREE.Vector3(Math.cos(angleVal), Math.sin(angleVal * 0.4), Math.sin(angleVal)).normalize();
@@ -231,7 +231,7 @@
             positionObjectOnSurface(waterSegment, nodeDir, 0.05);
         }
 
-        // Rumah
+        // Rumah Interaktif
         for (let i = 0; i < WORLD_CONFIG.housePopulation; i++) {
             const normalVec = generateRandomDirectionVector();
             const houseGroup = new THREE.Group();
@@ -256,7 +256,7 @@
             interactiveHousesRegistry.push({ houseGroup, doorPivotContainer, isDoorOpen: false, worldPosition: houseWorldPos });
         }
 
-        // Batu
+        // Batu (Climbable Rocks)
         for (let i = 0; i < WORLD_CONFIG.rockPopulation; i++) {
             const normalVec = generateRandomDirectionVector();
             const rockH = 1.2 + Math.random() * 1.6;
@@ -515,7 +515,7 @@
             document.getElementById('speed-meter').textContent = `Speed: ${Math.abs(currentPlayerSpeed).toFixed(1)} m/s`;
         }
 
-        let gameTime = WORLD_CONFIG.dayCycleDurationSec * 0.25;
+        let gameTime = WORLD_CONFIG.dayCycleDurationSec * 0.25; // Mulakan pukul 12 tengah hari (cerah)
         function updateDayNight(dt) {
             gameTime += dt;
             const frac = (gameTime % WORLD_CONFIG.dayCycleDurationSec) / WORLD_CONFIG.dayCycleDurationSec;
