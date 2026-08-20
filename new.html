@@ -30,7 +30,6 @@
             height: 100%;
         }
 
-        /* ===== UI ===== */
         #ui-container {
             position: fixed;
             top: max(14px, env(safe-area-inset-top));
@@ -113,8 +112,6 @@
             text-shadow: 0 2px 6px rgba(0, 0, 0, 0.9);
             white-space: nowrap;
         }
-
-        /* ===== JOYSTICK ===== */
         #virtual-joystick {
             position: fixed;
             left: max(22px, env(safe-area-inset-left));
@@ -140,8 +137,6 @@
             pointer-events: none;
             will-change: transform;
         }
-
-        /* ===== CAMERA TOUCH ===== */
         #camera-touch-zone {
             position: fixed;
             right: 0;
@@ -152,8 +147,6 @@
             pointer-events: auto;
             touch-action: none;
         }
-
-        /* ===== MOBILE BUTTONS ===== */
         #mobile-controls {
             position: fixed;
             right: max(18px, env(safe-area-inset-right));
@@ -223,8 +216,6 @@
             border-radius: 14px;
             font-size: 8px;
         }
-
-        /* ===== PROMPT ===== */
         #interaction-prompt {
             position: fixed;
             left: 50%;
@@ -284,8 +275,6 @@
             max-width: 92%;
             white-space: nowrap;
         }
-
-        /* ===== LOADING ===== */
         #loading-screen {
             position: fixed;
             inset: 0;
@@ -328,8 +317,6 @@
             background: rgba(255, 255, 255, 0.85);
             transition: width 0.25s ease;
         }
-
-        /* ===== RESPONSIVE ===== */
         @media (max-width: 700px) {
             #ui-container {
                 top: max(10px, env(safe-area-inset-top));
@@ -411,14 +398,12 @@
 </head>
 <body>
 
-    <!-- LOADING -->
     <div id="loading-screen">
         <div id="loading-title">🌍 Tiny World</div>
         <div id="loading-subtitle">Building a living planet...</div>
         <div id="loading-bar"><div id="loading-progress"></div></div>
     </div>
 
-    <!-- UI -->
     <div id="ui-container">
         <h1>🌍 Tiny World</h1>
         <p><b>PC:</b> WASD · SPACE · E · C · J</p>
@@ -435,13 +420,9 @@
 
     <div id="time-display">☀️ 12:00 · Day</div>
 
-    <!-- CAMERA TOUCH -->
     <div id="camera-touch-zone"></div>
-
-    <!-- JOYSTICK -->
     <div id="virtual-joystick"><div id="joystick-thumb"></div></div>
 
-    <!-- MOBILE CONTROLS -->
     <div id="mobile-controls">
         <div id="attack-button" class="mobile-button">⚔️</div>
         <div id="jump-button" class="mobile-button">⬆</div>
@@ -449,12 +430,10 @@
         <div id="camera-button" class="mobile-button">CAM</div>
     </div>
 
-    <!-- PROMPT -->
     <div id="interaction-prompt">E · Interact</div>
     <div id="crosshair"></div>
     <div id="desktop-help">WASD · SPACE · E · C · J · Click NPC</div>
 
-    <!-- THREE.JS -->
     <script type="importmap">
         {
             "imports": {
@@ -585,7 +564,7 @@
         renderer.domElement.id = "tiny-world-canvas";
         document.body.appendChild(renderer.domElement);
 
-        // CSS2D Renderer for labels
+        // CSS2D Renderer
         const labelRenderer = new CSS2DRenderer();
         labelRenderer.setSize(window.innerWidth, window.innerHeight);
         labelRenderer.domElement.style.position = "fixed";
@@ -672,7 +651,7 @@
         scene.add(stars);
 
         // ============================================================
-        // CLOUDS — smaller, higher, more realistic
+        // CLOUDS — smaller, higher
         // ============================================================
         const cloudGroup = new THREE.Group();
         scene.add(cloudGroup);
@@ -699,7 +678,7 @@
         for (let i = 0; i < CONFIG.cloudCount; i++) {
             const cloud = createCloud();
             const normal = randomDirection();
-            const altitude = 28 + Math.random() * 14; // higher
+            const altitude = 28 + Math.random() * 14;
             cloud.userData.normal = normal.clone();
             cloud.userData.altitude = altitude;
             cloud.userData.speed = 0.002 + Math.random() * 0.003;
@@ -1016,7 +995,7 @@
         }
 
         // ============================================================
-        // RIVER — vibrant blue with shimmer
+        // RIVER — vibrant blue
         // ============================================================
         const riverGroup = new THREE.Group();
         scene.add(riverGroup);
@@ -1028,7 +1007,6 @@
             transparent: true,
             opacity: 0.88,
             side: THREE.DoubleSide,
-            envMapIntensity: 0.3,
         });
         const riverBankMat = new THREE.MeshStandardMaterial({ color: 0x6f7250, roughness: 1 });
         const riverStart = new THREE.Vector3(0.45, 0.55, 0.70).normalize();
@@ -1205,29 +1183,30 @@
         updatePlayerTransform();
 
         // ============================================================
-        // NPC SYSTEM — small labels, hidden when not visible
+        // NPC SYSTEM — small, clean labels, hidden when not visible
         // ============================================================
         const npcList = [];
         const npcColors = [0x2196f3, 0xffc107, 0x9c27b0, 0x00acc1, 0xff7043, 0x66bb6a, 0xab47bc, 0x26a69a];
 
-        // Small, clean label style
+        // Clean, minimal label — no big background box
         const labelStyle = `
               color: #fff;
               font-family: "Segoe UI", system-ui, sans-serif;
               font-size: 8px;
               font-weight: 600;
-              text-shadow: 0 1px 6px rgba(0,0,0,0.95);
-              background: rgba(0,0,0,0.45);
-              padding: 1px 6px;
-              border-radius: 8px;
-              border: 1px solid rgba(255,255,255,0.08);
-              backdrop-filter: blur(3px);
-              -webkit-backdrop-filter: blur(3px);
+              text-shadow: 0 1px 4px rgba(0,0,0,0.95);
+              background: rgba(0,0,0,0.35);
+              padding: 1px 5px;
+              border-radius: 6px;
+              border: 1px solid rgba(255,255,255,0.06);
+              backdrop-filter: blur(2px);
+              -webkit-backdrop-filter: blur(2px);
               white-space: nowrap;
               pointer-events: none;
               text-align: center;
               line-height: 1.2;
-              transition: opacity 0.15s ease;
+              transition: opacity 0.2s ease;
+              letter-spacing: 0.2px;
             `;
 
         for (let i = 0; i < CONFIG.npcCount; i++) {
@@ -1270,11 +1249,10 @@
             orientToSurface(npc, normal);
             environmentGroup.add(npc);
 
-            // Small label
+            // Small label — name + HP in one line
             const labelDiv = document.createElement("div");
             labelDiv.style.cssText = labelStyle;
-            labelDiv.innerHTML =
-                `${name}<br><span style="font-size:7px;color:#ff6b6b;">❤️ ${npcData.hp}/${npcData.maxHP}</span>`;
+            labelDiv.innerHTML = `${name} <span style="color:#ff6b6b;font-size:7px;">❤️${npcData.hp}</span>`;
             const label = new CSS2DObject(labelDiv);
             label.position.set(0, 3.0, 0);
             npc.add(label);
@@ -1433,7 +1411,7 @@
         }
 
         // ============================================================
-        // PLAYER MOVEMENT — FIXED DOOR COLLISION
+        // PLAYER MOVEMENT — fixed door collision
         // ============================================================
         function getMovementInput() {
             let turn = 0,
@@ -1454,15 +1432,13 @@
             for (const ob of obstacleList) {
                 if (ob.type === "house") {
                     const house = ob.house;
-                    // If door is open, allow passage through door area
                     if (house.userData.isOpen) {
                         const local = cp.clone();
                         house.worldToLocal(local);
                         const d = house.userData.depth;
                         const doorW = house.userData.doorWidth || 3.2;
-                        // Door area: wide and deep enough for player to pass
+                        // Door area: wide and deep enough for player
                         const nearDoor = Math.abs(local.x) < doorW * 0.8 && local.z < -d * 0.5 + 3.0;
-                        // Also allow if inside house (player is already inside)
                         const inside = Math.abs(local.x) < house.userData.width * 0.4 && Math.abs(local.z) < d * 0.4;
                         if (inside || nearDoor) continue;
                     }
@@ -1527,15 +1503,16 @@
                 return;
             }
 
-            // Attack animation
+            // Attack animation — smooth punch
             if (attackAnimTime > 0) {
-                attackAnimTime -= dt * 6;
+                attackAnimTime -= dt * 7;
                 if (attackAnimTime < 0) attackAnimTime = 0;
-                const swing = Math.sin(attackAnimTime * Math.PI) * 1.4;
+                const progress = 1 - attackAnimTime;
+                const swing = Math.sin(progress * Math.PI) * 1.5;
                 const pm = playerMesh.userData;
-                pm.rightArm.rotation.x = -1.4 + swing * 0.9;
-                pm.leftArm.rotation.x = -1.0 + swing * 0.3;
+                pm.rightArm.rotation.x = -1.2 + swing * 0.9;
                 pm.rightArm.rotation.z = swing * 0.3;
+                pm.leftArm.rotation.x = -0.8 + swing * 0.2;
             }
 
             const input = getMovementInput();
@@ -1594,13 +1571,13 @@
         }
 
         // ============================================================
-        // COMBAT — with visible hit animation
+        // COMBAT — with smooth hit animation
         // ============================================================
         let attackCooldownTimer = 0;
 
         function performAttack() {
             if (attackCooldownTimer > 0 || isSleeping) return;
-            attackCooldownTimer = 0.4;
+            attackCooldownTimer = 0.35;
             attackAnimTime = 1.0;
 
             const pPos = player.position.clone();
@@ -1637,12 +1614,11 @@
                     score += 10;
                     updatePlayerUI();
                     const koDiv = closest.labelDiv;
-                    koDiv.innerHTML = `${closest.name}<br><span style="color:#ff6b6b;font-weight:900;">💀</span>`;
+                    koDiv.innerHTML = `${closest.name} 💀`;
                     koDiv.style.borderColor = "#ff4444";
                 } else {
                     const div = closest.labelDiv;
-                    div.innerHTML =
-                        `${closest.name}<br><span style="font-size:7px;color:#ff6b6b;">❤️ ${closest.hp}/${closest.maxHP}</span>`;
+                    div.innerHTML = `${closest.name} <span style="color:#ff6b6b;font-size:7px;">❤️${closest.hp}</span>`;
                 }
                 updatePlayerUI();
             }
@@ -1710,9 +1686,8 @@
                         orientToSurface(npc.object, newNormal);
                         npc.forward = projectOntoTangent(tangentDirection(newNormal), newNormal);
                         const div = npc.labelDiv;
-                        div.innerHTML =
-                            `${npc.name}<br><span style="font-size:7px;color:#ff6b6b;">❤️ ${npc.hp}/${npc.maxHP}</span>`;
-                        div.style.borderColor = "rgba(255,255,255,0.08)";
+                        div.innerHTML = `${npc.name} <span style="color:#ff6b6b;font-size:7px;">❤️${npc.hp}</span>`;
+                        div.style.borderColor = "rgba(255,255,255,0.06)";
                         npc.aggroTimer = 0;
                         npc.isAggro = false;
                         npc.originalY = npc.object.position.y;
@@ -2221,10 +2196,10 @@
         console.log("🌍 Tiny World loaded!");
         console.log("🎮 WASD · SPACE · E · C · J");
         console.log("🚪 Bigger doors (3.2 wide) — you can enter!");
-        console.log("🏷️ NPC labels are small and only show when visible");
+        console.log("🏷️ NPC labels are small, clean, and only show when visible");
         console.log("🌊 River is bright and visible");
         console.log("☁️ Clouds are smaller and higher");
-        console.log("⚔️ Hit animation on attack (J or tap ⚔️)");
+        console.log("⚔️ Smooth hit animation on attack (J or tap ⚔️)");
     </script>
 </body>
-    </html>
+</html>
